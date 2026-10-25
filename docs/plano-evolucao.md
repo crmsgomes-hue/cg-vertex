@@ -9,7 +9,7 @@ Estado: ✅ na app · 🟡 especificado, depende do servidor próprio · 🔵 es
 | 1 | Prazos CPC/CPT/CC, processos, agenda, minutas, honorários, gravação e transcrição (Whisper), exportação PDF/Word | ✅ |
 | 2 | Incidentes de prazos · DUC e taxas de justiça (RCP) · despesas · CRM e conflito de interesses · tarefas · e-mail ao cliente com IA · OCR · caixa de notificações do Citius | ✅ (dados neste dispositivo) |
 | 3 | Nuvem e sincronização · alertas Web Push · tarefas partilhadas pela equipa · portal do cliente | 🟡 SQL em `supabase/migrations/0001_lexvortex_sync.sql` |
-| 4 | Meios de prova · prescrição · relatório de diligências · calculadora de juros · arquivo físico · diarização | 🔵 |
+| 4 | Meios de prova ✅ · prescrição e caducidade ✅ · relatório de diligências · calculadora de juros · arquivo físico · diarização | 🔵 |
 
 ---
 
@@ -40,7 +40,7 @@ DB.ducs[] = { id, caseId, deadlineId|null, act, ref, amount, issued, paid|null, 
 - **Pagamento → despesa:** o DUC pago entra automaticamente nas despesas do processo (reembolso sem IVA) para a nota de honorários.
 - **Estimativa pelo RCP, Tabela I** (A geral, B, C), a partir do valor da causa; valor da UC configurável (por defeito 102 €); acima de 275 000 € mostra o acréscimo pago a final (3 UC por cada 25 000 € ou fração, coluna A). Estimativa — confirmar sempre no DUC emitido.
 
-### Meios de prova por processo 🔵
+### Meios de prova por processo ✅
 
 ```js
 DB.evidence[] = { id, caseId, kind:'testemunha'|'documento'|'pericia'|'depoimento'|'inspecao',
@@ -50,7 +50,10 @@ DB.evidence[] = { id, caseId, kind:'testemunha'|'documento'|'pericia'|'depoiment
 - Checklist por processo com contagem (ex.: «3 de 5 testemunhas notificadas»), alerta de documentos pendentes antes da audiência e limite de testemunhas configurável (ex.: art. 511.º CPC).
 - Exportar rol de testemunhas e quesitos para Word, prontos a juntar.
 
-### Prescrição e caducidade (direito substantivo) 🔵
+### Prescrição e caducidade (direito substantivo) ✅
+
+Implementado: catálogo de 11 tipos com base legal, contagem pelo art. 279.º CC (incluindo meses e anos sem dia correspondente), interrupções que reiniciam o prazo (art. 326.º CC), data-limite para instaurar a ação 5 dias antes do termo na prescrição (art. 323.º, n.º 2 CC), regra própria da caducidade (art. 331.º CC), alertas no ecrã Hoje e ligação a clientes, leads e processos.
+
 
 ```js
 DB.limitations[] = { id, clientId|caseId, right, regime, startDate, years|months|days, basis,
