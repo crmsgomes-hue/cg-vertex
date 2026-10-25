@@ -6,6 +6,8 @@ App web/mobile (PWA) para advogados e solicitadores em Portugal: processos, praz
 
 - **App online:** https://crmsgomes-hue.github.io/lexvortex/
 - **Código da app:** [`index.html`](index.html) — ficheiro único (HTML + CSS + JavaScript, sem build)
+- **Especificação das fases 2 e 3:** [`docs/especificacao-fase-2-3.md`](docs/especificacao-fase-2-3.md)
+- **SQL da sincronização (Supabase):** [`supabase/migrations/0001_lexvortex_sync.sql`](supabase/migrations/0001_lexvortex_sync.sql)
 - **Servidor de transcrição:** [`supabase/functions/lexvortex-transcribe/index.ts`](supabase/functions/lexvortex-transcribe/index.ts) — Supabase Edge Function (Deno)
 
 ## Funcionalidades
@@ -20,7 +22,8 @@ App web/mobile (PWA) para advogados e solicitadores em Portugal: processos, praz
 | Registo de tempo | Cronómetro por processo e registo manual; criação de nota de honorários a partir das horas |
 | Minutas | Procuração forense, carta de interpelação, requerimento de adiamento e modelos próprios com campos `{{cliente}}`, `{{processo}}`…; exportação Word e PDF |
 | Agenda | Marcações e termos de prazos; ligação a Google Calendar, Outlook e ficheiro .ics |
-| Honorários | IVA 23 %, retenção IRS 23 % (art. 101.º e 151.º CIRS) para clientes com contabilidade organizada; notas de honorários (rascunho, emitida, em atraso, paga) |
+| Despesas | Taxas de justiça, custas, certidões, deslocações, peritos; reembolsos sem IVA (art. 16.º, n.º 6, al. c) CIVA) e despesas com IVA, incluídas automaticamente na nota de honorários |
+| Honorários | IVA 23 %, retenção IRS 23 % (art. 101.º e 151.º CIRS) para clientes com contabilidade organizada; notas de honorários (rascunho, emitida com n.º anual, em atraso, paga) com PDF |
 | Perfil | Dados do advogado, PIN, valor por hora, cópia de segurança (exportar/importar JSON) |
 
 ## Arquitetura
