@@ -6,9 +6,10 @@ App web/mobile (PWA) para advogados e solicitadores em Portugal: processos, praz
 
 - **App online:** https://crmsgomes-hue.github.io/lexvortex/
 - **Código da app:** [`index.html`](index.html) — ficheiro único (HTML + CSS + JavaScript, sem build)
+- **Plano de evolução (3 vertentes):** [`docs/plano-evolucao.md`](docs/plano-evolucao.md)
 - **Especificação das fases 2 e 3:** [`docs/especificacao-fase-2-3.md`](docs/especificacao-fase-2-3.md)
 - **SQL da sincronização (Supabase):** [`supabase/migrations/0001_lexvortex_sync.sql`](supabase/migrations/0001_lexvortex_sync.sql)
-- **Servidor de transcrição:** [`supabase/functions/lexvortex-transcribe/index.ts`](supabase/functions/lexvortex-transcribe/index.ts) — Supabase Edge Function (Deno)
+- **Servidores (Supabase Edge Functions, Deno):** [transcrição](supabase/functions/lexvortex-transcribe/index.ts) · [assistente de e-mail](supabase/functions/lexvortex-assist/index.ts)
 
 ## Funcionalidades
 
@@ -18,7 +19,13 @@ App web/mobile (PWA) para advogados e solicitadores em Portugal: processos, praz
 | Processos | Criar, editar, arquivar e apagar processos e clientes; filtros por urgência; pesquisa |
 | Prazos | Motor de contagem CPC / CPT / Código Civil: art. 138.º e 139.º CPC (multa), art. 248.º e 249.º (presunção de notificação), art. 245.º (dilação), férias judiciais (art. 28.º LOSJ), feriados nacionais e municipais, art. 279.º CC; linha temporal e passos explicados |
 | Gravações | Gravação contínua (Web Audio API) em excertos WAV 16 kHz cortados nas pausas, transcritos com Whisper Large v3; quem fala marcado por toque; correção de texto; pesquisa; exportação PDF e Word |
-| Documentos | Juntar PDFs ao processo; leitura do texto com pdf.js e deteção de datas para calcular prazos |
+| Documentos | Juntar PDFs e fotografias ao processo; leitura do texto com pdf.js ou OCR (Tesseract.js) e deteção de datas para calcular prazos |
+| Notificações | Importar notificações do Citius (PDF ou fotografia): reconhece n.º de processo, data e prazo; o advogado confirma e o prazo é criado |
+| Incidentes de prazos | Suspensão, prorrogação, interrupção (apoio judiciário) e termo fixado pelo tribunal, com recálculo e passos explicados |
+| Taxas de justiça (DUC) | Registo de DUC por ato, estimativa pela Tabela I do RCP, alertas e validação antes da entrega, lançamento automático nas despesas |
+| Clientes | Leads, clientes e caderneta de contactos; verificação de conflito de interesses |
+| Tarefas | Por fazer, Em curso, Concluído; atribuição à equipa; tarefas a partir de prazos |
+| E-mail ao cliente | Rascunho em linguagem clara gerado por IA a partir do processo, para rever e enviar |
 | Registo de tempo | Cronómetro por processo e registo manual; criação de nota de honorários a partir das horas |
 | Minutas | Procuração forense, carta de interpelação, requerimento de adiamento e modelos próprios com campos `{{cliente}}`, `{{processo}}`…; exportação Word e PDF |
 | Agenda | Marcações e termos de prazos; ligação a Google Calendar, Outlook e ficheiro .ics |
