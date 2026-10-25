@@ -259,6 +259,8 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
 .cal-links{display:flex;gap:16px;flex-wrap:wrap;padding:0 4px 10px 78px;font-size:13px;border-bottom:1px solid var(--line)}
 .cal-links a,.cal-links button{color:var(--accent);background:none;border:none;padding:6px 0;font:inherit;font-weight:600;cursor:pointer;text-decoration:none;min-height:36px}
 .ev{border-bottom:none}
+.exp-pick{display:grid;gap:8px}
+.exp-pick .check{gap:10px}
 </style>
 </head>
 <body>
@@ -333,7 +335,7 @@ const graceLeft=r=>r.cells.filter(c=>c.t==='gr'&&diff(TODAY,c.d)>=0).length;
 
 /* ---------- Armazenamento local ---------- */
 const DB_KEY='lexvortex-v2';
-const fresh=()=>({profile:null,clients:[],cases:[],deadlines:[],events:[],fees:[],recs:[],docs:[],time:[],templates:[],timer:null,seq:1});
+const fresh=()=>({profile:null,clients:[],cases:[],deadlines:[],events:[],fees:[],recs:[],docs:[],time:[],templates:[],timer:null,expenses:[],feeSeq:{},seq:1});
 let DB=fresh();
 function load(){try{const s=localStorage.getItem(DB_KEY);if(s)DB=Object.assign(fresh(),JSON.parse(s))}catch(_){}}
 function save(){try{localStorage.setItem(DB_KEY,JSON.stringify(DB))}catch(_){toast('Não foi possível guardar neste dispositivo.')}}
@@ -559,7 +561,7 @@ VIEWS.caso=()=>{
   <div><span>Cliente</span><b>${esc(cl.name||'—')}</b></div><div><span>Parte adversa</span><b>${esc(c.adv||'—')}</b></div>
   <div><span>Fase processual</span><b>${esc(c.phase)}</b></div><div><span>Área</span><b>${esc(c.area)}${c.urgentLegal?' · urgente':''}</b></div>
   <div><span>Valor da causa</span><b>${c.value!=null?eur(c.value):'—'}</b></div><div><span>NIF do cliente</span><b>${esc(cl.nif||'—')}</b></div></div></section>
- ${recSection(c)}${docSection(c)}${timeSection(c)}
+ ${recSection(c)}${docSection(c)}${timeSection(c)}${expSection(c)}
  <section style="margin-bottom:18px"><h2 class="sec-t">Prazos</h2>${dls.length?`<div class="tscroll"><table class="tbl"><thead><tr><th>Ato</th><th>Evento</th><th>Termo</th><th>Fim da multa</th><th>Base legal</th><th>Estado</th><th></th></tr></thead><tbody>
  ${dls.map(x=>`<tr><td><b>${esc(x.d.title)}</b></td><td class="mono">${TRIG[x.d.triggerType]}<br><span class="muted">${fd(parse(x.d.trigger))}</span></td><td class="mono"><b>${fd(x.r.termo)}</b></td><td class="mono">${x.r.grace?fd(x.r.grace):'—'}</td><td>${esc(x.d.basis)}</td><td>${chip(x.l)}</td><td><div class="row-acts">${x.d.done?'':`<button class="btn sm" data-act="done" data-id="${x.d.id}">Entregue</button>`}${confirmBtn('del-dl',x.d.id,'Apagar','Confirmar')}</div></td></tr>`).join('')}
  </tbody></table></div>`:'<div class="card empty">Sem prazos neste processo. Use «Novo prazo» para calcular o primeiro.</div>'}</section>
@@ -804,6 +806,52 @@ async function exportMinuta(kind){const d=currentDoc();if(!d)return;const name=(
 /* ---------- Cópia de segurança ---------- */
 function backupBlob(){const data={app:'LEXVORTEX',version:2,exported:new Date().toISOString(),...DB};delete data.timer;return new Blob([JSON.stringify(data,null,1)],{type:'application/json'})}
 
+/* ---------- Despesas e custas processuais ---------- */
+const EXPCAT=[['taxa','Taxa de justiça'],['custas','Custas e encargos'],['certidao','Certidões e registos'],['desloc','Deslocações'],['perito','Peritos e terceiros'],['correio','Correio e portes'],['traducao','Traduções'],['outra','Outra']];
+const EXP_REEMB={taxa:true,custas:true,certidao:true,perito:true,correio:false,desloc:false,traducao:false,outra:false};
+const catName=k=>(EXPCAT.find(x=>x[0]===k)||EXPCAT[7])[1];
+function expSection(c){const list=DB.expenses.filter(x=>x.caseId===c.id).sort((a,b)=>b.date.localeCompare(a.date)||(b.created||0)-(a.created||0));
+ const open=list.filter(x=>!x.billed&&x.paidBy!=='client'),tot=open.reduce((s,x)=>s+ +x.amount,0);
+ return `<section class="card pad-card" style="margin-bottom:18px"><div class="h-row" style="margin-bottom:10px;align-items:center"><h2 class="sec-t" style="margin:0">Despesas e custas</h2><div class="row-acts"><button class="btn sm" data-act="exp-add" data-id="${c.id}">Registar despesa</button></div></div>
+ ${S.expAdd===c.id?`<div class="form subform" style="margin-bottom:14px">
+  <div class="f2"><div class="f"><label for="x-date">Data</label><input id="x-date" type="date" value="${key(TODAY)}"></div><div class="f"><label for="x-cat">Tipo</label><select id="x-cat" data-xcat>${opts(EXPCAT,'taxa')}</select></div></div>
+  <div class="f"><label for="x-desc">Descrição</label><input id="x-desc" placeholder="Ex.: Taxa de justiça — contestação (DUC n.º …)"></div>
+  <div class="f2"><div class="f"><label for="x-amount">Valor (€)</label><input id="x-amount" type="number" inputmode="decimal" min="0" step="0.01"></div><div class="f"><label for="x-paid">Quem pagou</label><select id="x-paid"><option value="office">O escritório — debitar ao cliente</option><option value="client">O cliente diretamente — só registo</option></select></div></div>
+  <label class="check"><input type="checkbox" id="x-reemb" checked>Paga em nome e por conta do cliente (reembolso sem IVA)</label>
+  <div class="row-acts"><button class="btn pri" data-act="exp-save" data-id="${c.id}">Guardar despesa</button><button class="btn" data-act="exp-cancel">Cancelar</button></div></div>`:''}
+ ${list.length?`<div class="tscroll"><table class="tbl"><thead><tr><th>Data</th><th>Despesa</th><th>Tipo</th><th class="num">Valor</th><th>IVA</th><th>Estado</th><th></th></tr></thead><tbody>${list.map(x=>`<tr><td class="mono">${fd(parse(x.date))}</td><td>${esc(x.desc||catName(x.cat))}</td><td>${esc(catName(x.cat))}</td><td class="num ${x.paidBy==='client'?'':x.billed?'pos':'neg'}">${eur(x.amount)}</td><td>${x.reemb?'Reembolso sem IVA':'Com IVA'}</td><td>${x.paidBy==='client'?'<span class="chip l-norm">Paga pelo cliente</span>':x.billed?'<span class="chip l-ok">Debitada</span>':'<span class="chip l-att">Por debitar</span>'}</td><td>${x.billed?'':confirmBtn('exp-del',x.id,'Apagar','Confirmar')}</td></tr>`).join('')}</tbody></table></div>
+ ${tot?`<div class="row-acts" style="margin-top:12px;justify-content:space-between"><span>Por debitar ao cliente: <b class="neg">${eur(tot)}</b></span><button class="btn sm pri" data-act="fee-case" data-id="${c.id}">Incluir numa nota de honorários</button></div>`:''}`:'<div class="empty">Sem despesas registadas. Registe taxas de justiça, certidões, deslocações ou peritagens à medida que as paga.</div>'}</section>`}
+function feeExpHtml(caseId){const ex=caseId?DB.expenses.filter(x=>x.caseId===caseId&&!x.billed&&x.paidBy!=='client'):[];if(!ex.length)return '';
+ return `<div class="f"><label>Despesas do processo a incluir</label><div class="exp-pick">${ex.map(x=>`<label class="check"><input type="checkbox" data-fexp value="${x.id}" checked><span style="flex:1">${esc(x.desc||catName(x.cat))} <span class="muted" style="font-size:12.5px">· ${fds(parse(x.date))} · ${x.reemb?'reembolso sem IVA':'com IVA'}</span></span><b class="mono">${eur(x.amount)}</b></label>`).join('')}</div><p class="muted" style="font-size:12.5px;margin:6px 0 0">As despesas com IVA somam aos honorários; os reembolsos entram à parte, sem IVA nem retenção.</p></div>`}
+function makeFee(o){const ex=(o.expIds||[]).map(id=>DB.expenses.find(x=>x.id===id)).filter(Boolean);
+ const tax=ex.filter(x=>!x.reemb).reduce((s,x)=>s+ +x.amount,0),reimb=ex.filter(x=>x.reemb).reduce((s,x)=>s+ +x.amount,0);const r2=n=>Math.round(n*100)/100;
+ const f={id:nid('f'),clientId:o.clientId,caseId:o.caseId||null,desc:o.desc,hon:r2(+o.H||0),H:r2((+o.H||0)+tax),manualExp:r2(+o.manualExp||0),exp:r2((+o.manualExp||0)+reimb),
+  lines:ex.map(x=>({id:x.id,desc:x.desc||catName(x.cat),cat:x.cat,amount:+x.amount,reemb:!!x.reemb,date:x.date})),status:'draft',issued:null};
+ ex.forEach(x=>{x.billed=true;x.feeId=f.id});DB.fees.push(f);return f}
+function buildFeePdf(f,J){const doc=new J({unit:'mm',format:'a4'});const ML=20,R=190;let y=24;const cl=clientById(f.clientId)||{},c=f.caseId?caseById(f.caseId):null,pr=P(),r=feeCalc(f.H,cl.org);
+ const lines=f.lines||[],hon=f.hon!=null?f.hon:f.H-lines.filter(x=>!x.reemb).reduce((s,x)=>s+x.amount,0),manual=f.manualExp!=null?f.manualExp:f.exp-lines.filter(x=>x.reemb).reduce((s,x)=>s+x.amount,0);
+ const T=(t,x,yy,o)=>doc.text(String(t),x,yy,o);
+ doc.setFont('helvetica','bold');doc.setFontSize(15);T('NOTA DE HONORÁRIOS',ML,y);doc.setFontSize(10.5);T(f.num?'N.º '+f.num:'Rascunho',R,y,{align:'right'});y+=9;
+ doc.setFont('helvetica','normal');doc.setFontSize(10);
+ [LNAME(),(fem()?'Advogada':'Advogado')+(pr.cedula?' · Cédula profissional n.º '+pr.cedula:''),pr.addr,pr.email].filter(Boolean).forEach(l=>{T(l,ML,y);y+=5});y+=4;
+ doc.setFont('helvetica','bold');T('Cliente',ML,y);T('Data',130,y);doc.setFont('helvetica','normal');y+=5;
+ const cy=y;[cl.name,cl.nif?'NIF '+cl.nif:'',cl.addr].filter(Boolean).forEach(l=>{doc.splitTextToSize(l,100).forEach(s=>{T(s,ML,y);y+=5})});
+ T(fd(f.issued?parse(f.issued):TODAY),130,cy);if(c){T('Processo',130,cy+7);doc.setFontSize(9.5);doc.splitTextToSize((c.num||'')+(c.title?' — '+c.title:''),60).forEach((s,i)=>T(s,130,cy+12+i*4.6));doc.setFontSize(10)}
+ y=Math.max(y,cy+24)+6;
+ const row=(a,b,opt={})=>{if(y>270){doc.addPage();y=24}doc.setFont('helvetica',opt.bold?'bold':'normal');const ls=doc.splitTextToSize(a,130);ls.forEach((s,i)=>T(s,ML+(opt.ind||0),y+i*5));T(b,R,y,{align:'right'});y+=ls.length*5+(opt.gap??2.5)};
+ doc.setFillColor(240,242,246);doc.rect(ML,y-5,R-ML,8,'F');doc.setFont('helvetica','bold');T('Descrição',ML+2,y);T('Valor',R-2,y,{align:'right'});y+=8;
+ row(f.desc||'Honorários',eur(hon));
+ lines.filter(x=>!x.reemb).forEach(x=>row('Despesa: '+x.desc+' ('+fds(parse(x.date))+')',eur(x.amount)));
+ doc.setDrawColor(210);doc.line(ML,y-1,R,y-1);y+=4;
+ row('Total sujeito a IVA',eur(f.H),{bold:true});row('IVA (23%)',eur(r.vat));
+ if(r.ret)row('Retenção na fonte de IRS (23%)','- '+eur(r.ret));
+ const reimb=lines.filter(x=>x.reemb);if(reimb.length||manual>0){y+=2;row('Reembolso de despesas (sem IVA)','',{bold:true,gap:1});reimb.forEach(x=>row(x.desc+' ('+fds(parse(x.date))+')',eur(x.amount),{ind:4}));if(manual>0)row('Outras despesas reembolsáveis',eur(manual),{ind:4})}
+ y+=2;doc.setDrawColor(120);doc.line(ML,y-2,R,y-2);y+=4;doc.setFontSize(12);row('TOTAL A PAGAR',eur(r.due+(+f.exp||0)),{bold:true});doc.setFontSize(10);
+ y+=8;doc.setFont('helvetica','italic');doc.setFontSize(8.5);doc.setTextColor(90);
+ doc.splitTextToSize((reimb.length?'As quantias de reembolso foram pagas em nome e por conta do cliente e não estão sujeitas a IVA (art. 16.º, n.º 6, al. c) do CIVA). ':'')+'Este documento não substitui a fatura-recibo, emitida no Portal das Finanças ou em programa de faturação certificado.',R-ML).forEach(s=>{T(s,ML,y);y+=4});
+ doc.setTextColor(0);return doc.output('blob')}
+async function exportFee(f){try{await loadScript(LIB_PDF);if(await saveBlob(buildFeePdf(f,window.jspdf.jsPDF),'Nota-honorarios'+(f.num?'-'+f.num.replace('/','-'):'-rascunho')+'.pdf'))toast('Nota de honorários em PDF guardada.')}catch(_){toast('Não foi possível criar o PDF. Verifique a ligação à internet e tente de novo.')}}
+
 async function summarize(id){const r=DB.recs.find(x=>x.id===id),el=$('sum-'+id);if(!el||!r)return;el.style.display='';el.textContent='A preparar o resumo…';
  let sample=null;try{sample=AI()?await window.claude.use('sample'):null}catch(_){}
  if(!sample){el.textContent='O resumo com IA não está disponível neste navegador.';return}
@@ -913,9 +961,10 @@ VIEWS.honorarios=()=>{
  const sum=k=>rows.reduce((s,x)=>s+(k==='H'?+x.f.H:k==='tot'?x.tot:x.r[k]),0);
  const form=S.feeOpen?`<section class="card pad-card" style="margin-bottom:18px;max-width:760px"><h2 class="sec-t">Nova nota de honorários</h2>${DB.clients.length?`<div class="form">
   <div class="f2"><div class="f"><label for="n-client">Cliente</label><select id="n-client">${DB.clients.map(x=>`<option value="${x.id}" ${S.feeCase&&caseById(S.feeCase)?.clientId===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select></div>
-  <div class="f"><label for="n-case">Processo (opcional)</label><select id="n-case">${caseOpts(S.feeCase||'','Sem processo')}</select></div></div>
+  <div class="f"><label for="n-case">Processo (opcional)</label><select id="n-case" data-ncase>${caseOpts(S.feeCase||'','Sem processo')}</select></div></div>
   <div class="f"><label for="n-desc">Descrição</label><input id="n-desc" placeholder="Ex.: Honorários — fase dos articulados"></div>
-  <div class="f2"><div class="f"><label for="n-H">Honorários sem IVA (€)</label><input id="n-H" type="number" inputmode="decimal" min="0" step="0.01"></div><div class="f"><label for="n-exp">Despesas reembolsáveis (€)</label><input id="n-exp" type="number" inputmode="decimal" min="0" step="0.01" value="0"></div></div>
+  <div class="f2"><div class="f"><label for="n-H">Honorários sem IVA (€)</label><input id="n-H" type="number" inputmode="decimal" min="0" step="0.01"></div><div class="f"><label for="n-exp">Outras despesas reembolsáveis (€)</label><input id="n-exp" type="number" inputmode="decimal" min="0" step="0.01" value="0"></div></div>
+  <div id="n-exp-list">${feeExpHtml(S.feeCase||'')}</div>
   <div class="row-acts"><button class="btn pri" data-act="fee-save">Guardar nota</button><button class="btn" data-act="fee-cancel">Cancelar</button></div></div>`:'<p class="muted">Os clientes são criados com os processos. Crie primeiro um processo.</p><button class="btn pri" data-act="new-proc">Criar processo</button>'}</section>`:'';
  return `<div class="h-row"><div><h1>Honorários</h1><p>Recebido: <span class="pos">${eur(paid)}</span> · Por receber: <span class="neg">${eur(pend)}</span></p></div>${S.feeOpen?'':'<button class="btn pri" data-act="fee-open">Nova nota</button>'}</div>${form}
  <div class="grid2" style="align-items:start;margin-bottom:18px">
@@ -933,13 +982,15 @@ VIEWS.honorarios=()=>{
   <div class="note">Confirme o seu enquadramento fiscal com o contabilista.</div></section></div>
  <h2 class="sec-t">Notas de honorários</h2>
  ${rows.length?`<div class="tscroll"><table class="tbl"><thead><tr><th>Cliente</th><th>Descrição</th><th>Emissão</th><th class="num">Honorários</th><th class="num">IVA</th><th class="num">Retenção</th><th class="num">Despesas</th><th class="num">A receber</th><th>Estado</th><th></th></tr></thead><tbody>
- ${rows.map(({f,cl,r,st,tot})=>`<tr><td><b>${esc(cl.name)}</b>${f.caseId&&caseById(f.caseId)?`<br><span class="muted mono">${esc(caseById(f.caseId).num||'')}</span>`:''}</td><td>${esc(f.desc)}</td><td class="mono">${f.issued?fd(parse(f.issued)):'—'}</td><td class="num">${eur(f.H)}</td><td class="num">${eur(r.vat)}</td><td class="num">${r.ret?'−'+eur(r.ret):'—'}</td><td class="num">${+f.exp?eur(f.exp):'—'}</td><td class="num ${st==='paid'?'pos':st==='draft'?'':'neg'}">${eur(tot)}</td><td><span class="chip ${FS[st][0]}">${FS[st][1]}</span></td><td><div class="row-acts">${st==='draft'?`<button class="btn sm" data-act="issue" data-id="${f.id}">Emitir</button>${confirmBtn('del-fee',f.id,'Apagar','Confirmar')}`:st!=='paid'?`<button class="btn sm" data-act="paid" data-id="${f.id}">Registar pagamento</button>`:''}</div></td></tr>`).join('')}
+ ${rows.map(({f,cl,r,st,tot})=>`<tr><td><b>${esc(cl.name)}</b>${f.caseId&&caseById(f.caseId)?`<br><span class="muted mono">${esc(caseById(f.caseId).num||'')}</span>`:''}</td><td>${esc(f.desc)}</td><td class="mono">${f.issued?fd(parse(f.issued)):'—'}${f.num?'<br><span class="muted">N.º '+f.num+'</span>':''}</td><td class="num">${eur(f.H)}</td><td class="num">${eur(r.vat)}</td><td class="num">${r.ret?'−'+eur(r.ret):'—'}</td><td class="num">${+f.exp?eur(f.exp):'—'}</td><td class="num ${st==='paid'?'pos':st==='draft'?'':'neg'}">${eur(tot)}</td><td><span class="chip ${FS[st][0]}">${FS[st][1]}</span></td><td><div class="row-acts"><button class="btn sm" data-act="fee-pdf" data-id="${f.id}">PDF</button>${st==='draft'?`<button class="btn sm" data-act="issue" data-id="${f.id}">Emitir</button>${confirmBtn('del-fee',f.id,'Apagar','Confirmar')}`:st!=='paid'?`<button class="btn sm" data-act="paid" data-id="${f.id}">Registar pagamento</button>`:''}</div></td></tr>`).join('')}
  </tbody><tfoot><tr><td colspan="3">Total</td><td class="num">${eur(sum('H'))}</td><td class="num">${eur(sum('vat'))}</td><td class="num">−${eur(sum('ret'))}</td><td class="num"></td><td class="num">${eur(sum('tot'))}</td><td colspan="2"></td></tr></tfoot></table></div>`:'<div class="card empty">Sem notas de honorários.</div>'}`;
 };
 function renderFee(){const el=$('fee-out');if(!el)return;const H=+S.fee.H||0,e=+S.fee.exp||0,r=feeCalc(H,S.fee.company,S.fee.exempt);
  el.innerHTML=`<div class="calc-out"><div><span>Honorários</span><b class="mono">${eur(H)}</b></div><div><span>IVA ${S.fee.exempt?'(isento)':'23%'}</span><b class="mono pos">+${eur(r.vat)}</b></div><div><span>Retenção IRS ${S.fee.company?'23%':'(não aplicável)'}</span><b class="mono neg">${r.ret?'−':''}${eur(r.ret)}</b></div>${e?`<div><span>Despesas reembolsáveis</span><b class="mono">+${eur(e)}</b></div>`:''}<div class="tot"><span>Valor a receber</span><span class="mono">${eur(r.due+e)}</span></div></div>`}
-function saveFee(){const clientId=val('n-client'),desc=val('n-desc'),H=+val('n-H');if(!clientId)return;if(!desc)return toast('Indique a descrição.');if(!(H>0))return toast('Indique o valor dos honorários.');
- DB.fees.push({id:nid('f'),clientId,caseId:val('n-case')||null,desc,H,exp:+val('n-exp')||0,status:'draft',issued:null});save();S.feeOpen=false;S.feeCase=null;toast('Nota de honorários guardada como rascunho.');render()}
+function saveFee(){const clientId=val('n-client'),desc=val('n-desc'),H=+val('n-H')||0;if(!clientId)return;
+ const expIds=[...document.querySelectorAll('[data-fexp]:checked')].map(i=>i.value);
+ if(!desc)return toast('Indique a descrição.');if(!(H>0)&&!expIds.length)return toast('Indique o valor dos honorários.');
+ makeFee({clientId,caseId:val('n-case')||null,desc,H,manualExp:+val('n-exp')||0,expIds});save();S.feeOpen=false;S.feeCase=null;toast(expIds.length?'Nota guardada como rascunho, com '+expIds.length+' despesa(s) incluída(s).':'Nota de honorários guardada como rascunho.');render()}
 
 /* ---------- Perfil ---------- */
 VIEWS.perfil=()=>{const p=P();
@@ -976,7 +1027,7 @@ document.addEventListener('click',e=>{
   case 'edit-case':S.editCase=id;go('novo-proc');break;
   case 'save-proc':saveProc();break;
   case 'archive':{const c=caseById(id);c.status=c.status==='archived'?'active':'archived';save();toast(c.status==='archived'?'Processo arquivado.':'Processo reativado.');render();break}
-  case 'del-case':if(askConfirm('del-case'+id)){DB.recs.filter(r=>r.caseId===id).forEach(r=>audioDel(r.id));DB.recs=DB.recs.filter(r=>r.caseId!==id);DB.deadlines=DB.deadlines.filter(d=>d.caseId!==id);DB.events=DB.events.filter(x=>x.caseId!==id);DB.docs.filter(d=>d.caseId===id).forEach(d=>audioDel('doc:'+d.id));DB.docs=DB.docs.filter(d=>d.caseId!==id);DB.time=DB.time.filter(t=>t.caseId!==id);if(DB.timer&&DB.timer.caseId===id)DB.timer=null;DB.fees.forEach(f=>{if(f.caseId===id)f.caseId=null});DB.cases=DB.cases.filter(c=>c.id!==id);save();toast('Processo apagado.');go('processos')}break;
+  case 'del-case':if(askConfirm('del-case'+id)){DB.recs.filter(r=>r.caseId===id).forEach(r=>audioDel(r.id));DB.recs=DB.recs.filter(r=>r.caseId!==id);DB.deadlines=DB.deadlines.filter(d=>d.caseId!==id);DB.events=DB.events.filter(x=>x.caseId!==id);DB.docs.filter(d=>d.caseId===id).forEach(d=>audioDel('doc:'+d.id));DB.docs=DB.docs.filter(d=>d.caseId!==id);DB.time=DB.time.filter(t=>t.caseId!==id);DB.expenses=DB.expenses.filter(x=>x.caseId!==id);if(DB.timer&&DB.timer.caseId===id)DB.timer=null;DB.fees.forEach(f=>{if(f.caseId===id)f.caseId=null});DB.cases=DB.cases.filter(c=>c.id!==id);save();toast('Processo apagado.');go('processos')}break;
   case 'done':{const d=DB.deadlines.find(x=>x.id===id);if(d){d.done=true;d.doneAt=key(TODAY);save();toast('Prazo marcado como entregue.');render()}break}
   case 'del-dl':if(askConfirm('del-dl'+id)){DB.deadlines=DB.deadlines.filter(d=>d.id!==id);save();toast('Prazo apagado.');render()}break;
   case 'new-dl':{const c=caseById(id);S.calc.caseId=id;S.calc.court=c.court;S.calc.urgent=!!c.urgentLegal;go('prazos');break}
@@ -993,9 +1044,9 @@ document.addEventListener('click',e=>{
   case 'fee-case':S.feeOpen=true;S.feeCase=id;go('honorarios');break;
   case 'fee-cancel':S.feeOpen=false;render();break;
   case 'fee-save':saveFee();break;
-  case 'issue':{const f=DB.fees.find(x=>x.id===id);f.status='issued';f.issued=key(TODAY);save();toast('Nota emitida. A fatura-recibo emite-se no Portal das Finanças ou no seu programa de faturação.');render();break}
+  case 'issue':{const f=DB.fees.find(x=>x.id===id);f.status='issued';f.issued=key(TODAY);const yr=TODAY.getFullYear();DB.feeSeq=DB.feeSeq||{};DB.feeSeq[yr]=(DB.feeSeq[yr]||0)+1;f.num=yr+'/'+String(DB.feeSeq[yr]).padStart(3,'0');save();toast('Nota emitida. A fatura-recibo emite-se no Portal das Finanças ou no seu programa de faturação.');render();break}
   case 'paid':{const f=DB.fees.find(x=>x.id===id);f.status='paid';f.paidAt=key(TODAY);save();toast('Pagamento registado.');render();break}
-  case 'del-fee':if(askConfirm('del-fee'+id)){DB.fees=DB.fees.filter(x=>x.id!==id);save();render()}break;
+  case 'del-fee':if(askConfirm('del-fee'+id)){DB.expenses.forEach(x=>{if(x.feeId===id){x.billed=false;x.feeId=null}});DB.time.forEach(t=>{if(t.feeId===id){t.billed=false;t.feeId=null}});DB.fees=DB.fees.filter(x=>x.id!==id);save();render()}break;
   case 'live-case':S.liveCase=id;go('direto');break;
   case 'live-start':startRec(S.liveCase,'live');break;
   case 'rec-note':startRec(id,'note');break;
@@ -1014,7 +1065,7 @@ document.addEventListener('click',e=>{
   case 'tm-cancel':S.tmAdd=null;render();break;
   case 'tm-save':{const m=+val('tm-min');if(!(m>0)){toast('Indique os minutos.');break}DB.time.push({id:nid('t'),caseId:id,date:val('tm-date')||key(TODAY),minutes:Math.round(m),desc:val('tm-d2'),billed:false,created:Date.now()});S.tmAdd=null;save();toast('Tempo registado.');render();break}
   case 'tm-del':if(askConfirm('tm-del'+id)){DB.time=DB.time.filter(t=>t.id!==id);save();render()}break;
-  case 'tm-bill':{const c=caseById(id),rate=+P().rate||0;if(!rate){toast('Defina primeiro o valor por hora no Perfil.');go('perfil');break}const ent=DB.time.filter(t=>t.caseId===id&&!t.billed);const mins=ent.reduce((s,t)=>s+t.minutes,0);const fid=nid('f');DB.fees.push({id:fid,clientId:c.clientId,caseId:id,desc:'Honorários — '+fmtMin(mins)+' de trabalho',H:Math.round(mins/60*rate*100)/100,exp:0,status:'draft',issued:null});ent.forEach(t=>{t.billed=true;t.feeId=fid});save();toast('Nota de honorários criada como rascunho.');go('honorarios');break}
+  case 'tm-bill':{const c=caseById(id),rate=+P().rate||0;if(!rate){toast('Defina primeiro o valor por hora no Perfil.');go('perfil');break}const ent=DB.time.filter(t=>t.caseId===id&&!t.billed);const mins=ent.reduce((s,t)=>s+t.minutes,0);const exIds=DB.expenses.filter(x=>x.caseId===id&&!x.billed&&x.paidBy!=='client').map(x=>x.id);const nf=makeFee({clientId:c.clientId,caseId:id,desc:'Honorários — '+fmtMin(mins)+' de trabalho',H:mins/60*rate,expIds:exIds});ent.forEach(t=>{t.billed=true;t.feeId=nf.id});save();toast(exIds.length?'Nota criada como rascunho, com as horas e '+exIds.length+' despesa(s) do processo.':'Nota de honorários criada como rascunho.');go('honorarios');break}
   case 'ics-one':{const e2=agendaItems().find(x=>x.id===id&&x.kind===a.dataset.kind);if(e2)saveBlob(icsFile([e2]),'lexvortex-'+e2.date+'.ics');break}
   case 'ics-all':{const it=agendaItems();if(!it.length){toast('Não há marcações nem prazos para exportar.');break}saveBlob(icsFile(it),'lexvortex-agenda.ics').then(ok=>ok&&toast('Agenda exportada. Abra o ficheiro para a juntar ao seu calendário.'));break}
   case 'tp-new':S.tplEdit='new';render();break;
@@ -1030,6 +1081,11 @@ document.addEventListener('click',e=>{
   case 'bk-import':{const f=$('bk-file');if(f)f.click();break}
   case 'bk-cancel':S.pendingImport=null;render();break;
   case 'bk-apply':{const o=S.pendingImport;if(!o)break;delete o.app;delete o.version;delete o.exported;DB=Object.assign(fresh(),o);save();S.pendingImport=null;toast('Dados importados.');shell();break}
+  case 'exp-add':S.expAdd=id;render();break;
+  case 'exp-cancel':S.expAdd=null;render();break;
+  case 'exp-save':{const amount=+val('x-amount');if(!(amount>0)){toast('Indique o valor da despesa.');break}const cat=val('x-cat');DB.expenses.push({id:nid('x'),caseId:id,date:val('x-date')||key(TODAY),cat,desc:val('x-desc')||catName(cat),amount:Math.round(amount*100)/100,reemb:chk('x-reemb'),paidBy:val('x-paid')||'office',billed:false,created:Date.now()});S.expAdd=null;save();toast('Despesa registada.');render();break}
+  case 'exp-del':if(askConfirm('exp-del'+id)){DB.expenses=DB.expenses.filter(x=>x.id!==id);save();render()}break;
+  case 'fee-pdf':{const f=DB.fees.find(x=>x.id===id);if(f)exportFee(f);break}
   case 'rec-retry':{const r=DB.recs.find(x=>x.id===id);if(r)retryPending(r);break}
   case 'rec-tx':{const r=DB.recs.find(x=>x.id===id);if(r)txFile(r);break}
   case 'spk':S.spk=a.dataset.spk||null;render();break;
@@ -1046,6 +1102,8 @@ document.addEventListener('keydown',e=>{
 document.addEventListener('input',e=>{const t=e.target;
  if(t.id==='q'){S.q=t.value;$('ctable').innerHTML=caseTable();return}
  if(t.dataset.pclient!==undefined){$('newclient').style.display=t.value==='__new'?'grid':'none';return}
+ if(t.dataset.xcat!==undefined){const cb=$('x-reemb');if(cb)cb.checked=!!EXP_REEMB[t.value];return}
+ if(t.dataset.ncase!==undefined){const el=$('n-exp-list');if(el)el.innerHTML=feeExpHtml(t.value);const c=caseById(t.value);const cs=$('n-client');if(c&&cs)cs.value=c.clientId;return}
  if(t.dataset.tmdesc!==undefined){if(DB.timer){DB.timer.desc=t.value;save()}return}
  if(t.dataset.lvcase!==undefined){S.liveCase=t.value;return}
  if(t.dataset.c!==undefined){const k=t.dataset.c;S.calc[k]=t.type==='checkbox'?t.checked:t.value;
