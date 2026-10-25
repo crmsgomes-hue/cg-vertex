@@ -275,6 +275,8 @@ td a,.ev a{color:var(--accent)}
 .f3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 select.evst{min-height:40px;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:0 10px;font-size:14px}
 select.evst.ok{border-color:var(--ok);color:var(--ok);font-weight:600}
+.cell.uf{background:var(--cnt);border:1px dashed var(--accent)}
+.infobox{border:1px solid var(--line);border-left:4px solid var(--navy2);background:var(--surface);border-radius:14px;padding:14px 16px;margin-bottom:16px}
 </style>
 </head>
 <body>
@@ -307,6 +309,15 @@ const weekend=d=>d.getDay()===0||d.getDay()===6;
 const closed=(d,c)=>weekend(d)||!!holName(d,c);
 function judHol(d){const m=d.getMonth(),dd=d.getDate();if((m===11&&dd>=22)||(m===0&&dd<=3))return 'Natal';if((m===6&&dd>=16)||m===7)return 'verão';const e=easter(d.getFullYear()),t=d.getTime();if(t>=add(e,-7).getTime()&&t<=add(e,1).getTime())return 'Páscoa';return null}
 function closedWhy(d,c){if(d.getDay()===6)return 'sábado';if(d.getDay()===0)return 'domingo';return holName(d,c)}
+const URG=[['cautelar','Procedimento cautelar','art. 363.º, n.º 1 CPC'],['insolvencia','Processo de insolvência ou PER','art. 9.º, n.º 1 CIRE'],['tutelar','Processo tutelar cível (demora prejudicial à criança)','art. 13.º RGPTC'],['promocao','Processo de promoção e proteção','art. 102.º, n.º 1 LPCJP'],['penal_preso','Processo penal com arguido detido ou preso','arts. 103.º, n.º 2, al. a) e 104.º, n.º 2 CPP'],['despedimento','Impugnação judicial do despedimento','art. 26.º, n.º 1 CPT'],['administrativo','Processo urgente administrativo','art. 36.º CPTA'],['outro','Outro processo urgente por lei','']];
+const urgName=k=>(URG.find(x=>x[0]===k)||URG[7])[1];
+const urgBasis=k=>(URG.find(x=>x[0]===k)||URG[7])[2];
+function feriasInfo(){const cur=judHol(TODAY);let txt='';
+ if(cur){let e=TODAY;while(judHol(add(e,1)))e=add(e,1);const n=DB.cases.filter(c=>c.status!=='archived'&&c.urgentLegal).length;
+  txt=`<section class="infobox"><b>Férias judiciais (${cur}) até ${fd(e)}</b><br><span style="font-size:13.5px">Os prazos processuais estão suspensos, exceto nos processos urgentes e nos prazos de 6 meses ou mais (art. 138.º, n.º 1 CPC). ${n?n+' processo(s) urgente(s) continuam a contar.':''}</span></section>`}
+ else{let s0=null;for(let i=1;i<=10;i++){if(judHol(add(TODAY,i))){s0=add(TODAY,i);break}}
+  if(s0)txt=`<section class="infobox"><b>As férias judiciais (${judHol(s0)}) começam a ${fd(s0)}</b><br><span style="font-size:13.5px">A partir daí só correm os prazos dos processos urgentes (art. 28.º LOSJ e art. 138.º, n.º 1 CPC).</span></section>`}
+ return txt}
 const TPL={
  contest:{name:'Contestação',days:30,regime:'cpc',basis:'art. 569.º CPC',trigger:'citation'},
  apel:{name:'Recurso de apelação',days:30,regime:'cpc',basis:'art. 638.º CPC',trigger:'electronic'},
@@ -338,12 +349,12 @@ function compute(p){
  const total=p.days+(p.dil||0)+EXT;
  if(p.dil)steps.push('Dilação de '+p.dil+' dias somada ao prazo de '+p.days+' dias: '+total+' dias (art. 245.º CPC).');
  cells.push({d:start,t:'ev'});
- let d=start,n=0,sus=0;
- while(n<total){d=add(d,1);const sp=inSus(d);if(sp){if(!sp.to)PEND=PEND||'Suspensão em curso';cells.push({d,t:'susp'});SUSN++;continue}if(suspend&&judHol(d)){cells.push({d,t:'susp'});sus++;continue}n++;cells.push({d,t:closed(d,c)?'cl':'cnt',n})}
+ let d=start,n=0,sus=0,UHD=0;
+ while(n<total){d=add(d,1);const sp=inSus(d);if(sp){if(!sp.to)PEND=PEND||'Suspensão em curso';cells.push({d,t:'susp'});SUSN++;continue}if(suspend&&judHol(d)){cells.push({d,t:'susp'});sus++;continue}n++;const fj=p.regime!=='substantive'&&!suspend&&!!judHol(d);if(fj)UHD++;cells.push({d,t:closed(d,c)?'cl':fj?'uf':'cnt',n})}
  if(p.regime==='substantive')steps.push('Prazo substantivo de '+total+' dias, contado a partir do dia seguinte (art. 279.º, al. b) CC); não se suspende em férias judiciais.');
  else steps.push('Prazo contínuo de '+total+' dias, a contar do dia seguinte, '+fd(add(start,1))+' (art. 138.º, n.º 1 CPC e art. 279.º, al. b) CC).');
  if(sus)steps.push(sus+' dias não contados por coincidirem com férias judiciais (art. 138.º, n.º 1 CPC; art. 28.º LOSJ).');
- if(p.urgent&&p.regime!=='substantive')steps.push('Processo urgente: o prazo corre durante as férias judiciais.');
+ if(p.regime!=='substantive'&&!suspend){steps.push(p.urgent?'Processo urgente'+(p.urgentType?' — '+p.urgentType:'')+': o prazo corre durante as férias judiciais (art. 138.º, n.º 1 CPC'+(p.urgentBasis?'; '+p.urgentBasis:'')+').':'Prazo igual ou superior a 6 meses: não se suspende durante as férias judiciais (art. 138.º, n.º 1 CPC).');if(UHD)steps.push(UHD+' dia(s) de férias judiciais contado(s) normalmente.')}
  let t=d;
  const blocked=x=>p.regime==='substantive'?(x.getDay()===0||!!holName(x,c)):closed(x,c);
  if(blocked(t)){const w=closedWhy(t,c);const first=t;cells[cells.length-1].t='cl';while(blocked(t)){t=add(t,1);if(blocked(t))cells.push({d:t,t:'cl'})}cells.push({d:t,t:'tm'});steps.push('Terminaria a '+fd(first)+' ('+w+'); transfere-se para o 1.º dia útil seguinte, '+fd(t)+' ('+(p.regime==='substantive'?'art. 279.º, al. e) CC':'art. 138.º, n.º 2 CPC')+').')}
@@ -396,7 +407,7 @@ const caseOpts=(sel,blank)=>(blank?`<option value="">${blank}</option>`:'')+DB.c
 const AI=()=>!!(window.claude&&typeof window.claude.use==='function');
 
 /* ---------- Prazos ---------- */
-function res(d){const c=caseById(d.caseId);return compute({...d,trigger:parse(d.trigger),court:c?c.court:'outro'})}
+function res(d){const c=caseById(d.caseId);return compute({...d,urgent:c?!!c.urgentLegal:!!d.urgent,urgentType:c&&c.urgentLegal?urgName(c.urgentType):'',urgentBasis:c&&c.urgentLegal?(c.urgentBasis||urgBasis(c.urgentType)):'',trigger:parse(d.trigger),court:c?c.court:'outro'})}
 function level(d){if(d.done)return 'ok';const r=res(d),x=diff(TODAY,r.termo);if(r.pending)return 'susp';if(x<0)return (r.grace&&diff(TODAY,r.grace)>=0)?'multa':'lost';if(x<=1)return 'crit';if(x<=3)return 'urg';if(x<=7)return 'att';return 'norm'}
 const LV={crit:['l-crit','Crítico'],multa:['l-crit','Em multa'],lost:['l-crit','Ultrapassado'],urg:['l-urg','Urgente'],att:['l-att','Atenção'],norm:['l-norm','Normal'],ok:['l-ok','Entregue'],susp:['l-norm','Suspenso']};
 const chip=l=>`<span class="chip ${LV[l][0]}">${LV[l][1]}</span>`;
@@ -522,7 +533,7 @@ VIEWS.hoje=()=>{
   banner=`<section class="alert" role="alert"><div><p class="k">${t<0?'Prazo ultrapassado — ainda dentro do período de multa':'Prazo fatal mais próximo'}</p><h2>${esc(crit.d.title)}</h2><p class="meta">${esc(c.num||c.title)} · ${esc((clientById(c.clientId)||{}).name||'')} · termo a ${fdl(crit.r.termo)}</p></div><div class="when">${when}</div>
   <div class="acts"><button class="btn sm" data-act="done" data-id="${crit.d.id}">Marcar como entregue</button><button class="btn sm o" data-case="${c.id}">Abrir processo</button></div></section>`}
  const soon=DB.events.filter(e=>{const x=diff(TODAY,parse(e.date));return x>=0&&x<=1}).sort((a,b)=>a.date.localeCompare(b.date)||String(a.time).localeCompare(String(b.time)));
- return head+banner+taxAlerts()+limAlerts()+evidAlerts()+inboxAlert()+`<div class="kpis">
+ return head+feriasInfo()+banner+taxAlerts()+limAlerts()+evidAlerts()+inboxAlert()+`<div class="kpis">
   <button class="kpi ${in48+multa?'hot':''}" data-go="agenda"><b>${in48}${multa?` <small style="font-size:14px">+${multa} em multa</small>`:''}</b><span>Prazos fatais nas próximas 48 horas</span></button>
   <button class="kpi" data-go="agenda"><b>${hear}</b><span>Audiências nos próximos 7 dias</span></button>
   <button class="kpi" data-go="honorarios"><b style="font-size:24px">${eur(pend)}</b><span>Honorários por receber</span></button>
@@ -543,7 +554,7 @@ function caseTable(){
   .sort((a,b)=>{const x=nextDl(a),y=nextDl(b);return (x?x.r.termo:9e15)-(y?y.r.termo:9e15)});
  if(!rows.length)return '<div class="card empty">Nenhum processo corresponde a este filtro ou pesquisa.</div>';
  return `<div class="tscroll"><table class="tbl"><thead><tr><th>N.º de processo</th><th>Tribunal</th><th>Cliente</th><th>Parte adversa</th><th>Fase</th><th>Próximo prazo</th><th>Urgência</th></tr></thead><tbody>
- ${rows.map(c=>{const n=nextDl(c),u=caseUrg(c);return `<tr class="click" data-case="${c.id}" tabindex="0"><td class="mono"><b>${esc(c.num||'—')}</b><br><span class="muted" style="font-size:12.5px">${esc(c.title||'')}</span></td><td>${esc(c.courtName||'—')}</td><td>${esc((clientById(c.clientId)||{}).name||'—')}</td><td>${esc(c.adv||'—')}</td><td>${esc(c.phase)}</td><td class="mono">${n?`${fds(n.r.termo)} <span class="${['crit','multa','lost'].includes(n.l)?'neg':'muted'}">(${diff(TODAY,n.r.termo)<0?'multa':diff(TODAY,n.r.termo)+' d'})</span>`:'<span class="muted">—</span>'}</td><td>${u==='critical'?chip('crit'):u==='archived'?'<span class="chip l-norm">Arquivado</span>':chip('norm')}</td></tr>`}).join('')}
+ ${rows.map(c=>{const n=nextDl(c),u=caseUrg(c);return `<tr class="click" data-case="${c.id}" tabindex="0"><td class="mono"><b>${esc(c.num||'—')}</b>${c.urgentLegal?' <span class="chip l-crit" style="font-size:11px">Urgente</span>':''}<br><span class="muted" style="font-size:12.5px">${esc(c.title||'')}</span></td><td>${esc(c.courtName||'—')}</td><td>${esc((clientById(c.clientId)||{}).name||'—')}</td><td>${esc(c.adv||'—')}</td><td>${esc(c.phase)}</td><td class="mono">${n?`${fds(n.r.termo)} <span class="${['crit','multa','lost'].includes(n.l)?'neg':'muted'}">(${diff(TODAY,n.r.termo)<0?'multa':diff(TODAY,n.r.termo)+' d'})</span>`:'<span class="muted">—</span>'}</td><td>${u==='critical'?chip('crit'):u==='archived'?'<span class="chip l-norm">Arquivado</span>':chip('norm')}</td></tr>`}).join('')}
  </tbody></table></div>`;
 }
 
@@ -559,7 +570,7 @@ VIEWS['novo-proc']=()=>{const c=S.editCase?caseById(S.editCase):null;
  <div class="f2"><div class="f"><label for="p-phase">Fase processual</label><select id="p-phase">${opts(PHASES.map(a=>[a,a]),c?.phase||'Articulados')}</select></div>
  <div class="f"><label for="p-value">Valor da causa (€)</label><input id="p-value" type="number" inputmode="decimal" min="0" step="0.01" value="${c&&c.value!=null?c.value:''}"></div></div>
  <div class="f"><label for="p-adv">Parte adversa</label><input id="p-adv" value="${esc(c?.adv||'')}"></div>
- <label class="check"><input type="checkbox" id="p-urg" ${c?.urgentLegal?'checked':''}>Processo urgente (os prazos correm em férias judiciais)</label>
+ <div class="f2"><div class="f"><label for="p-urgtype">Natureza do processo</label><select id="p-urgtype" data-urgtype><option value="">Normal (suspende em férias judiciais)</option>${URG.map(([k,l])=>`<option value="${k}" ${c&&c.urgentLegal&&(c.urgentType||'outro')===k?'selected':''}>Urgente — ${l}</option>`).join('')}</select></div><div class="f"><label for="p-urgbasis">Base legal da urgência</label><input id="p-urgbasis" value="${esc(c&&c.urgentLegal?(c.urgentBasis||urgBasis(c.urgentType||'outro')):'')}" placeholder="Só para processos urgentes"></div></div>
  <div class="f"><label for="p-client">Cliente</label><select id="p-client" data-pclient>${DB.clients.map(x=>`<option value="${x.id}" ${(c?c.clientId:S.newProcClient)===x.id?'selected':''}>${esc(x.name)}${cstatus(x)==='lead'?' (lead)':''}</option>`).join('')}<option value="__new" ${!c&&!S.newProcClient?'selected':''}>+ Novo cliente</option></select></div>
  <div id="newclient" class="form subform" style="display:${!c&&!S.newProcClient?'grid':'none'}">
   <div class="f2"><div class="f"><label for="c-name">Nome do cliente</label><input id="c-name"></div>
@@ -579,7 +590,7 @@ function saveProc(){const c=S.editCase?caseById(S.editCase):null;
  if(hits.length&&S.conflictAck!==sig){S.conflictAck=sig;toast('Possível conflito de interesses: '+hits.join('; ')+'. Verifique e toque outra vez para confirmar.');return}S.conflictAck=null;
  if(clientId==='__new'){const name=val('c-name');if(!name)return toast('Indique o nome do cliente.');const cl={id:nid('cl'),name,kind:val('c-kind'),nif:val('c-nif'),addr:val('c-addr'),email:val('c-email'),phone:val('c-phone'),org:chk('c-org')};DB.clients.push(cl);clientId=cl.id}
  {const k=clientById(clientId);if(k&&cstatus(k)!=='active'){k.status='active';k.convertedAt=key(TODAY)}}S.newProcClient=null;
- const data={num,title,courtName:val('p-court'),court:val('p-muni')||'outro',area:val('p-area'),phase:val('p-phase'),value:val('p-value')?+val('p-value'):null,adv:val('p-adv'),urgentLegal:chk('p-urg'),clientId};
+ const data={num,title,courtName:val('p-court'),court:val('p-muni')||'outro',area:val('p-area'),phase:val('p-phase'),value:val('p-value')?+val('p-value'):null,adv:val('p-adv'),urgentLegal:!!val('p-urgtype'),urgentType:val('p-urgtype')||null,urgentBasis:val('p-urgtype')?val('p-urgbasis'):null,clientId};
  if(c)Object.assign(c,data);else{const n={id:nid('c'),status:'active',created:key(TODAY),...data};DB.cases.push(n);S.caseId=n.id}
  save();S.editCase=null;toast(c?'Processo atualizado.':'Processo criado.');go('caso')}
 
@@ -589,11 +600,11 @@ VIEWS.caso=()=>{
  const evs=DB.events.filter(e=>e.caseId===c.id&&diff(TODAY,parse(e.date))>=0).sort((a,b)=>a.date.localeCompare(b.date)||String(a.time).localeCompare(String(b.time)));
  const fees=DB.fees.filter(f=>f.caseId===c.id);
  return `<button class="back" data-go="processos">‹ Processos</button>
- <div class="h-row"><div><h1 class="mono">${esc(c.num||'Sem número')}</h1><p>${esc(c.title||'')}${c.status==='archived'?' · <b>Arquivado</b>':''}</p></div><div class="row-acts"><button class="btn" data-act="edit-case" data-id="${c.id}">Editar</button><button class="btn" data-act="doc-case" data-id="${c.id}">Gerar minuta</button><button class="btn pri" data-act="new-dl" data-id="${c.id}">Novo prazo</button></div></div>
+ <div class="h-row"><div><h1 class="mono">${esc(c.num||'Sem número')}</h1><p>${esc(c.title||'')}${c.status==='archived'?' · <b>Arquivado</b>':''}</p>${c.urgentLegal?`<p style="margin:6px 0 0"><span class="chip l-crit">Urgente</span> <span class="muted" style="font-size:13px">${esc(urgName(c.urgentType))} · os prazos correm em férias judiciais${(c.urgentBasis||urgBasis(c.urgentType))?' ('+esc(c.urgentBasis||urgBasis(c.urgentType))+')':''}</span></p>`:''}</div><div class="row-acts"><button class="btn" data-act="edit-case" data-id="${c.id}">Editar</button><button class="btn" data-act="doc-case" data-id="${c.id}">Gerar minuta</button><button class="btn pri" data-act="new-dl" data-id="${c.id}">Novo prazo</button></div></div>
  <section class="card pad-card" style="margin-bottom:18px"><div class="info">
   <div><span>Tribunal</span><b>${esc(c.courtName||'—')}</b></div><div><span>Município</span><b>${esc(courtOf(c.court).city)}</b></div>
   <div><span>Cliente</span><b>${esc(cl.name||'—')}</b></div><div><span>Parte adversa</span><b>${esc(c.adv||'—')}</b></div>
-  <div><span>Fase processual</span><b>${esc(c.phase)}</b></div><div><span>Área</span><b>${esc(c.area)}${c.urgentLegal?' · urgente':''}</b></div>
+  <div><span>Fase processual</span><b>${esc(c.phase)}</b></div><div><span>Área</span><b>${esc(c.area)}</b></div>
   <div><span>Valor da causa</span><b>${c.value!=null?eur(c.value):'—'}</b></div><div><span>NIF do cliente</span><b>${esc(cl.nif||'—')}</b></div></div></section>
  ${commSection(c)}${recSection(c)}${docSection(c)}${caseTasks(c)}${timeSection(c)}${expSection(c)}${ducSection(c)}${evSection(c)}${limSection(l=>l.caseId===c.id,{caseId:c.id,clientId:c.clientId})}
  <section style="margin-bottom:18px"><h2 class="sec-t">Prazos</h2>${dls.length?`<div class="tscroll"><table class="tbl"><thead><tr><th>Ato</th><th>Evento</th><th>Termo</th><th>Fim da multa</th><th>Base legal</th><th>Estado</th><th></th></tr></thead><tbody>
@@ -1230,21 +1241,21 @@ VIEWS.prazosCalc=()=>{const c=S.calc;
   <div class="f2"><div class="f"><label for="c-days">Prazo (dias)</label><input type="number" inputmode="numeric" min="1" max="400" id="c-days" data-c="days" value="${c.days}"></div>
   <div class="f"><label for="c-dil">Dilação</label><select id="c-dil" data-c="dil">${[0,5,15,30].map(n=>`<option value="${n}" ${n==c.dil?'selected':''}>${n?n+' dias':'Sem dilação'}</option>`).join('')}</select></div></div>
   <div class="f"><label for="c-court">Município do tribunal (feriado municipal)</label><select id="c-court" data-c="court">${opts(Object.entries(MUNIS).map(([k,m])=>[k,m[0]]),c.court)}</select></div>
-  <label class="check"><input type="checkbox" data-c="urgent" ${c.urgent?'checked':''}>Processo urgente (corre em férias judiciais)</label>
+  ${c.caseId&&caseById(c.caseId)?(caseById(c.caseId).urgentLegal?`<div class="note" style="margin-top:0"><b>Processo urgente</b> — ${esc(urgName(caseById(c.caseId).urgentType))}: os prazos correm em férias judiciais. Para alterar, edite o processo.</div>`:`<div class="note" style="margin-top:0">Processo não urgente: os prazos suspendem-se em férias judiciais. Para alterar, edite o processo.</div>`):`<label class="check"><input type="checkbox" data-c="urgent" ${c.urgent?'checked':''}>Processo urgente (corre em férias judiciais)</label>`}
  </div></section>
  <section class="card pad-card" id="calc-out"></section></div>`};
-function calcParams(){const c=S.calc,t=TPL[c.tpl];return {trigger:parse(c.trigger),triggerType:c.triggerType,days:Math.max(1,+c.days||1),dil:+c.dil,regime:t.regime,urgent:c.urgent,court:c.court}}
+function calcParams(){const c=S.calc,t=TPL[c.tpl],cs=c.caseId?caseById(c.caseId):null;return {trigger:parse(c.trigger),triggerType:c.triggerType,days:Math.max(1,+c.days||1),dil:+c.dil,regime:t.regime,urgent:cs?!!cs.urgentLegal:c.urgent,urgentType:cs&&cs.urgentLegal?urgName(cs.urgentType):'',urgentBasis:cs&&cs.urgentLegal?(cs.urgentBasis||urgBasis(cs.urgentType)):'',court:c.court}}
 function renderCalc(){const el=$('calc-out');if(!el||!/^\d{4}-\d{2}-\d{2}$/.test(S.calc.trigger))return;
  const p=calcParams(),r=compute(p),t=diff(TODAY,r.termo);let lastM=-1;
- const cells=r.cells.map(x=>{const m=x.d.getMonth();const lab=m!==lastM?M[m]:'';lastM=m;const cls={ev:'ev',cnt:'',cl:'cl',susp:'susp',tm:'tm',gr:'gr'}[x.t];
-  const tip=x.t==='susp'?'Férias judiciais — não conta':x.t==='cl'?(closedWhy(x.d,courtOf(p.court))||'Tribunal encerrado'):x.t==='tm'?'Termo do prazo':x.t==='gr'?'Dia '+x.n+' de multa':x.t==='ev'?'Início':'Dia '+x.n;
+ const cells=r.cells.map(x=>{const m=x.d.getMonth();const lab=m!==lastM?M[m]:'';lastM=m;const cls={ev:'ev',cnt:'',cl:'cl',susp:'susp',tm:'tm',gr:'gr',uf:'uf'}[x.t];
+  const tip=x.t==='susp'?'Não conta (férias judiciais ou suspensão)':x.t==='uf'?'Férias judiciais — conta (processo urgente ou prazo de 6 meses ou mais)':x.t==='cl'?(closedWhy(x.d,courtOf(p.court))||'Tribunal encerrado'):x.t==='tm'?'Termo do prazo':x.t==='gr'?'Dia '+x.n+' de multa':x.t==='ev'?'Início':'Dia '+x.n;
   return `<div class="col"><div class="mlab">${lab}</div><div class="cell ${cls}" title="${fd(x.d)} — ${esc(tip)}">${x.d.getDate()}<small>${WDS[x.d.getDay()]}</small></div></div>`}).join('');
  const left=t<0?`<span class="chip l-crit">Termo ultrapassado</span>`:t===0?`<span class="chip l-crit">Termina hoje</span>`:`<span class="chip ${t<=1?'l-crit':t<=3?'l-urg':t<=7?'l-att':'l-norm'}">Faltam ${t} dias</span>`;
  el.innerHTML=`<p class="muted" style="margin:0">Termo do prazo</p>
  <div class="termo"><div><div class="big serif">${fds(r.termo)}</div><div class="wd">${WD[r.termo.getDay()]}, ${r.termo.getFullYear()}</div></div><div class="left">${left}</div></div>
  ${r.grace?`<p style="margin:0 0 14px">Com multa (art. 139.º CPC) até <b>${fd(r.grace)}</b>.</p>`:''}
  <div class="strip-wrap" tabindex="0" aria-label="Linha temporal da contagem"><div class="strip">${cells}</div></div>
- <div class="legend"><span><i style="border:2px solid var(--navy2)"></i>Início</span><span><i style="background:var(--cnt)"></i>Dia contado</span><span><i style="background:var(--closed)"></i>Fim de semana ou feriado</span><span><i style="background:repeating-linear-gradient(135deg,var(--accent-soft) 0 4px,transparent 4px 7px);border:1px solid var(--accent)"></i>Férias judiciais</span><span><i style="background:var(--crit)"></i>Termo</span><span><i style="background:var(--warn-soft);border:1px solid var(--warn)"></i>Multa</span></div>
+ <div class="legend"><span><i style="border:2px solid var(--navy2)"></i>Início</span><span><i style="background:var(--cnt)"></i>Dia contado</span><span><i style="background:var(--closed)"></i>Fim de semana ou feriado</span><span><i style="background:repeating-linear-gradient(135deg,var(--accent-soft) 0 4px,transparent 4px 7px);border:1px solid var(--accent)"></i>Férias judiciais</span>${r.cells.some(x=>x.t==='uf')?'<span><i style="background:var(--cnt);border:1px dashed var(--accent)"></i>Férias judiciais que contam</span>':''}<span><i style="background:var(--crit)"></i>Termo</span><span><i style="background:var(--warn-soft);border:1px solid var(--warn)"></i>Multa</span></div>
  <h3 class="sec-t" style="font-size:14px;margin-bottom:8px">Como foi contado</h3>
  <ol class="steps">${r.steps.map(s=>`<li>${esc(s)}</li>`).join('')}</ol>
  <div class="tool" style="margin-top:16px">${S.calc.caseId?`<button class="btn pri" data-act="save-dl">Guardar prazo no processo</button>`:`<span class="muted" style="font-size:14px">Escolha um processo para guardar este prazo.</span>`}</div>
@@ -1517,6 +1528,7 @@ document.addEventListener('keydown',e=>{
 document.addEventListener('input',e=>{const t=e.target;
  if(t.id==='q'){S.q=t.value;$('ctable').innerHTML=caseTable();return}
  if(t.dataset.pclient!==undefined){$('newclient').style.display=t.value==='__new'?'grid':'none';return}
+ if(t.dataset.urgtype!==undefined){const b=$('p-urgbasis');if(b)b.value=t.value?urgBasis(t.value):'';return}
  if(t.dataset.limcat!==undefined){const cat=LIMCAT[t.value]||LIMCAT.outro;const sl=$('lim-start-l');if(sl)sl.textContent=cat.start;const ln=$('lim-len');if(ln)ln.innerHTML=limLenFields(cat);const b=$('lim-basis');if(b)b.value=cat.basis;const w=$('lim-warn');if(w)w.textContent=cat.warn||'';return}
  if(t.dataset.evkind!==undefined){S.evKind=t.value;const el=$('ev-fields');if(el)el.innerHTML=evFields(t.value,{});return}
  if(t.dataset.evst!==undefined){const ev=DB.evidence.find(x=>x.id===t.dataset.evst);if(ev){ev.status=t.value;save();render()}return}
