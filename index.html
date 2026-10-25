@@ -261,6 +261,17 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
 .ev{border-bottom:none}
 .exp-pick{display:grid;gap:8px}
 .exp-pick .check{gap:10px}
+.kanban{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(280px,1fr);gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:8px;margin-bottom:12px}
+.kcol{scroll-snap-align:start;background:var(--surface2);border:1px solid var(--line);border-radius:14px;padding:14px;min-height:180px}
+.tcard{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
+.tcard a{color:var(--accent)}
+.warnbox{border:1px solid var(--warn);background:var(--warn-soft);border-radius:14px;padding:14px 16px;margin-bottom:16px;color:var(--text)}
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.tile{display:flex;flex-direction:column;gap:6px;text-align:left;min-height:120px;padding:16px;border:1px solid var(--line);background:var(--surface);border-radius:14px}
+.tile b{font-size:16px}.tile span{font-size:13px;color:var(--muted)}
+.nav{grid-template-columns:repeat(7,1fr)}
+.nav button{font-size:10.5px}
+td a,.ev a{color:var(--accent)}
 </style>
 </head>
 <body>
@@ -304,6 +315,14 @@ const TPL={
  custom:{name:'Prazo livre',days:15,regime:'cpc',basis:'—',trigger:'electronic'}};
 const TRIG={electronic:'Notificação eletrónica (Citius)',postal:'Carta registada',citation:'Citação',direct:'Data do evento'};
 function compute(p){
+ const INC=(p.incidents||[]).filter(i=>i&&i.type);const PRE=[],POST=[];let PEND=null;
+ const intr=INC.filter(i=>i.type==='interruption').sort((a,b)=>String(a.from).localeCompare(String(b.from))).pop();
+ if(intr){PRE.push('Prazo interrompido a '+fd(parse(intr.from))+(intr.note?' ('+intr.note+')':'')+' — '+(intr.basis||'art. 24.º, n.º 4 da Lei n.º 34/2004')+'.');
+  if(intr.to){p={...p,trigger:parse(intr.to),triggerType:'electronic'};PRE.push('O prazo recomeça por inteiro a partir da notificação de '+fd(parse(intr.to))+'.')}
+  else{p={...p,trigger:TODAY,triggerType:'direct'};PEND='Aguarda a notificação que reinicia o prazo';PRE.push('Ainda sem notificação: o termo indicado é provisório, contado como se a notificação fosse hoje.')}}
+ const EXT=INC.filter(i=>i.type==='extension').reduce((s,i)=>s+(+i.days||0),0);
+ const SUSP=INC.filter(i=>i.type==='suspension');let SUSN=0;
+ const inSus=x=>{const k=key(x);return SUSP.find(i=>k>=i.from&&k<=(i.to||key(TODAY)))};
  const c=courtOf(p.court);const steps=[];const cells=[];let start=p.trigger;
  if(p.triggerType==='electronic'||p.triggerType==='postal'){
   let pr=add(p.trigger,3);
@@ -313,11 +332,11 @@ function compute(p){
  }else if(p.triggerType==='citation')steps.push('Citação a '+fd(p.trigger)+'.');
  else steps.push('Evento a '+fd(p.trigger)+'.');
  const suspend=p.regime!=='substantive'&&!p.urgent&&p.days<180;
- const total=p.days+(p.dil||0);
+ const total=p.days+(p.dil||0)+EXT;
  if(p.dil)steps.push('Dilação de '+p.dil+' dias somada ao prazo de '+p.days+' dias: '+total+' dias (art. 245.º CPC).');
  cells.push({d:start,t:'ev'});
  let d=start,n=0,sus=0;
- while(n<total){d=add(d,1);if(suspend&&judHol(d)){cells.push({d,t:'susp'});sus++;continue}n++;cells.push({d,t:closed(d,c)?'cl':'cnt',n})}
+ while(n<total){d=add(d,1);const sp=inSus(d);if(sp){if(!sp.to)PEND=PEND||'Suspensão em curso';cells.push({d,t:'susp'});SUSN++;continue}if(suspend&&judHol(d)){cells.push({d,t:'susp'});sus++;continue}n++;cells.push({d,t:closed(d,c)?'cl':'cnt',n})}
  if(p.regime==='substantive')steps.push('Prazo substantivo de '+total+' dias, contado a partir do dia seguinte (art. 279.º, al. b) CC); não se suspende em férias judiciais.');
  else steps.push('Prazo contínuo de '+total+' dias, a contar do dia seguinte, '+fd(add(start,1))+' (art. 138.º, n.º 1 CPC e art. 279.º, al. b) CC).');
  if(sus)steps.push(sus+' dias não contados por coincidirem com férias judiciais (art. 138.º, n.º 1 CPC; art. 28.º LOSJ).');
@@ -326,16 +345,20 @@ function compute(p){
  const blocked=x=>p.regime==='substantive'?(x.getDay()===0||!!holName(x,c)):closed(x,c);
  if(blocked(t)){const w=closedWhy(t,c);const first=t;cells[cells.length-1].t='cl';while(blocked(t)){t=add(t,1);if(blocked(t))cells.push({d:t,t:'cl'})}cells.push({d:t,t:'tm'});steps.push('Terminaria a '+fd(first)+' ('+w+'); transfere-se para o 1.º dia útil seguinte, '+fd(t)+' ('+(p.regime==='substantive'?'art. 279.º, al. e) CC':'art. 138.º, n.º 2 CPC')+').')}
  else cells[cells.length-1].t='tm';
+ INC.filter(i=>i.type==='extension').forEach(i=>POST.push('Prorrogação de '+i.days+' dias'+(i.note?' ('+i.note+')':'')+' — '+(i.basis||'art. 569.º, n.º 4 CPC')+'.'));
+ SUSP.forEach(i=>POST.push((i.to?'Prazo suspenso de '+fd(parse(i.from))+' a '+fd(parse(i.to)):'Prazo suspenso desde '+fd(parse(i.from))+', ainda em curso: termo provisório')+(i.note?' ('+i.note+')':'')+' — '+(i.basis||'art. 275.º CPC')+'.'));
+ if(SUSN)POST.push(SUSN+' dia(s) não contado(s) por suspensão.');
+ const OV=INC.filter(i=>i.type==='override').pop();if(OV){t=parse(OV.date);POST.push('Termo fixado em '+fd(t)+(OV.note?' ('+OV.note+')':'')+' — '+(OV.basis||'despacho judicial')+'.')}
  let g=null;
  if(p.regime!=='substantive'){g=t;let k=0;while(k<3){g=add(g,1);if(closed(g,c)||(suspend&&judHol(g))){cells.push({d:g,t:'cl'});continue}k++;cells.push({d:g,t:'gr',n:k})}
   steps.push('O ato ainda pode ser praticado até '+fd(g)+', com multa de 10%, 25% ou 40% da taxa de justiça, conforme o dia (art. 139.º, n.º 5 CPC).')}
- return {start,termo:t,grace:g,steps,cells,sus};
+ return {start,termo:t,grace:g,steps:[...PRE,...steps,...POST],cells,sus,pending:!!PEND,pendWhy:PEND};
 }
 const graceLeft=r=>r.cells.filter(c=>c.t==='gr'&&diff(TODAY,c.d)>=0).length;
 
 /* ---------- Armazenamento local ---------- */
 const DB_KEY='lexvortex-v2';
-const fresh=()=>({profile:null,clients:[],cases:[],deadlines:[],events:[],fees:[],recs:[],docs:[],time:[],templates:[],timer:null,expenses:[],feeSeq:{},seq:1});
+const fresh=()=>({profile:null,clients:[],cases:[],deadlines:[],events:[],fees:[],recs:[],docs:[],time:[],templates:[],timer:null,expenses:[],feeSeq:{},contacts:[],tasks:[],team:[],inbox:[],ducs:[],seq:1});
 let DB=fresh();
 function load(){try{const s=localStorage.getItem(DB_KEY);if(s)DB=Object.assign(fresh(),JSON.parse(s))}catch(_){}}
 function save(){try{localStorage.setItem(DB_KEY,JSON.stringify(DB))}catch(_){toast('Não foi possível guardar neste dispositivo.')}}
@@ -371,8 +394,8 @@ const AI=()=>!!(window.claude&&typeof window.claude.use==='function');
 
 /* ---------- Prazos ---------- */
 function res(d){const c=caseById(d.caseId);return compute({...d,trigger:parse(d.trigger),court:c?c.court:'outro'})}
-function level(d){if(d.done)return 'ok';const r=res(d),x=diff(TODAY,r.termo);if(x<0)return (r.grace&&diff(TODAY,r.grace)>=0)?'multa':'lost';if(x<=1)return 'crit';if(x<=3)return 'urg';if(x<=7)return 'att';return 'norm'}
-const LV={crit:['l-crit','Crítico'],multa:['l-crit','Em multa'],lost:['l-crit','Ultrapassado'],urg:['l-urg','Urgente'],att:['l-att','Atenção'],norm:['l-norm','Normal'],ok:['l-ok','Entregue']};
+function level(d){if(d.done)return 'ok';const r=res(d),x=diff(TODAY,r.termo);if(r.pending)return 'susp';if(x<0)return (r.grace&&diff(TODAY,r.grace)>=0)?'multa':'lost';if(x<=1)return 'crit';if(x<=3)return 'urg';if(x<=7)return 'att';return 'norm'}
+const LV={crit:['l-crit','Crítico'],multa:['l-crit','Em multa'],lost:['l-crit','Ultrapassado'],urg:['l-urg','Urgente'],att:['l-att','Atenção'],norm:['l-norm','Normal'],ok:['l-ok','Entregue'],susp:['l-norm','Suspenso']};
 const chip=l=>`<span class="chip ${LV[l][0]}">${LV[l][1]}</span>`;
 function openDl(){return DB.deadlines.filter(d=>!d.done&&caseById(d.caseId)).map(d=>({d,r:res(d),l:level(d)})).sort((a,b)=>a.r.termo-b.r.termo)}
 function caseUrg(c){if(c.status==='archived')return 'archived';const ls=openDl().filter(x=>x.d.caseId===c.id).map(x=>x.l);return ls.some(l=>['crit','multa','lost','urg'].includes(l))?'critical':'normal'}
@@ -391,8 +414,13 @@ const I={
  minutas:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>',
  agenda:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
  honorarios:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 6.5A7 7 0 1 0 17 17.5M4 10h9M4 14h9"/></svg>',
+ tarefas:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 10l2 2 4-4M8 16h8"/></svg>',
+ clientes:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/></svg>',
+ mais:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><rect x="14" y="14" width="6" height="6" rx="1.5"/></svg>',
  sun:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>'};
-const NAV=[['hoje','Hoje'],['processos','Processos'],['prazos','Prazos'],['minutas','Minutas'],['agenda','Agenda'],['honorarios','Honorários']];
+const NAV=[['hoje','Hoje'],['processos','Processos'],['prazos','Prazos'],['agenda','Agenda'],['tarefas','Tarefas'],['clientes','Clientes'],['minutas','Minutas'],['honorarios','Honorários']];
+const NAV_MOB=[['hoje','Hoje'],['processos','Processos'],['prazos','Prazos'],['agenda','Agenda'],['tarefas','Tarefas'],['clientes','Clientes'],['mais','Mais']];
+const MAIS_V=['mais','minutas','honorarios','direto','perfil'];
 
 /* ---------- Primeira utilização e PIN ---------- */
 function onboarding(){
@@ -448,7 +476,7 @@ function shell(){
    <div class="top-right"><button class="iconbtn" data-act="theme" aria-label="Mudar tema">${I.sun}</button><button class="avatar" data-go="perfil" aria-label="Perfil">${esc(initials())}</button></div></header>
   <div class="view" id="view"></div>
  </div>
- <nav class="nav">${NAV.map(([k,l])=>`<button data-go="${k}" data-nav="${k}">${I[k]}<span>${l}</span></button>`).join('')}</nav>
+ <nav class="nav">${NAV_MOB.map(([k,l])=>`<button data-go="${k}" data-nav="${k}">${I[k]}<span>${l}</span></button>`).join('')}</nav>
  </div>`;
  render();txCheck();
 }
@@ -456,8 +484,8 @@ function go(v){S.view=v;S.confirm=null;render();window.scrollTo(0,0)}
 function render(){
  const el=$('view');if(!el)return;
  el.innerHTML=(VIEWS[S.view]||VIEWS.hoje)();
- const active={caso:'processos','novo-proc':'processos',direto:'hoje',perfil:''}[S.view]??S.view;
- document.querySelectorAll('[data-nav]').forEach(b=>b.classList.toggle('on',b.dataset.nav===active));
+ const active={caso:'processos','novo-proc':'processos',direto:'',perfil:'',cliente:'clientes'}[S.view]??S.view;
+ document.querySelectorAll('[data-nav]').forEach(b=>b.classList.toggle('on',b.dataset.nav===active||(b.dataset.nav==='mais'&&MAIS_V.includes(S.view))));
  if(S.view==='prazos')renderCalc();
  if(S.view==='minutas')renderDoc();
  if(S.view==='honorarios')renderFee();
@@ -491,7 +519,7 @@ VIEWS.hoje=()=>{
   banner=`<section class="alert" role="alert"><div><p class="k">${t<0?'Prazo ultrapassado — ainda dentro do período de multa':'Prazo fatal mais próximo'}</p><h2>${esc(crit.d.title)}</h2><p class="meta">${esc(c.num||c.title)} · ${esc((clientById(c.clientId)||{}).name||'')} · termo a ${fdl(crit.r.termo)}</p></div><div class="when">${when}</div>
   <div class="acts"><button class="btn sm" data-act="done" data-id="${crit.d.id}">Marcar como entregue</button><button class="btn sm o" data-case="${c.id}">Abrir processo</button></div></section>`}
  const soon=DB.events.filter(e=>{const x=diff(TODAY,parse(e.date));return x>=0&&x<=1}).sort((a,b)=>a.date.localeCompare(b.date)||String(a.time).localeCompare(String(b.time)));
- return head+banner+`<div class="kpis">
+ return head+banner+taxAlerts()+inboxAlert()+`<div class="kpis">
   <button class="kpi ${in48+multa?'hot':''}" data-go="agenda"><b>${in48}${multa?` <small style="font-size:14px">+${multa} em multa</small>`:''}</b><span>Prazos fatais nas próximas 48 horas</span></button>
   <button class="kpi" data-go="agenda"><b>${hear}</b><span>Audiências nos próximos 7 dias</span></button>
   <button class="kpi" data-go="honorarios"><b style="font-size:24px">${eur(pend)}</b><span>Honorários por receber</span></button>
@@ -499,7 +527,7 @@ VIEWS.hoje=()=>{
  <div class="grid2">
   <section class="card pad-card"><h2 class="sec-t">Próximos prazos</h2>${od.slice(0,6).map(dlRow).join('')||'<div class="empty">Sem prazos em aberto.<br><button class="btn sm" style="margin-top:12px" data-go="prazos">Calcular um prazo</button></div>'}</section>
   <section class="card pad-card"><h2 class="sec-t">Hoje e amanhã</h2>${soon.map(e=>`<div class="muted" style="font-size:12.5px;padding:8px 4px 0">${diff(TODAY,parse(e.date))===0?'Hoje':'Amanhã'}</div>${evRow(e)}`).join('')||'<div class="empty">Nada marcado para hoje e amanhã.<br><button class="btn sm" style="margin-top:12px" data-act="ev-open">Nova marcação</button></div>'}</section>
- </div>`;
+ </div>`+myTasksMini();
 };
 
 VIEWS.processos=()=>`<div class="h-row"><div><h1>Processos</h1><p>${DB.cases.filter(c=>c.status!=='archived').length} ativos</p></div><button class="btn pri" data-act="new-proc">Novo processo</button></div>
@@ -529,8 +557,8 @@ VIEWS['novo-proc']=()=>{const c=S.editCase?caseById(S.editCase):null;
  <div class="f"><label for="p-value">Valor da causa (€)</label><input id="p-value" type="number" inputmode="decimal" min="0" step="0.01" value="${c&&c.value!=null?c.value:''}"></div></div>
  <div class="f"><label for="p-adv">Parte adversa</label><input id="p-adv" value="${esc(c?.adv||'')}"></div>
  <label class="check"><input type="checkbox" id="p-urg" ${c?.urgentLegal?'checked':''}>Processo urgente (os prazos correm em férias judiciais)</label>
- <div class="f"><label for="p-client">Cliente</label><select id="p-client" data-pclient>${DB.clients.map(x=>`<option value="${x.id}" ${c&&c.clientId===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}<option value="__new" ${!c?'selected':''}>+ Novo cliente</option></select></div>
- <div id="newclient" class="form subform" style="display:${!c?'grid':'none'}">
+ <div class="f"><label for="p-client">Cliente</label><select id="p-client" data-pclient>${DB.clients.map(x=>`<option value="${x.id}" ${(c?c.clientId:S.newProcClient)===x.id?'selected':''}>${esc(x.name)}${cstatus(x)==='lead'?' (lead)':''}</option>`).join('')}<option value="__new" ${!c&&!S.newProcClient?'selected':''}>+ Novo cliente</option></select></div>
+ <div id="newclient" class="form subform" style="display:${!c&&!S.newProcClient?'grid':'none'}">
   <div class="f2"><div class="f"><label for="c-name">Nome do cliente</label><input id="c-name"></div>
   <div class="f"><label for="c-kind">Tipo</label><select id="c-kind"><option value="individual">Pessoa singular</option><option value="company">Empresa</option></select></div></div>
   <div class="f2"><div class="f"><label for="c-nif">NIF</label><input id="c-nif" inputmode="numeric"></div>
@@ -544,7 +572,10 @@ VIEWS['novo-proc']=()=>{const c=S.editCase?caseById(S.editCase):null;
 function saveProc(){const c=S.editCase?caseById(S.editCase):null;
  const num=val('p-num'),title=val('p-title');if(!num&&!title)return toast('Indique o número do processo ou o assunto.');
  let clientId=val('p-client');
+ const cname=clientId==='__new'?val('c-name'):(clientById(clientId)||{}).name;const hits=[...conflicts(cname,true,c&&c.id),...(val('p-adv')?conflicts(val('p-adv'),false):[])];const sig=hits.join('|');
+ if(hits.length&&S.conflictAck!==sig){S.conflictAck=sig;toast('Possível conflito de interesses: '+hits.join('; ')+'. Verifique e toque outra vez para confirmar.');return}S.conflictAck=null;
  if(clientId==='__new'){const name=val('c-name');if(!name)return toast('Indique o nome do cliente.');const cl={id:nid('cl'),name,kind:val('c-kind'),nif:val('c-nif'),addr:val('c-addr'),email:val('c-email'),phone:val('c-phone'),org:chk('c-org')};DB.clients.push(cl);clientId=cl.id}
+ {const k=clientById(clientId);if(k&&cstatus(k)!=='active'){k.status='active';k.convertedAt=key(TODAY)}}S.newProcClient=null;
  const data={num,title,courtName:val('p-court'),court:val('p-muni')||'outro',area:val('p-area'),phase:val('p-phase'),value:val('p-value')?+val('p-value'):null,adv:val('p-adv'),urgentLegal:chk('p-urg'),clientId};
  if(c)Object.assign(c,data);else{const n={id:nid('c'),status:'active',created:key(TODAY),...data};DB.cases.push(n);S.caseId=n.id}
  save();S.editCase=null;toast(c?'Processo atualizado.':'Processo criado.');go('caso')}
@@ -561,10 +592,10 @@ VIEWS.caso=()=>{
   <div><span>Cliente</span><b>${esc(cl.name||'—')}</b></div><div><span>Parte adversa</span><b>${esc(c.adv||'—')}</b></div>
   <div><span>Fase processual</span><b>${esc(c.phase)}</b></div><div><span>Área</span><b>${esc(c.area)}${c.urgentLegal?' · urgente':''}</b></div>
   <div><span>Valor da causa</span><b>${c.value!=null?eur(c.value):'—'}</b></div><div><span>NIF do cliente</span><b>${esc(cl.nif||'—')}</b></div></div></section>
- ${recSection(c)}${docSection(c)}${timeSection(c)}${expSection(c)}
+ ${commSection(c)}${recSection(c)}${docSection(c)}${caseTasks(c)}${timeSection(c)}${expSection(c)}${ducSection(c)}
  <section style="margin-bottom:18px"><h2 class="sec-t">Prazos</h2>${dls.length?`<div class="tscroll"><table class="tbl"><thead><tr><th>Ato</th><th>Evento</th><th>Termo</th><th>Fim da multa</th><th>Base legal</th><th>Estado</th><th></th></tr></thead><tbody>
- ${dls.map(x=>`<tr><td><b>${esc(x.d.title)}</b></td><td class="mono">${TRIG[x.d.triggerType]}<br><span class="muted">${fd(parse(x.d.trigger))}</span></td><td class="mono"><b>${fd(x.r.termo)}</b></td><td class="mono">${x.r.grace?fd(x.r.grace):'—'}</td><td>${esc(x.d.basis)}</td><td>${chip(x.l)}</td><td><div class="row-acts">${x.d.done?'':`<button class="btn sm" data-act="done" data-id="${x.d.id}">Entregue</button>`}${confirmBtn('del-dl',x.d.id,'Apagar','Confirmar')}</div></td></tr>`).join('')}
- </tbody></table></div>`:'<div class="card empty">Sem prazos neste processo. Use «Novo prazo» para calcular o primeiro.</div>'}</section>
+ ${dls.map(x=>`<tr><td><b>${esc(x.d.title)}</b></td><td class="mono">${TRIG[x.d.triggerType]}<br><span class="muted">${fd(parse(x.d.trigger))}</span></td><td class="mono"><b>${fd(x.r.termo)}</b></td><td class="mono">${x.r.grace?fd(x.r.grace):'—'}</td><td>${esc(x.d.basis)}</td><td>${chip(x.l)}${taxChip(x.d)}${(x.d.incidents||[]).length?' <span class="chip l-att">'+x.d.incidents.length+' incidente(s)</span>':''}</td><td><div class="row-acts">${x.d.done?'':`<button class="btn sm" data-act="done" data-id="${x.d.id}">Entregue</button><button class="btn sm" data-act="inc-open" data-id="${x.d.id}">Incidente</button><button class="btn sm" data-act="dl-task" data-id="${x.d.id}">Tarefa</button>`}${confirmBtn('del-dl',x.d.id,'Apagar','Confirmar')}</div></td></tr>`).join('')}
+ </tbody></table></div>`:'<div class="card empty">Sem prazos neste processo. Use «Novo prazo» para calcular o primeiro.</div>'}${incPanel(c)}</section>
  <div class="grid2" style="margin-bottom:18px"><section class="card pad-card"><div class="h-row" style="margin-bottom:6px;align-items:center"><h2 class="sec-t" style="margin:0">Agenda do processo</h2><button class="btn sm" data-act="ev-case" data-id="${c.id}">Nova marcação</button></div>${evs.map(e=>`<div class="muted" style="font-size:12.5px;padding:8px 4px 0">${cap(fdl(parse(e.date)))}</div>${evRow(e)}`).join('')||'<div class="empty">Sem marcações.</div>'}</section>
  <section class="card pad-card"><div class="h-row" style="margin-bottom:6px;align-items:center"><h2 class="sec-t" style="margin:0">Honorários</h2><button class="btn sm" data-act="fee-case" data-id="${c.id}">Nova nota</button></div>${fees.map(f=>{const r=feeCalc(f.H,cl.org);const st=feeStatus(f);return `<div class="ev"><div class="tt" style="flex:1"><b>${esc(f.desc)}</b><small>${FS[st][1]}</small></div><div class="${st==='paid'?'pos':st==='draft'?'':'neg'} mono">${eur(r.due+(+f.exp||0))}</div></div>`}).join('')||'<div class="empty">Sem notas de honorários.</div>'}</section></div>
  <div class="row-acts"><button class="btn sm" data-act="archive" data-id="${c.id}">${c.status==='archived'?'Reativar processo':'Arquivar processo'}</button>${confirmBtn('del-case',c.id,'Apagar processo','Confirmar: apagar o processo e tudo o que lhe pertence')}</div>`;
@@ -747,7 +778,7 @@ function addDocs(caseId,files){for(const f of files){const d={id:nid('doc'),case
 function docSection(c){const list=DB.docs.filter(d=>d.caseId===c.id).sort((a,b)=>b.created-a.created);
  return `<section class="card pad-card" style="margin-bottom:18px"><div class="h-row" style="margin-bottom:10px;align-items:center"><h2 class="sec-t" style="margin:0">Documentos</h2><div class="row-acts"><button class="btn sm" data-act="doc-add" data-id="${c.id}">Juntar documento</button><input type="file" accept="application/pdf,image/*,.doc,.docx,.odt,.txt" id="docf-${c.id}" data-docfile="${c.id}" hidden multiple></div></div>
  ${list.map(d=>`<div class="recbox"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start"><div style="min-width:0;flex:1"><b style="word-break:break-word">${esc(d.name)}</b><div class="muted" style="font-size:13px">${fd(parse(d.date))} · ${fmtSize(d.size)}</div></div><div class="row-acts"><button class="btn sm" data-act="doc-open" data-id="${d.id}">Abrir</button>${confirmBtn('doc-del',d.id,'Apagar','Confirmar')}</div></div>
- ${d.scanning?'<p class="muted" style="font-size:13.5px;margin:10px 0 0">A procurar datas no documento…</p>':d.dates&&d.dates.length?`<div style="margin-top:10px"><div class="muted" style="font-size:13px;margin-bottom:6px">Datas encontradas no documento. Toque numa para calcular o prazo a partir dela.</div><div class="row-acts">${d.dates.map(x=>`<button class="seg" data-act="doc-date" data-id="${c.id}" data-d="${x}">${fd(parse(x))}</button>`).join('')}</div></div>`:d.isPdf&&d.scanned?`<p class="muted" style="font-size:13px;margin:10px 0 0">${d.hasText?'Não foram encontradas datas neste documento.':'Este PDF não tem texto pesquisável (é uma imagem digitalizada).'}</p>`:''}</div>`).join('')||'<div class="empty">Sem documentos. Junte notificações, peças ou sentenças em PDF: a app procura as datas e ajuda a calcular o prazo.</div>'}</section>`}
+ ${d.scanning?'<p class="muted" style="font-size:13.5px;margin:10px 0 0">A procurar datas no documento…</p>':d.dates&&d.dates.length?`<div style="margin-top:10px"><div class="muted" style="font-size:13px;margin-bottom:6px">Datas encontradas no documento. Toque numa para calcular o prazo a partir dela.</div><div class="row-acts">${d.dates.map(x=>`<button class="seg" data-act="doc-date" data-id="${c.id}" data-d="${x}">${fd(parse(x))}</button>`).join('')}</div></div>`:S.ocrBusy===d.id?`<p class="neg" style="margin:10px 0 0" id="ocr-${d.id}">${esc(S.ocrMsg||'A ler o documento…')}</p>`:(d.isPdf&&d.scanned)||isImgFile(d)?`<p class="muted" style="font-size:13px;margin:10px 0 6px">${d.ocr?'Texto lido por OCR, sem datas reconhecidas.':d.hasText?'Não foram encontradas datas neste documento.':'Documento digitalizado (imagem), sem texto pesquisável.'}</p>${d.ocr?'':`<button class="btn sm" data-act="doc-ocr" data-id="${d.id}" ${S.ocrBusy?'disabled':''}>Ler texto com OCR</button>`}`:''}</div>`).join('')||'<div class="empty">Sem documentos. Junte notificações, peças ou sentenças em PDF: a app procura as datas e ajuda a calcular o prazo.</div>'}</section>`}
 
 /* ---------- Registo de tempo ---------- */
 function timeSection(c){const list=DB.time.filter(t=>t.caseId===c.id).sort((a,b)=>(b.created||0)-(a.created||0));const run=DB.timer&&DB.timer.caseId===c.id;
@@ -852,6 +883,228 @@ function buildFeePdf(f,J){const doc=new J({unit:'mm',format:'a4'});const ML=20,R
  doc.setTextColor(0);return doc.output('blob')}
 async function exportFee(f){try{await loadScript(LIB_PDF);if(await saveBlob(buildFeePdf(f,window.jspdf.jsPDF),'Nota-honorarios'+(f.num?'-'+f.num.replace('/','-'):'-rascunho')+'.pdf'))toast('Nota de honorários em PDF guardada.')}catch(_){toast('Não foi possível criar o PDF. Verifique a ligação à internet e tente de novo.')}}
 
+/* ====================== CRM: leads, clientes e caderneta ====================== */
+const cstatus=c=>c.status||'active';
+const SOURCES=[['recomendacao','Recomendação'],['site','Site ou redes sociais'],['telefone','Telefone'],['presencial','Presencial'],['colega','Colega advogado'],['outro','Outro']];
+const CKINDS=[['magistrado','Magistrados'],['secretaria','Secretarias e oficiais de justiça'],['conservatoria','Conservatórias e registos'],['perito','Peritos'],['seguradora','Companhias de seguros'],['agente','Agentes de execução'],['colega','Colegas advogados e solicitadores'],['outro','Outros']];
+const kindName=k=>(CKINDS.find(x=>x[0]===k)||CKINDS[7])[1];
+const srcName=k=>(SOURCES.find(x=>x[0]===k)||SOURCES[5])[1];
+const telA=p=>p?`<a href="tel:${esc(String(p).replace(/\s+/g,''))}">${esc(p)}</a>`:'—';
+const mailA=m=>m?`<a href="mailto:${esc(m)}">${esc(m)}</a>`:'—';
+function clientDebt(id){const cl=clientById(id)||{};return DB.fees.filter(f=>f.clientId===id&&f.status==='issued').reduce((s,f)=>s+feeCalc(f.H,cl.org).due+(+f.exp||0),0)}
+VIEWS.clientes=()=>{const tab=S.ctab||'clientes';
+ const leads=DB.clients.filter(c=>cstatus(c)==='lead'),act=DB.clients.filter(c=>cstatus(c)==='active');
+ const tabs=`<div class="tabs">${[['leads','Leads ('+leads.length+')'],['clientes','Clientes ('+act.length+')'],['caderneta','Caderneta ('+DB.contacts.length+')']].map(([k,l])=>`<button class="seg ${tab===k?'on':''}" data-act="ctab" data-id="${k}">${l}</button>`).join('')}</div>`;
+ const btn=tab==='leads'?'<button class="btn pri" data-act="lead-new">Novo lead</button>':tab==='caderneta'?'<button class="btn pri" data-act="ct-new">Novo contacto</button>':'<button class="btn pri" data-act="new-proc">Novo processo</button>';
+ return `<div class="h-row"><div><h1>Clientes e contactos</h1><p>Potenciais clientes, clientes e a caderneta do escritório</p></div>${btn}</div>${tabs}${tab==='leads'?leadsView(leads):tab==='caderneta'?cadernetaView():clientsView()}`};
+function leadForm(){const l=S.leadEdit==='new'?{}:DB.clients.find(c=>c.id===S.leadEdit)||{};const cs=l.consult||{},nx=l.nextStep||{};
+ return `<section class="card pad-card" style="margin-bottom:16px;max-width:780px"><h2 class="sec-t">${l.id?'Editar lead':'Novo lead'}</h2><div class="form">
+ <div class="f2"><div class="f"><label for="l-name">Nome</label><input id="l-name" value="${esc(l.name||'')}"></div><div class="f"><label for="l-kind">Tipo</label><select id="l-kind">${opts([['individual','Pessoa singular'],['company','Empresa']],l.kind||'individual')}</select></div></div>
+ <div class="f2"><div class="f"><label for="l-phone">Telefone</label><input id="l-phone" inputmode="tel" value="${esc(l.phone||'')}"></div><div class="f"><label for="l-email">Email</label><input id="l-email" type="email" value="${esc(l.email||'')}"></div></div>
+ <div class="f2"><div class="f"><label for="l-source">Como chegou</label><select id="l-source">${opts(SOURCES,l.source||'recomendacao')}</select></div><div class="f"><label for="l-first">Primeiro contacto</label><input id="l-first" type="date" value="${l.firstContact||key(TODAY)}"></div></div>
+ <div class="f"><label for="l-subject">Assunto</label><input id="l-subject" value="${esc(l.subject||'')}" placeholder="Ex.: Despedimento sem justa causa"></div>
+ <div class="f2"><div class="f"><label for="l-cdate">Consulta inicial (data)</label><input id="l-cdate" type="date" value="${cs.date||''}"></div><div class="f"><label for="l-cfee">Valor da consulta (€)</label><input id="l-cfee" type="number" inputmode="decimal" min="0" step="5" value="${cs.fee??''}"></div></div>
+ <label class="check"><input type="checkbox" id="l-cpaid" ${cs.paid?'checked':''}>Consulta paga</label>
+ <div class="f2"><div class="f"><label for="l-ndate">Próximo passo (data)</label><input id="l-ndate" type="date" value="${nx.date||''}"></div><div class="f"><label for="l-ntext">Próximo passo</label><input id="l-ntext" value="${esc(nx.text||'')}" placeholder="Ex.: Enviar proposta de honorários"></div></div>
+ <div class="f"><label for="l-notes">Notas</label><textarea id="l-notes">${esc(l.notes||'')}</textarea></div>
+ <div class="row-acts"><button class="btn pri" data-act="lead-save" data-id="${l.id||'new'}">Guardar</button><button class="btn" data-act="lead-cancel">Cancelar</button></div></div></section>`}
+function leadsView(leads){const yr=String(TODAY.getFullYear());const conv=DB.clients.filter(c=>(c.convertedAt||'').startsWith(yr)).length,lost=DB.clients.filter(c=>cstatus(c)==='lost'&&(c.lostAt||'').startsWith(yr)).length;
+ const cons=DB.clients.filter(c=>c.consult&&c.consult.paid&&(c.consult.date||'').startsWith(yr)).reduce((s,c)=>s+(+c.consult.fee||0),0);
+ const rows=leads.sort((a,b)=>((a.nextStep||{}).date||'9').localeCompare((b.nextStep||{}).date||'9'));
+ return `<div class="kpis"><div class="kpi"><b>${leads.length}</b><span>Leads em aberto</span></div><div class="kpi"><b>${conv}</b><span>Convertidos em clientes em ${yr}</span></div><div class="kpi"><b>${conv+lost?Math.round(conv/(conv+lost)*100)+'%':'—'}</b><span>Taxa de conversão em ${yr}</span></div><div class="kpi"><b style="font-size:24px">${eur(cons)}</b><span>Consultas iniciais pagas em ${yr}</span></div></div>
+ ${S.leadEdit?leadForm():''}
+ ${rows.length?`<div class="tscroll"><table class="tbl"><thead><tr><th>Nome</th><th>Contacto</th><th>Assunto</th><th>Origem</th><th>Consulta</th><th>Próximo passo</th><th></th></tr></thead><tbody>${rows.map(l=>{const nx=l.nextStep||{},cs=l.consult||{};const late=nx.date&&nx.date<key(TODAY);return `<tr><td><b>${esc(l.name)}</b><br><span class="muted" style="font-size:12.5px">desde ${l.firstContact?fds(parse(l.firstContact)):'—'}</span></td><td>${telA(l.phone)}<br>${mailA(l.email)}</td><td>${esc(l.subject||'—')}</td><td>${esc(srcName(l.source))}</td><td class="mono">${cs.date?fds(parse(cs.date)):'—'}${cs.fee?'<br>'+eur(cs.fee)+(cs.paid?' <span class="pos">paga</span>':' <span class="neg">por pagar</span>'):''}</td><td>${nx.text?`<span class="${late?'neg':''}">${esc(nx.text)}</span><br><span class="muted mono" style="font-size:12.5px">${nx.date?fds(parse(nx.date)):''}</span>`:'—'}</td><td><div class="row-acts"><button class="btn sm pri" data-act="lead-convert" data-id="${l.id}">Converter em cliente</button><button class="btn sm" data-act="lead-edit" data-id="${l.id}">Editar</button>${confirmBtn('lead-lost',l.id,'Não avançou','Confirmar')}</div></td></tr>`}).join('')}</tbody></table></div>`:'<div class="card empty">Sem leads em aberto. Registe aqui quem o contacta para uma primeira consulta.</div>'}`}
+function clientRows(q){q=(q||'').toLowerCase();const act=DB.clients.filter(c=>cstatus(c)==='active').filter(c=>!q||[c.name,c.nif,c.email,c.phone].join(' ').toLowerCase().includes(q)).sort((a,b)=>a.name.localeCompare(b.name,'pt'));
+ if(!act.length)return '<div class="card empty">Sem clientes'+(q?' com esta pesquisa':'')+'.</div>';
+ return `<div class="tscroll"><table class="tbl"><thead><tr><th>Nome</th><th>NIF</th><th>Telefone</th><th>Email</th><th class="num">Processos ativos</th><th class="num">Em dívida</th></tr></thead><tbody>${act.map(c=>{const n=DB.cases.filter(x=>x.clientId===c.id&&x.status!=='archived').length,d=clientDebt(c.id);return `<tr class="click" data-client="${c.id}" tabindex="0"><td><b>${esc(c.name)}</b>${c.kind==='company'?' <span class="muted" style="font-size:12.5px">empresa</span>':''}</td><td class="mono">${esc(c.nif||'—')}</td><td>${esc(c.phone||'—')}</td><td>${esc(c.email||'—')}</td><td class="num">${n}</td><td class="num ${d?'neg':''}">${d?eur(d):'—'}</td></tr>`}).join('')}</tbody></table></div>`}
+function clientsView(){return `<div class="filters"><input class="search" data-cq placeholder="Pesquisar nome, NIF, telefone ou email" value="${esc(S.cq||'')}" aria-label="Pesquisar clientes"></div><div id="cl-list">${clientRows(S.cq)}</div>`}
+VIEWS.cliente=()=>{const c=clientById(S.clientId);if(!c){S.view='clientes';return VIEWS.clientes()}
+ const cases=DB.cases.filter(x=>x.clientId===c.id),d=clientDebt(c.id);
+ return `<button class="back" data-go="clientes">‹ Clientes</button><div class="h-row"><div><h1>${esc(c.name)}</h1><p>${cstatus(c)==='lead'?'Lead':'Cliente'}${c.convertedAt?' desde '+fd(parse(c.convertedAt)):''}${d?' · <span class="neg">em dívida '+eur(d)+'</span>':''}</p></div><div class="row-acts">${c.phone?`<a class="btn" href="tel:${esc(c.phone.replace(/\s+/g,''))}">Ligar</a>`:''}${c.email?`<a class="btn" href="mailto:${esc(c.email)}">Email</a>`:''}<button class="btn pri" data-act="client-newproc" data-id="${c.id}">Novo processo</button></div></div>
+ <section class="card pad-card" style="margin-bottom:18px;max-width:780px"><div class="form">
+ <div class="f2"><div class="f"><label for="k-name">Nome</label><input id="k-name" value="${esc(c.name)}"></div><div class="f"><label for="k-kind">Tipo</label><select id="k-kind">${opts([['individual','Pessoa singular'],['company','Empresa']],c.kind||'individual')}</select></div></div>
+ <div class="f2"><div class="f"><label for="k-nif">NIF</label><input id="k-nif" inputmode="numeric" value="${esc(c.nif||'')}"></div><div class="f"><label for="k-phone">Telefone</label><input id="k-phone" inputmode="tel" value="${esc(c.phone||'')}"></div></div>
+ <div class="f"><label for="k-addr">Morada</label><input id="k-addr" value="${esc(c.addr||'')}"></div>
+ <div class="f"><label for="k-email">Email</label><input id="k-email" type="email" value="${esc(c.email||'')}"></div>
+ <label class="check"><input type="checkbox" id="k-org" ${c.org?'checked':''}>Tem contabilidade organizada (retém IRS nos honorários)</label>
+ <div class="f"><label for="k-notes">Notas</label><textarea id="k-notes">${esc(c.notes||'')}</textarea></div>
+ <div class="row-acts"><button class="btn pri" data-act="client-save" data-id="${c.id}">Guardar alterações</button></div></div></section>
+ <h2 class="sec-t">Processos</h2>${cases.length?`<div class="tscroll"><table class="tbl"><thead><tr><th>N.º</th><th>Assunto</th><th>Fase</th><th>Estado</th></tr></thead><tbody>${cases.map(x=>`<tr class="click" data-case="${x.id}"><td class="mono"><b>${esc(x.num||'—')}</b></td><td>${esc(x.title||'')}</td><td>${esc(x.phase)}</td><td>${x.status==='archived'?'Arquivado':'Ativo'}</td></tr>`).join('')}</tbody></table></div>`:'<div class="card empty">Sem processos.</div>'}`};
+function contactForm(){const t=S.ctEdit==='new'?{}:DB.contacts.find(x=>x.id===S.ctEdit)||{};
+ return `<section class="card pad-card" style="margin-bottom:16px;max-width:780px"><h2 class="sec-t">${t.id?'Editar contacto':'Novo contacto'}</h2><div class="form">
+ <div class="f2"><div class="f"><label for="t-kind">Tipo</label><select id="t-kind">${opts(CKINDS,t.kind||'magistrado')}</select></div><div class="f"><label for="t-name">Nome</label><input id="t-name" value="${esc(t.name||'')}"></div></div>
+ <div class="f2"><div class="f"><label for="t-org">Entidade</label><input id="t-org" value="${esc(t.org||'')}" placeholder="Ex.: Juízo Local Cível de Lisboa, J3"></div><div class="f"><label for="t-role">Função</label><input id="t-role" value="${esc(t.role||'')}" placeholder="Ex.: Escrivã auxiliar"></div></div>
+ <div class="f2"><div class="f"><label for="t-phone">Telefone</label><input id="t-phone" inputmode="tel" value="${esc(t.phone||'')}"></div><div class="f"><label for="t-email">Email</label><input id="t-email" type="email" value="${esc(t.email||'')}"></div></div>
+ <div class="f"><label for="t-addr">Morada</label><input id="t-addr" value="${esc(t.addr||'')}"></div>
+ <div class="f"><label for="t-notes">Notas</label><textarea id="t-notes">${esc(t.notes||'')}</textarea></div>
+ <div class="row-acts"><button class="btn pri" data-act="ct-save" data-id="${t.id||'new'}">Guardar</button><button class="btn" data-act="ct-cancel">Cancelar</button>${t.id?confirmBtn('ct-del',t.id,'Apagar','Confirmar'):''}</div></div></section>`}
+function contactRows(q){q=(q||'').toLowerCase();const k=S.ctKind||'';const list=DB.contacts.filter(t=>(!k||t.kind===k)&&(!q||[t.name,t.org,t.role,t.phone,t.email,t.notes].join(' ').toLowerCase().includes(q))).sort((a,b)=>(a.name||'').localeCompare(b.name||'','pt'));
+ if(!list.length)return '<div class="card empty">Sem contactos'+(q||k?' com este filtro':'')+'. Guarde aqui magistrados, secretarias, conservatórias, peritos e seguradoras.</div>';
+ return CKINDS.filter(([kk])=>list.some(t=>t.kind===kk)).map(([kk,lab])=>`<section class="card pad-card" style="margin-bottom:12px"><h2 class="sec-t">${lab}</h2>${list.filter(t=>t.kind===kk).map(t=>`<div class="ev" style="border-bottom:1px solid var(--line)"><div class="tt" style="flex:1;min-width:0"><b>${esc(t.name)}</b><small>${esc([t.role,t.org].filter(Boolean).join(' · '))}</small><div style="font-size:14px;margin-top:4px;display:flex;gap:14px;flex-wrap:wrap">${t.phone?telA(t.phone):''}${t.email?mailA(t.email):''}</div>${t.notes?`<small style="white-space:pre-wrap">${esc(t.notes)}</small>`:''}</div><button class="btn sm" data-act="ct-edit" data-id="${t.id}">Editar</button></div>`).join('')}</section>`).join('')}
+function cadernetaView(){return `${S.ctEdit?contactForm():''}<div class="filters"><input class="search" data-ctq placeholder="Pesquisar na caderneta" value="${esc(S.ctq||'')}" aria-label="Pesquisar contactos"></div><div class="spk-chips" style="margin-bottom:12px"><button class="seg ${!S.ctKind?'on':''}" data-act="ct-kind" data-id="">Todos</button>${CKINDS.map(([k,l])=>`<button class="seg ${S.ctKind===k?'on':''}" data-act="ct-kind" data-id="${k}">${l}</button>`).join('')}</div><div id="ct-list">${contactRows(S.ctq)}</div>`}
+
+/* ====================== Tarefas internas ====================== */
+const TST=[['todo','Por fazer'],['doing','Em curso'],['done','Concluído']];
+const teamNames=()=>[LNAME(),...(DB.team||[]).map(t=>t.name)];
+function taskCard(t){const c=t.caseId?caseById(t.caseId):null;const late=t.due&&t.status!=='done'&&t.due<key(TODAY),today=t.due===key(TODAY);
+ const nxt=t.status==='todo'?['doing','Começar']:t.status==='doing'?['done','Concluir']:['todo','Reabrir'];
+ return `<div class="tcard"><b>${esc(t.title)}</b>${t.priority==='alta'?' <span class="chip l-crit">Prioritária</span>':''}
+ <div class="muted" style="font-size:13px;margin-top:4px">${esc(t.assignee||'')}${c?' · <a href="#" data-case="'+c.id+'">'+esc(c.num||c.title)+'</a>':''}</div>
+ ${t.due?`<div style="margin-top:6px"><span class="chip ${late?'l-crit':today?'l-urg':'l-norm'}">${late?'Atrasada · ':today?'Hoje · ':''}${fds(parse(t.due))}</span></div>`:''}
+ ${t.notes?`<p class="muted" style="font-size:13px;margin:6px 0 0;white-space:pre-wrap">${esc(t.notes)}</p>`:''}
+ <div class="row-acts" style="margin-top:10px"><button class="btn sm ${t.status==='done'?'':'pri'}" data-act="tk-move" data-id="${t.id}" data-st="${nxt[0]}">${nxt[1]}</button><button class="btn sm" data-act="tk-edit" data-id="${t.id}">Editar</button>${confirmBtn('tk-del',t.id,'Apagar','Confirmar')}</div></div>`}
+function taskForm(){const t=S.tEdit==='new'?(S.tPrefill||{}):DB.tasks.find(x=>x.id===S.tEdit)||{};const names=teamNames();
+ return `<section class="card pad-card" style="margin-bottom:16px;max-width:780px"><h2 class="sec-t">${t.id?'Editar tarefa':'Nova tarefa'}</h2><div class="form">
+ <div class="f"><label for="tk-title">Tarefa</label><input id="tk-title" value="${esc(t.title||'')}" placeholder="Ex.: Pedir certidão permanente"></div>
+ <div class="f2"><div class="f"><label for="tk-who">Responsável</label><select id="tk-who">${opts(names.map(n=>[n,n]),t.assignee||names[0])}</select></div><div class="f"><label for="tk-due">Prazo interno</label><input id="tk-due" type="date" value="${t.due||''}"></div></div>
+ <div class="f2"><div class="f"><label for="tk-case">Processo</label><select id="tk-case">${caseOpts(t.caseId||'','Sem processo')}</select></div><div class="f"><label for="tk-prio">Prioridade</label><select id="tk-prio">${opts([['normal','Normal'],['alta','Prioritária']],t.priority||'normal')}</select></div></div>
+ <div class="f"><label for="tk-notes">Notas</label><textarea id="tk-notes">${esc(t.notes||'')}</textarea></div>
+ <div class="row-acts"><button class="btn pri" data-act="tk-save" data-id="${t.id||'new'}">Guardar tarefa</button><button class="btn" data-act="tk-cancel">Cancelar</button></div></div></section>`}
+VIEWS.tarefas=()=>{const who=S.tWho||'';const list=DB.tasks.filter(t=>!who||t.assignee===who);const names=teamNames();
+ const sorted=st=>list.filter(t=>t.status===st).sort((a,b)=>(a.due||'9999').localeCompare(b.due||'9999')||(a.priority==='alta'?-1:1));
+ return `<div class="h-row"><div><h1>Tarefas</h1><p>${DB.tasks.filter(t=>t.status!=='done').length} em aberto · ${DB.tasks.filter(t=>t.status!=='done'&&t.due&&t.due<key(TODAY)).length} atrasadas</p></div>${S.tEdit?'':'<button class="btn pri" data-act="tk-new">Nova tarefa</button>'}</div>
+ ${S.tEdit?taskForm():''}
+ <div class="spk-chips" style="margin-bottom:12px"><button class="seg ${!who?'on':''}" data-act="tk-who" data-id="">Toda a equipa</button>${names.map(n=>`<button class="seg ${who===n?'on':''}" data-act="tk-who" data-id="${esc(n)}">${esc(n)}</button>`).join('')}</div>
+ <div class="kanban">${TST.map(([st,lab])=>{const its=sorted(st);return `<section class="kcol"><h2 class="sec-t">${lab} <span class="muted">(${its.length})</span></h2>${its.map(taskCard).join('')||'<p class="muted" style="font-size:14px">Nada aqui.</p>'}</section>`}).join('')}</div>
+ ${(DB.team||[]).length?'':'<div class="note">Para atribuir tarefas a estagiários ou administrativos, acrescente a equipa no Perfil.</div>'}
+ <p class="muted" style="font-size:12.5px">Nesta versão as tarefas ficam guardadas neste dispositivo; a partilha entre os telemóveis da equipa chega com a sincronização na nuvem.</p>`};
+function caseTasks(c){const list=DB.tasks.filter(t=>t.caseId===c.id&&t.status!=='done').sort((a,b)=>(a.due||'9').localeCompare(b.due||'9'));
+ return `<section class="card pad-card" style="margin-bottom:18px"><div class="h-row" style="margin-bottom:6px;align-items:center"><h2 class="sec-t" style="margin:0">Tarefas</h2><button class="btn sm" data-act="tk-case" data-id="${c.id}">Nova tarefa</button></div>${list.map(t=>`<div class="ev"><div class="tt" style="flex:1"><b>${esc(t.title)}</b><small>${esc(t.assignee||'')}${t.due?' · '+fds(parse(t.due)):''} · ${TST.find(x=>x[0]===t.status)[1]}</small></div><button class="btn sm" data-act="tk-move" data-id="${t.id}" data-st="${t.status==='todo'?'doing':'done'}">${t.status==='todo'?'Começar':'Concluir'}</button></div>`).join('')||'<div class="empty">Sem tarefas em aberto.</div>'}</section>`}
+function myTasksMini(){const me=LNAME();const list=DB.tasks.filter(t=>t.status!=='done'&&t.assignee===me&&t.due&&diff(TODAY,parse(t.due))<=7).sort((a,b)=>a.due.localeCompare(b.due)).slice(0,5);
+ if(!list.length)return '';return `<section class="card pad-card" style="margin-top:18px"><div class="h-row" style="margin-bottom:6px;align-items:center"><h2 class="sec-t" style="margin:0">As minhas tarefas</h2><button class="btn sm" data-go="tarefas">Ver todas</button></div>${list.map(t=>{const late=t.due<key(TODAY);return `<div class="ev"><div class="tt" style="flex:1"><b>${esc(t.title)}</b><small>${t.caseId&&caseById(t.caseId)?esc(caseById(t.caseId).num||''):''}</small></div><span class="chip ${late?'l-crit':t.due===key(TODAY)?'l-urg':'l-norm'}">${late?'Atrasada':fds(parse(t.due))}</span></div>`}).join('')}</section>`}
+function prevBizDays(d,n){let x=d,k=0;while(k<n){x=add(x,-1);if(!weekend(x)&&!holName(x,null))k++}return x}
+
+/* ====================== E-mail ao cliente (IA) ====================== */
+const AS_URL='https://mnbtfatkdllhsekmnpzk.supabase.co/functions/v1/lexvortex-assist';
+const scrub=s=>String(s||'').replace(/\bPT50[\d\s]{21,25}\b/gi,'[IBAN]').replace(/\b\d{9}\b/g,'[NIF]').replace(/\b\d{8}\s?\d\s?[A-Z0-9]{2}\d\b/g,'[CC]');
+function commSection(c){const cl=clientById(c.clientId)||{};const m=S.mail&&S.mail.caseId===c.id?S.mail:null;
+ const form=`<div class="form"><div class="f"><label for="m-notes">O que quer transmitir (opcional)</label><textarea id="m-notes" placeholder="Ex.: Recebemos a contestação da parte contrária; a audiência prévia ficou marcada.">${esc(m?.notes||'')}</textarea></div>
+ <label class="check"><input type="checkbox" id="m-dl" ${m?.dl===false?'':'checked'}>Incluir os próximos prazos e diligências</label>
+ <label class="check"><input type="checkbox" id="m-tx" ${m?.tx?'checked':''}>Incluir a última transcrição deste processo</label>
+ <div class="f"><label for="m-tone">Tom</label><select id="m-tone">${opts([['formal','Formal'],['proximo','Próximo e direto']],m?.tone||'formal')}</select></div>
+ <button class="btn pri" data-act="mail-gen" data-id="${c.id}" ${m?.busy?'disabled':''}>${m?.busy?'A escrever o e-mail…':'Gerar e-mail ao cliente'}</button>
+ <p class="muted" style="font-size:12.5px;margin:0">O texto é escrito por IA a partir dos dados do processo, sem NIF, IBAN nem moradas. Reveja sempre antes de enviar.</p></div>`;
+ const ed=m&&m.out?`<div class="form"><div class="f"><label for="m-subj">Assunto</label><input id="m-subj" value="${esc(m.out.assunto)}"></div><div class="f"><label for="m-body">Texto</label><textarea id="m-body" style="min-height:320px;line-height:1.6">${esc(m.out.corpo)}</textarea></div>
+ <div class="row-acts"><button class="btn pri" data-act="mail-open" data-id="${c.id}">Abrir no e-mail${cl.email?'':' (sem email do cliente)'}</button><button class="btn" data-act="mail-copy">Copiar</button><button class="btn" data-act="mail-redo" data-id="${c.id}">Fazer outro</button></div></div>`:'';
+ return `<section class="card pad-card" style="margin-bottom:18px"><h2 class="sec-t">Comunicar com o cliente</h2>${ed||form}</section>`}
+async function genMail(c){const cl=clientById(c.clientId)||{};const m=S.mail={caseId:c.id,notes:val('m-notes'),dl:chk('m-dl'),tx:chk('m-tx'),tone:val('m-tone')||'formal',busy:true};render();
+ const od=openDl().filter(x=>x.d.caseId===c.id).slice(0,5).map(x=>({ato:x.d.title,termo:fd(x.r.termo)}));
+ const done=DB.deadlines.filter(d=>d.caseId===c.id&&d.done).slice(-3).map(d=>({ato:d.title,entregue:d.doneAt?fd(parse(d.doneAt)):''}));
+ const evs=DB.events.filter(e=>e.caseId===c.id&&diff(TODAY,parse(e.date))>=0).slice(0,5).map(e=>({tipo:(EVK[e.kind]||EVK.other)[0],descricao:e.title,data:fd(parse(e.date)),hora:e.time||'',local:e.place||''}));
+ const lastRec=DB.recs.filter(r=>r.caseId===c.id&&r.segs.length).sort((a,b)=>(b.created||0)-(a.created||0))[0];
+ const ctx={tom:m.tone,data_de_hoje:fd(TODAY),advogado:{nome:LNAME(),feminino:fem()},cliente:{nome:cl.name||'',tipo:cl.kind==='company'?'empresa':'pessoa singular'},processo:{numero:c.num||'',assunto:c.title||'',tribunal:c.courtName||'',fase:c.phase,parte_contraria:c.adv||''},
+  mensagem_do_advogado:scrub(m.notes),prazos_em_curso:m.dl?od:[],atos_ja_entregues:m.dl?done:[],diligencias_marcadas:m.dl?evs:[],
+  excerto_da_ultima_transcricao:m.tx&&lastRec?scrub(lastRec.segs.map(s=>s[1]+': '+s[2]).join('\n')).slice(0,3000):''};
+ try{const r=await fetch(AS_URL,{method:'POST',headers:{Authorization:'Bearer '+TX_KEY,apikey:TX_KEY,'Content-Type':'application/json'},body:JSON.stringify({task:'client_email',context:ctx})});
+  const j=await r.json().catch(()=>({}));if(!r.ok)throw Object.assign(new Error('x'),{code:j.error||'http'});m.out={assunto:j.assunto,corpo:j.corpo}}
+ catch(e){toast(e.code==='rate_limited'?'Limite de pedidos atingido. Tente daqui a um minuto.':e.code==='not_configured'?'O assistente ainda não está ativo.':'Não foi possível gerar o e-mail. Verifique a ligação e tente de novo.')}
+ m.busy=false;render()}
+
+/* ====================== OCR e notificações (Citius) ====================== */
+const LIB_TESS='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+async function pdfDoc(file){const lib=await loadLib(LIB_PDFJS,'pdfjsLib');lib.GlobalWorkerOptions.workerSrc=LIB_PDFJS_W;return lib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise}
+async function pdfTextOf(pdf,max){let t='';for(let i=1;i<=Math.min(pdf.numPages,max);i++){const pg=await pdf.getPage(i);const tc=await pg.getTextContent();t+=tc.items.map(x=>x.str).join(' ')+'\n'}return t}
+async function pdfCanvases(pdf,max){const out=[];for(let i=1;i<=Math.min(pdf.numPages,max);i++){const pg=await pdf.getPage(i);const vp=pg.getViewport({scale:2});const cv=document.createElement('canvas');cv.width=vp.width;cv.height=vp.height;await pg.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;out.push(cv)}return out}
+async function imgCanvas(file){const bmp=await createImageBitmap(file);const sc=Math.min(1,2400/Math.max(bmp.width,bmp.height));const cv=document.createElement('canvas');cv.width=Math.round(bmp.width*sc);cv.height=Math.round(bmp.height*sc);cv.getContext('2d').drawImage(bmp,0,0,cv.width,cv.height);return cv}
+async function ocr(canvases,prog){const T=await loadLib(LIB_TESS,'Tesseract');prog&&prog('A preparar o reconhecimento de texto…');const w=await T.createWorker('por');let t='';
+ try{for(let i=0;i<canvases.length;i++){prog&&prog('A ler a página '+(i+1)+' de '+canvases.length+'…');const r=await w.recognize(canvases[i]);t+=r.data.text+'\n'}}finally{try{await w.terminate()}catch(_){}}return t}
+const isPdfFile=f=>/pdf/i.test(f.type||'')||/\.pdf$/i.test(f.name||'');
+const isImgFile=f=>/^image\//i.test(f.type||'')||/\.(jpe?g|png|webp|heic)$/i.test(f.name||'');
+async function fileText(file,prog,forceOcr){if(isPdfFile(file)){const pdf=await pdfDoc(file);let t=forceOcr?'':await pdfTextOf(pdf,5);if(t.replace(/\s+/g,'').length<40){t=await ocr(await pdfCanvases(pdf,3),prog);return {text:t,ocr:true}}return {text:t,ocr:false}}
+ if(isImgFile(file))return {text:await ocr([await imgCanvas(file)],prog),ocr:true};return {text:'',ocr:false}}
+async function docOcr(d){if(S.ocrBusy)return;S.ocrBusy=d.id;S.ocrMsg='';render();
+ try{const b=await audioGet('doc:'+d.id);if(!b)throw 0;const f=new File([b],d.name,{type:b.type||d.type||''});const r=await fileText(f,m=>{S.ocrMsg=m;const el=$('ocr-'+d.id);if(el)el.textContent=m},true);d.dates=findDates(r.text);d.hasText=r.text.replace(/\s+/g,'').length>20;d.scanned=true;d.ocr=true;save();toast(d.dates.length?'Texto lido. Foram encontradas '+d.dates.length+' data(s).':'Texto lido, mas sem datas reconhecidas.')}
+ catch(_){toast('Não foi possível ler este documento.')}S.ocrBusy=null;render()}
+const CITIUS_RE=/\b(\d{1,6})\s*\/\s*(\d{2})\s*\.\s*(\d[A-Z0-9]{2,10})\b/;
+const normNum=s=>String(s||'').toUpperCase().replace(/\s+/g,'');
+function guessAct(text,c){const t=text.toLowerCase();if(/contest/.test(t))return 'contest';if(/embargos|oposi[çc][ãa]o (à|a) execu/.test(t))return 'emb';if(/recurso|alega[çc][õo]es/.test(t))return c&&c.area==='Laboral'?'rlab':'apel';if(/grava[çc][ãa]o/.test(t)&&/defici/.test(t))return 'grav';return 'sup'}
+async function importNotif(file){const it={id:nid('in'),name:file.name,size:file.size,type:file.type,receivedAt:key(TODAY),created:Date.now(),status:'pending',parsing:true};DB.inbox.push(it);audioPut('inb:'+it.id,file);save();render();
+ try{const r=await fileText(file,m=>{const el=$('inb-'+it.id);if(el)el.textContent=m});const text=r.text||'';const nm=text.match(CITIUS_RE);const num=nm?nm[1]+'/'+nm[2]+'.'+nm[3]:'';
+  const cs=num?DB.cases.find(c=>normNum(c.num)===normNum(num)):null;const dm=text.match(/prazo\s+de\s+(\d{1,3})\s*(?:\(\s*[a-zçãéíóú ]+\s*\)\s*)?dias/i);
+  const dates=findDates(text);const past=dates.filter(k=>k<=key(TODAY)).sort().reverse();
+  const tpl=guessAct(text,cs);it.parsed={num,caseId:cs?cs.id:'',days:dm?+dm[1]:TPL[tpl].days,daysFound:!!dm,date:past[0]||dates[0]||key(TODAY),dateFound:!!(past[0]||dates[0]),tpl,ocr:r.ocr,sample:text.replace(/\s+/g,' ').trim().slice(0,280)}}
+ catch(_){it.parsed={num:'',caseId:'',days:10,date:key(TODAY),tpl:'sup',error:true}}
+ it.parsing=false;save();render()}
+function inboxSection(){const list=DB.inbox.filter(i=>i.status==='pending').sort((a,b)=>b.created-a.created);const done=DB.inbox.filter(i=>i.status==='confirmed').length;
+ return `<section class="card pad-card" style="margin-bottom:18px"><div class="h-row" style="margin-bottom:10px;align-items:center"><div><h2 class="sec-t" style="margin:0">Notificações recebidas</h2><p class="muted" style="font-size:13px;margin:4px 0 0">Importe o PDF ou uma fotografia da notificação do Citius: a app reconhece o processo, a data e o prazo, e o advogado confirma.</p></div><div class="row-acts"><button class="btn pri" data-act="inb-add">Importar notificação</button><input type="file" accept="application/pdf,image/*" id="inb-file" data-inbox hidden multiple></div></div>
+ ${list.map(i=>{const p=i.parsed||{};const c=p.caseId?caseById(p.caseId):null;return `<div class="recbox"><b style="word-break:break-word">${esc(i.name)}</b><div class="muted" style="font-size:13px">Importada a ${fd(parse(i.receivedAt))}${p.ocr?' · lida por reconhecimento de texto (OCR)':''}</div>
+  ${i.parsing?`<p class="neg" style="margin:10px 0 0" id="inb-${i.id}">A ler a notificação…</p>`:`
+  <div class="note" style="margin-top:10px">${p.error?'Não foi possível ler o documento. Preencha os dados à mão.':`Processo no documento: <b>${esc(p.num||'não encontrado')}</b>${p.num?(c?' — corresponde a um processo seu':' — <span class="neg">não existe na app</span>'):''} · Data: <b>${p.dateFound?fd(parse(p.date)):'não encontrada'}</b> · Prazo indicado: <b>${p.daysFound?p.days+' dias':'não indicado'}</b>`}</div>
+  ${p.sample?`<p class="muted" style="font-size:12.5px;margin:8px 0 0">«${esc(p.sample)}…»</p>`:''}
+  <div class="form" style="margin-top:12px"><div class="f"><label for="ib-case-${i.id}">Processo</label><select id="ib-case-${i.id}">${caseOpts(p.caseId||'','Escolha o processo')}</select></div>
+  <div class="f2"><div class="f"><label for="ib-tpl-${i.id}">Ato</label><select id="ib-tpl-${i.id}">${Object.entries(TPL).map(([k,t])=>`<option value="${k}" ${k===p.tpl?'selected':''}>${t.name}</option>`).join('')}</select></div><div class="f"><label for="ib-days-${i.id}">Prazo (dias)</label><input id="ib-days-${i.id}" type="number" inputmode="numeric" min="1" value="${p.days||10}"></div></div>
+  <div class="f"><label for="ib-date-${i.id}">Data de elaboração da notificação</label><input id="ib-date-${i.id}" type="date" value="${p.date||key(TODAY)}"></div>
+  <div class="row-acts"><button class="btn pri" data-act="inb-ok" data-id="${i.id}">Confirmar e criar prazo</button>${confirmBtn('inb-del',i.id,'Descartar','Confirmar')}</div></div>`}</div>`}).join('')||`<div class="empty">Sem notificações por confirmar${done?' · '+done+' já confirmada(s)':''}.</div>`}</section>`}
+function confirmInbox(id){const it=DB.inbox.find(x=>x.id===id);if(!it)return;const caseId=val('ib-case-'+id);if(!caseId)return toast('Escolha o processo.');const c=caseById(caseId),tk=val('ib-tpl-'+id)||'sup',t=TPL[tk],days=Math.max(1,+val('ib-days-'+id)||t.days),date=val('ib-date-'+id)||key(TODAY);
+ const dl={id:nid('d'),caseId,tpl:tk,title:t.name,basis:t.basis,trigger:date,triggerType:'electronic',days,dil:0,regime:t.regime,urgent:!!c.urgentLegal,done:false,fromInbox:id};DB.deadlines.push(dl);
+ audioGet('inb:'+id).then(b=>{if(b){const d={id:nid('doc'),caseId,name:it.name,size:it.size,type:it.type,date:it.receivedAt,created:Date.now(),isPdf:isPdfFile(it),dates:[],scanned:true,hasText:true};audioPut('doc:'+d.id,b);DB.docs.push(d);save()}audioDel('inb:'+id)});
+ it.status='confirmed';it.deadlineId=dl.id;save();toast('Prazo criado: termo a '+fd(res(dl).termo)+'. A notificação foi junta aos documentos do processo.');render()}
+
+/* ====================== Incidentes de prazos ====================== */
+const INCT={suspension:['Suspensão do prazo','art. 275.º CPC'],extension:['Prorrogação do prazo','art. 569.º, n.º 4 CPC'],interruption:['Interrupção do prazo','art. 24.º, n.ºs 4 e 5 da Lei n.º 34/2004'],override:['Termo fixado pelo tribunal','despacho judicial']};
+const INC_HELP={suspension:'Suspensão da instância (ex.: por acordo das partes, art. 272.º, n.º 4 CPC). Os dias suspensos não contam. Deixe o fim vazio se a suspensão ainda decorre.',extension:'Prorrogação deferida pelo tribunal ou prevista na lei (ex.: contestação, até 30 dias, art. 569.º, n.º 4 CPC).',interruption:'O prazo recomeça por inteiro (ex.: junção do comprovativo do pedido de apoio judiciário; novo prazo a partir da notificação da decisão). Deixe a notificação vazia se ainda não houve.',override:'Novo termo fixado por despacho (ex.: justo impedimento admitido, art. 140.º CPC, ou fixação judicial do prazo).'};
+function incFields(t){const b=INCT[t][1];const f=(id,l,type,v,ph)=>`<div class="f"><label for="${id}">${l}</label><input id="${id}" type="${type}" value="${esc(v||'')}" ${ph?`placeholder="${esc(ph)}"`:''} ${type==='number'?'inputmode="numeric" min="1"':''}></div>`;
+ let h=`<p class="muted" style="font-size:13px;margin:0 0 10px">${INC_HELP[t]}</p>`;
+ if(t==='suspension')h+=`<div class="f2">${f('i-from','Início da suspensão','date',key(TODAY))}${f('i-to','Fim da suspensão (vazio se em curso)','date','')}</div>`;
+ if(t==='extension')h+=f('i-days','Dias de prorrogação','number','30');
+ if(t==='interruption')h+=`<div class="f2">${f('i-from','Data da interrupção','date',key(TODAY))}${f('i-to','Notificação que reinicia o prazo (vazio se ainda não houve)','date','')}</div>`;
+ if(t==='override')h+=f('i-date','Novo termo','date',key(TODAY));
+ return h+`<div class="f2">${f('i-basis','Base legal','text',b)}${f('i-note','Nota','text','','Ex.: requerimento de 12/11, deferido')}</div>`}
+function incDesc(i){if(i.type==='suspension')return (i.to?'De '+fd(parse(i.from))+' a '+fd(parse(i.to)):'Desde '+fd(parse(i.from))+' · em curso')+' · '+esc(i.basis||'')+(i.note?' · '+esc(i.note):'');
+ if(i.type==='extension')return '+'+i.days+' dias · '+esc(i.basis||'')+(i.note?' · '+esc(i.note):'');
+ if(i.type==='interruption')return 'A '+fd(parse(i.from))+(i.to?' · novo prazo desde a notificação de '+fd(parse(i.to)):' · aguarda notificação')+' · '+esc(i.basis||'')+(i.note?' · '+esc(i.note):'');
+ return 'Termo: '+fd(parse(i.date))+' · '+esc(i.basis||'')+(i.note?' · '+esc(i.note):'')}
+function incPanel(c){const d=DB.deadlines.find(x=>x.id===S.incFor&&x.caseId===c.id);if(!d)return '';const r=res(d);const inc=d.incidents||[];const t=S.itype||'suspension';
+ return `<div class="recbox" style="margin-top:12px;border-color:var(--accent)"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start;margin-bottom:8px"><div><b>Incidentes · ${esc(d.title)}</b><div class="muted" style="font-size:13px">Termo ${r.pending?'provisório':'atual'}: <b class="${r.pending?'':'neg'}">${fd(r.termo)}</b>${r.grace?' · com multa até '+fd(r.grace):''}</div></div><button class="btn sm" data-act="inc-close">Fechar</button></div>
+ ${inc.map(i=>`<div class="ev"><div class="tt" style="flex:1"><b>${INCT[i.type][0]}</b><small>${incDesc(i)}</small></div>${confirmBtn('inc-del',d.id+'|'+i.id,'Remover','Confirmar')}</div>`).join('')}
+ <div class="form subform" style="margin-top:10px"><div class="f"><label for="i-type">Registar incidente</label><select id="i-type" data-itype>${opts(Object.entries(INCT).map(([k,v])=>[k,v[0]]),t)}</select></div><div id="i-fields">${incFields(t)}</div><button class="btn pri" data-act="inc-save" data-id="${d.id}">Aplicar e recalcular o termo</button></div>
+ <h3 class="sec-t" style="font-size:14px;margin:14px 0 8px">Como foi contado</h3><ol class="steps">${r.steps.map(s=>`<li>${esc(s)}</li>`).join('')}</ol></div>`}
+function saveIncident(dlId){const d=DB.deadlines.find(x=>x.id===dlId);if(!d)return;const t=val('i-type')||'suspension';const i={id:nid('i'),type:t,basis:val('i-basis')||INCT[t][1],note:val('i-note')};
+ if(t==='suspension'||t==='interruption'){i.from=val('i-from');i.to=val('i-to')||null;if(!i.from)return toast('Indique a data de início.');if(i.to&&i.to<i.from)return toast('A data final é anterior à inicial.')}
+ if(t==='extension'){i.days=Math.round(+val('i-days'));if(!(i.days>0))return toast('Indique os dias de prorrogação.')}
+ if(t==='override'){i.date=val('i-date');if(!i.date)return toast('Indique o novo termo.')}
+ (d.incidents=d.incidents||[]).push(i);save();const r=res(d);toast('Prazo recalculado: termo '+(r.pending?'provisório ':'')+'a '+fd(r.termo)+'.');render()}
+
+/* ====================== Taxas de justiça e DUC ====================== */
+const TAXA_TPL=['contest','apel','emb','rlab'];
+const requiresTax=d=>d.tpl?TAXA_TPL.includes(d.tpl):/569\.º|638\.º|728\.º|80\.º CPT/.test(d.basis||'');
+const ducsOf=d=>DB.ducs.filter(u=>u.deadlineId===d.id);
+const taxOk=d=>ducsOf(d).some(u=>u.aj||u.paid);
+function taxChip(d){if(d.done||!requiresTax(d))return '';if(taxOk(d))return ' <span class="chip l-ok">Taxa paga</span>';return ducsOf(d).length?' <span class="chip l-urg">Taxa por pagar</span>':' <span class="chip l-crit">Sem DUC</span>'}
+const RCP_I=[[2000,1],[8000,2],[16000,3],[24000,4],[30000,5],[40000,6],[60000,7],[80000,8],[100000,9],[150000,10],[200000,12],[250000,14],[275000,16]];
+function rcpEstimate(v,col){if(!(v>0))return null;const f=col==='B'?.5:col==='C'?1.5:1;let uc=null;for(const [lim,u] of RCP_I){if(v<=lim){uc=u;break}}let extra=0;if(uc===null){uc=16;extra=Math.ceil((v-275000)/25000)*3}const ucv=+P().uc||102;return {uc:uc*f,eur:uc*f*ucv,extraUc:extra*f,extraEur:extra*f*ucv,ucv}}
+const RCP_COL=[['A','Tabela I-A (regra geral)'],['B','Tabela I-B (ex.: recursos)'],['C','Tabela I-C (especial complexidade)']];
+function ducStatus(u){if(u.aj)return ['l-ok','Apoio judiciário'];if(u.paid&&u.proof)return ['l-ok','Pago e comprovativo junto'];if(u.paid)return ['l-urg','Pago · falta juntar comprovativo'];return ['l-crit','Por pagar']}
+function ducSection(c){const list=DB.ducs.filter(u=>u.caseId===c.id).sort((a,b)=>(b.created||0)-(a.created||0));const col=S.rcpCol||'A';const est=rcpEstimate(+c.value,col);
+ const acts=DB.deadlines.filter(d=>d.caseId===c.id&&!d.done&&requiresTax(d));
+ return `<section class="card pad-card" style="margin-bottom:18px"><div class="h-row" style="margin-bottom:10px;align-items:center"><h2 class="sec-t" style="margin:0">Taxas de justiça (DUC)</h2><button class="btn sm" data-act="duc-new" data-id="${c.id}">Registar DUC</button></div>
+ <div class="note" style="margin-top:0">${est?`Estimativa pelo RCP, para o valor da causa de ${eur(c.value)}: <b>${est.uc.toString().replace('.',',')} UC × ${eur(est.ucv)} = ${eur(est.eur)}</b>${est.extraUc?` · a final, acresce ${est.extraUc.toString().replace('.',',')} UC (${eur(est.extraEur)}) pelo valor acima de 275 000 €`:''}.`:'Indique o valor da causa no processo para estimar a taxa de justiça.'}<div class="spk-chips" style="margin-top:8px">${RCP_COL.map(([k,l])=>`<button class="seg ${col===k?'on':''}" data-act="rcp-col" data-id="${k}">${l}</button>`).join('')}</div><span style="font-size:12.5px">Confirme sempre o valor no DUC emitido. O valor da UC define-se no Perfil.</span></div>
+ ${S.ducNew===c.id?`<div class="form subform" style="margin:12px 0">
+  <div class="f"><label for="u-act">Peça ou ato</label><select id="u-act">${acts.map(d=>`<option value="dl:${d.id}">${esc(d.title)} · termo ${fds(res(d).termo)}</option>`).join('')}<option value="t:Petição inicial">Petição inicial</option><option value="t:Requerimento">Requerimento</option><option value="t:Outro ato">Outro ato</option></select></div>
+  <div class="f2"><div class="f"><label for="u-ref">Referência do DUC</label><input id="u-ref" inputmode="numeric" placeholder="N.º do documento"></div><div class="f"><label for="u-amount">Valor (€)</label><input id="u-amount" type="number" inputmode="decimal" min="0" step="0.01" value="${est?est.eur.toFixed(2):''}"></div></div>
+  <div class="f2"><div class="f"><label for="u-issued">Data de emissão</label><input id="u-issued" type="date" value="${key(TODAY)}"></div><div class="f"><label for="u-paid">Data de pagamento (vazio se por pagar)</label><input id="u-paid" type="date"></div></div>
+  <label class="check"><input type="checkbox" id="u-aj">Dispensado por apoio judiciário</label>
+  <div class="row-acts"><button class="btn pri" data-act="duc-save" data-id="${c.id}">Guardar</button><button class="btn" data-act="duc-cancel">Cancelar</button></div></div>`:''}
+ ${list.length?`<div class="tscroll" style="margin-top:12px"><table class="tbl"><thead><tr><th>Peça ou ato</th><th>Referência</th><th class="num">Valor</th><th>Emitido</th><th>Pago</th><th>Estado</th><th></th></tr></thead><tbody>${list.map(u=>{const st=ducStatus(u);return `<tr><td><b>${esc(u.act)}</b></td><td class="mono">${esc(u.ref||'—')}</td><td class="num">${u.aj?'—':eur(u.amount)}</td><td class="mono">${u.issued?fds(parse(u.issued)):'—'}</td><td class="mono">${u.paid?fds(parse(u.paid)):'—'}</td><td><span class="chip ${st[0]}">${st[1]}</span></td><td><div class="row-acts">${!u.paid&&!u.aj?`<button class="btn sm pri" data-act="duc-paid" data-id="${u.id}">Marcar pago</button>`:''}${u.paid&&!u.aj?`<button class="btn sm" data-act="duc-proof" data-id="${u.id}">${u.proof?'Desmarcar comprovativo':'Comprovativo junto'}</button>`:''}${confirmBtn('duc-del',u.id,'Apagar','Confirmar')}</div></td></tr>`}).join('')}</tbody></table></div>`:''}
+ ${acts.filter(d=>!taxOk(d)).length?`<p class="neg" style="font-size:14px;margin:10px 0 0">Atenção: ${acts.filter(d=>!taxOk(d)).map(d=>esc(d.title)).join(', ')} sem taxa de justiça paga. A peça deve ser acompanhada do comprovativo do pagamento ou da concessão do apoio judiciário (art. 145.º CPC).</p>`:''}</section>`}
+function saveDuc(caseId){const a=val('u-act');const dl=a.startsWith('dl:')?DB.deadlines.find(d=>d.id===a.slice(3)):null;const aj=chk('u-aj');const amount=+val('u-amount')||0;if(!aj&&!(amount>0))return toast('Indique o valor do DUC.');
+ const u={id:nid('u'),caseId,deadlineId:dl?dl.id:null,act:dl?dl.title:a.slice(2),ref:val('u-ref'),amount:Math.round(amount*100)/100,issued:val('u-issued')||key(TODAY),paid:aj?null:(val('u-paid')||null),proof:false,aj,created:Date.now()};
+ DB.ducs.push(u);if(u.paid)ducExpense(u);S.ducNew=null;save();toast(u.paid?'DUC registado como pago e lançado nas despesas do processo.':'DUC registado.');render()}
+function ducExpense(u){if(u.aj||!(u.amount>0)||DB.expenses.some(x=>x.ducId===u.id))return;DB.expenses.push({id:nid('x'),caseId:u.caseId,date:u.paid||key(TODAY),cat:'taxa',desc:'Taxa de justiça — '+u.act+(u.ref?' (DUC '+u.ref+')':''),amount:u.amount,reemb:true,paidBy:'office',billed:false,created:Date.now(),ducId:u.id})}
+function taxAlerts(){const list=openDl().filter(x=>requiresTax(x.d)&&!taxOk(x.d)&&!x.r.pending&&diff(TODAY,x.r.termo)<=10);if(!list.length)return '';
+ return `<section class="warnbox"><b>Taxa de justiça por pagar antes da entrega</b>${list.map(x=>{const c=caseById(x.d.caseId);return `<button class="dl" data-case="${c.id}" style="padding:8px 0;min-height:52px"><div class="t"><b>${esc(x.d.title)}</b><small>${esc(c.num||c.title)} · termo ${fds(x.r.termo)} · ${ducsOf(x.d).length?'DUC emitido, por pagar':'sem DUC emitido'}</small></div><span class="chip l-crit">${diff(TODAY,x.r.termo)<0?'Em multa':diff(TODAY,x.r.termo)+' d'}</span></button>`}).join('')}</section>`}
+function inboxAlert(){const n=DB.inbox.filter(i=>i.status==='pending').length;return n?`<button class="warnbox" style="width:100%;text-align:left;display:block" data-go="prazos"><b>${n} notificação(ões) por confirmar</b><br><span class="muted" style="font-size:13px">Confirme o processo e a data para criar o prazo.</span></button>`:''}
+
+/* ====================== Conflito de interesses ====================== */
+const normName=s=>' '+String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]+/g,' ').replace(/\b(lda|limitada|sa|s a|unipessoal|sgps|crl)\b/g,' ').replace(/\s+/g,' ').trim()+' ';
+function conflicts(name,asClient,exceptCase){const n=normName(name).trim();if(n.length<4)return [];const hits=[];
+ if(asClient)DB.cases.forEach(c=>{if(c.id!==exceptCase&&c.adv&&normName(c.adv).trim()===n)hits.push(name+' é parte contrária no processo '+(c.num||c.title))});
+ else DB.clients.forEach(cl=>{if(normName(cl.name).trim()===n&&cstatus(cl)!=='lost')hits.push(name+' é '+(cstatus(cl)==='lead'?'lead':'cliente')+' do escritório')});
+ return hits}
+
+/* ====================== Mais ====================== */
+VIEWS.mais=()=>`<div class="h-row"><div><h1>Mais</h1></div></div><div class="tiles">${[['minutas','Minutas','Procurações, cartas, requerimentos e modelos próprios'],['honorarios','Honorários','Notas de honorários, despesas e calculadora'],['direto','Transcrever em direto','Gravar e transcrever uma reunião ou diligência'],['perfil','Perfil e equipa','Dados do advogado, equipa, PIN e cópia de segurança']].map(([k,t,s])=>`<button class="tile" data-go="${k}"><b>${t}</b><span>${s}</span></button>`).join('')}</div>`;
+
 async function summarize(id){const r=DB.recs.find(x=>x.id===id),el=$('sum-'+id);if(!el||!r)return;el.style.display='';el.textContent='A preparar o resumo…';
  let sample=null;try{sample=AI()?await window.claude.use('sample'):null}catch(_){}
  if(!sample){el.textContent='O resumo com IA não está disponível neste navegador.';return}
@@ -874,6 +1127,7 @@ VIEWS.direto=()=>{const L=S.live;
  <div id="live" class="live-big"></div>`};
 VIEWS.prazos=()=>{const c=S.calc;
  return `<div class="h-row"><div><h1>Calculadora de prazos</h1><p>Contagem segundo o CPC, o CPT e o Código Civil, com férias judiciais e feriados do município do tribunal.</p></div></div>
+ ${inboxSection()}
  <div class="grid2">
  <section class="card pad-card"><div class="form">
   <div class="f"><label for="c-case">Processo</label><select id="c-case" data-c="caseId">${caseOpts(c.caseId,DB.cases.length?'Sem processo (só calcular)':'Sem processos criados (só calcular)')}</select></div>
@@ -1000,8 +1254,10 @@ VIEWS.perfil=()=>{const p=P();
  <div class="f"><label for="pf-name">Nome</label><input id="pf-name" value="${esc(p.name)}"></div>
  <div class="f"><label for="pf-addr">Domicílio profissional</label><input id="pf-addr" value="${esc(p.addr)}"></div>
  <div class="f2"><div class="f"><label for="pf-email">Email</label><input id="pf-email" type="email" value="${esc(p.email||'')}"></div><div class="f"><label for="pf-rate">Valor por hora (€, sem IVA)</label><input id="pf-rate" type="number" inputmode="decimal" min="0" step="5" value="${p.rate??''}"></div></div>
+ <div class="f"><label for="pf-uc">Valor da unidade de conta, UC (€)</label><input id="pf-uc" type="number" inputmode="decimal" min="0" step="0.01" value="${p.uc??102}"></div>
  <button class="btn pri" data-act="pf-save">Guardar perfil</button></div></section>
  <section class="card pad-card" style="max-width:640px;margin-bottom:18px"><h2 class="sec-t">Mudar o PIN</h2><div class="form"><div class="f2"><div class="f"><label for="pf-pin">Novo PIN</label><input id="pf-pin" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password"></div><div class="f"><label for="pf-pin2">Repetir</label><input id="pf-pin2" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password"></div></div><button class="btn" data-act="pin-save">Mudar o PIN</button></div></section>
+ <section class="card pad-card" style="max-width:640px;margin-bottom:18px"><h2 class="sec-t">Equipa do escritório</h2><p class="muted" style="margin-top:0">Para atribuir tarefas a colegas, estagiários ou administrativos.</p>${(DB.team||[]).map(t=>`<div class="ev"><div class="tt" style="flex:1"><b>${esc(t.name)}</b><small>${esc(t.role)}</small></div>${confirmBtn('eq-del',t.id,'Remover','Confirmar')}</div>`).join('')}<div class="form" style="margin-top:10px"><div class="f2"><div class="f"><label for="eq-name">Nome</label><input id="eq-name"></div><div class="f"><label for="eq-role">Função</label><select id="eq-role">${opts([['Advogado','Advogado'],['Advogado estagiário','Advogado estagiário'],['Solicitador','Solicitador'],['Administrativo','Administrativo']],'Advogado estagiário')}</select></div></div><button class="btn" data-act="eq-add">Acrescentar à equipa</button></div></section>
  <section class="card pad-card" style="max-width:640px;margin-bottom:18px"><h2 class="sec-t">Cópia de segurança</h2><p class="muted" style="margin-top:0">Guarda processos, clientes, prazos, marcações, honorários, transcrições, tempo e modelos num ficheiro, para guardar no computador ou passar para outro dispositivo. Os áudios e documentos juntos ficam só neste dispositivo.</p><div class="row-acts"><button class="btn" data-act="bk-export">Exportar cópia</button><button class="btn" data-act="bk-import">Importar cópia</button><input type="file" accept="application/json,.json" id="bk-file" data-backup hidden></div>${S.pendingImport?`<div class="note">Cópia de ${esc(String(S.pendingImport.exported||'').slice(0,10))} com ${S.pendingImport.cases.length} processo(s). Os dados atuais deste dispositivo serão substituídos.<div class="row-acts" style="margin-top:8px"><button class="btn sm danger-on" data-act="bk-apply">Substituir pelos dados da cópia</button><button class="btn sm" data-act="bk-cancel">Cancelar</button></div></div>`:''}</section>
  <section class="card pad-card" style="max-width:640px"><h2 class="sec-t">Sessão e dados</h2><p class="muted" style="margin-top:0">Os dados ficam guardados apenas neste dispositivo e neste navegador.</p><div class="row-acts"><button class="btn" data-act="logout">Terminar sessão</button>${confirmBtn('reset','all','Apagar todos os dados','Confirmar: apagar tudo deste dispositivo')}</div></section>`};
 
@@ -1011,7 +1267,8 @@ function copyText(txt,msg){const ok=()=>toast(msg);(navigator.clipboard?navigato
 document.addEventListener('click',e=>{
  const p=e.target.closest('[data-pin]');if(p){pinPress(p.dataset.pin);return}
  const g=e.target.closest('[data-go]');if(g){go(g.dataset.go);return}
- const cs=e.target.closest('[data-case]');if(cs){S.caseId=cs.dataset.case;go('caso');return}
+ const cs=e.target.closest('[data-case]');if(cs){e.preventDefault();S.caseId=cs.dataset.case;go('caso');return}
+ const ck=e.target.closest('[data-client]');if(ck){S.clientId=ck.dataset.client;go('cliente');return}
  const fl=e.target.closest('[data-filter]');if(fl){S.filter=fl.dataset.filter;render();return}
  const dc=e.target.closest('[data-doc]');if(dc){S.doc.tpl=dc.dataset.doc;if(dc.dataset.doc!=='meus')docPrefill();render();return}
  const a=e.target.closest('[data-act]');if(!a)return;const id=a.dataset.id;
@@ -1021,17 +1278,17 @@ document.addEventListener('click',e=>{
   case 'theme':{const r=document.documentElement,cur=r.dataset.theme||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');r.dataset.theme=cur==='dark'?'light':'dark';try{localStorage.setItem('lv-theme',r.dataset.theme)}catch(_){}break}
   case 'logout':S.logged=false;S.pin='';login();break;
   case 'reset':if(askConfirm('resetall'))resetAll();break;
-  case 'pf-save':{const name=val('pf-name');if(!name){toast('Indique o nome.');break}Object.assign(DB.profile,{title:val('pf-title'),name,cedula:val('pf-ced'),addr:val('pf-addr'),email:val('pf-email'),rate:+val('pf-rate')||0});save();S.doc.ready=false;shell();toast('Perfil guardado.');break}
+  case 'pf-save':{const name=val('pf-name');if(!name){toast('Indique o nome.');break}Object.assign(DB.profile,{title:val('pf-title'),name,cedula:val('pf-ced'),addr:val('pf-addr'),email:val('pf-email'),rate:+val('pf-rate')||0,uc:+val('pf-uc')||102});save();S.doc.ready=false;shell();toast('Perfil guardado.');break}
   case 'pin-save':{const a1=val('pf-pin'),a2=val('pf-pin2');if(!/^\d{4}$/.test(a1)){toast('O PIN tem de ter 4 algarismos.');break}if(a1!==a2){toast('Os dois PIN não são iguais.');break}hashPin(a1).then(h=>{DB.profile.pin=h;save();toast('PIN alterado.');render()});break}
-  case 'new-proc':S.editCase=null;go('novo-proc');break;
+  case 'new-proc':S.editCase=null;S.newProcClient=null;go('novo-proc');break;
   case 'edit-case':S.editCase=id;go('novo-proc');break;
   case 'save-proc':saveProc();break;
   case 'archive':{const c=caseById(id);c.status=c.status==='archived'?'active':'archived';save();toast(c.status==='archived'?'Processo arquivado.':'Processo reativado.');render();break}
   case 'del-case':if(askConfirm('del-case'+id)){DB.recs.filter(r=>r.caseId===id).forEach(r=>audioDel(r.id));DB.recs=DB.recs.filter(r=>r.caseId!==id);DB.deadlines=DB.deadlines.filter(d=>d.caseId!==id);DB.events=DB.events.filter(x=>x.caseId!==id);DB.docs.filter(d=>d.caseId===id).forEach(d=>audioDel('doc:'+d.id));DB.docs=DB.docs.filter(d=>d.caseId!==id);DB.time=DB.time.filter(t=>t.caseId!==id);DB.expenses=DB.expenses.filter(x=>x.caseId!==id);if(DB.timer&&DB.timer.caseId===id)DB.timer=null;DB.fees.forEach(f=>{if(f.caseId===id)f.caseId=null});DB.cases=DB.cases.filter(c=>c.id!==id);save();toast('Processo apagado.');go('processos')}break;
-  case 'done':{const d=DB.deadlines.find(x=>x.id===id);if(d){d.done=true;d.doneAt=key(TODAY);save();toast('Prazo marcado como entregue.');render()}break}
+  case 'done':{const d=DB.deadlines.find(x=>x.id===id);if(d&&requiresTax(d)&&!taxOk(d)&&S.confirm!=='done'+id){S.confirm='done'+id;toast('Atenção: não há taxa de justiça paga para este ato (art. 145.º CPC). Toque outra vez em «Entregue» para confirmar.');break}S.confirm=null;if(d){d.done=true;d.doneAt=key(TODAY);save();toast('Prazo marcado como entregue.');render()}break}
   case 'del-dl':if(askConfirm('del-dl'+id)){DB.deadlines=DB.deadlines.filter(d=>d.id!==id);save();toast('Prazo apagado.');render()}break;
   case 'new-dl':{const c=caseById(id);S.calc.caseId=id;S.calc.court=c.court;S.calc.urgent=!!c.urgentLegal;go('prazos');break}
-  case 'save-dl':{const p=calcParams(),t=TPL[S.calc.tpl];if(!S.calc.caseId)break;DB.deadlines.push({id:nid('d'),caseId:S.calc.caseId,title:S.calc.title||t.name,basis:t.basis,trigger:S.calc.trigger,triggerType:p.triggerType,days:p.days,dil:p.dil,regime:p.regime,urgent:p.urgent,done:false});save();toast('Prazo guardado no processo.');S.caseId=S.calc.caseId;go('caso');break}
+  case 'save-dl':{const p=calcParams(),t=TPL[S.calc.tpl];if(!S.calc.caseId)break;DB.deadlines.push({id:nid('d'),caseId:S.calc.caseId,tpl:S.calc.tpl,title:S.calc.title||t.name,basis:t.basis,trigger:S.calc.trigger,triggerType:p.triggerType,days:p.days,dil:p.dil,regime:p.regime,urgent:p.urgent,done:false});save();toast('Prazo guardado no processo.');S.caseId=S.calc.caseId;go('caso');break}
   case 'doc-case':S.doc.caseId=id;docPrefill();S.doc.ready=true;go('minutas');break;
   case 'copy':{const d=currentDoc();if(d)copyText(d.t+'\n\n'+d.b,'Texto copiado.');break}
   case 'print':{const w=window.open('','_blank');if(!w){toast('O navegador bloqueou a janela de impressão. Use «Copiar texto».');break}w.document.write('<html><head><title>Minuta</title></head><body style="font-family:Georgia,serif;font-size:13pt;line-height:1.7;white-space:pre-wrap;max-width:680px;margin:48px auto">'+esc(plainDoc())+'</body></html>');w.document.close();w.focus();w.print();break}
@@ -1086,6 +1343,53 @@ document.addEventListener('click',e=>{
   case 'exp-save':{const amount=+val('x-amount');if(!(amount>0)){toast('Indique o valor da despesa.');break}const cat=val('x-cat');DB.expenses.push({id:nid('x'),caseId:id,date:val('x-date')||key(TODAY),cat,desc:val('x-desc')||catName(cat),amount:Math.round(amount*100)/100,reemb:chk('x-reemb'),paidBy:val('x-paid')||'office',billed:false,created:Date.now()});S.expAdd=null;save();toast('Despesa registada.');render();break}
   case 'exp-del':if(askConfirm('exp-del'+id)){DB.expenses=DB.expenses.filter(x=>x.id!==id);save();render()}break;
   case 'fee-pdf':{const f=DB.fees.find(x=>x.id===id);if(f)exportFee(f);break}
+  case 'ctab':S.ctab=id;S.leadEdit=null;S.ctEdit=null;render();break;
+  case 'lead-new':S.leadEdit='new';render();break;
+  case 'lead-edit':S.leadEdit=id;render();break;
+  case 'lead-cancel':S.leadEdit=null;render();break;
+  case 'lead-save':{const name=val('l-name');if(!name){toast('Indique o nome.');break}const o=id==='new'?{id:nid('cl'),status:'lead',created:Date.now()}:DB.clients.find(x=>x.id===id);if(!o)break;
+   Object.assign(o,{name,kind:val('l-kind'),phone:val('l-phone'),email:val('l-email'),source:val('l-source'),firstContact:val('l-first'),subject:val('l-subject'),consult:{date:val('l-cdate')||null,fee:val('l-cfee')?+val('l-cfee'):null,paid:chk('l-cpaid')},nextStep:{date:val('l-ndate')||null,text:val('l-ntext')},notes:$('l-notes')?.value||''});
+   if(id==='new')DB.clients.push(o);S.leadEdit=null;save();const h=conflicts(name,true);toast(h.length?'Lead guardado. Atenção, possível conflito de interesses: '+h.join('; ')+'.':'Lead guardado.');render();break}
+  case 'lead-convert':{const k=clientById(id);if(k){k.status='active';k.convertedAt=key(TODAY);save();S.editCase=null;S.newProcClient=id;go('novo-proc');toast('Cliente convertido. Crie agora o processo.')}break}
+  case 'lead-lost':if(askConfirm('lead-lost'+id)){const k=clientById(id);k.status='lost';k.lostAt=key(TODAY);save();render()}break;
+  case 'client-save':{const k=clientById(id);const name=val('k-name');if(!k||!name){toast('Indique o nome.');break}Object.assign(k,{name,kind:val('k-kind'),nif:val('k-nif'),phone:val('k-phone'),addr:val('k-addr'),email:val('k-email'),org:chk('k-org'),notes:$('k-notes')?.value||''});save();toast('Ficha do cliente guardada.');render();break}
+  case 'client-newproc':S.editCase=null;S.newProcClient=id;go('novo-proc');break;
+  case 'ct-new':S.ctEdit='new';render();break;
+  case 'ct-edit':S.ctEdit=id;render();window.scrollTo(0,0);break;
+  case 'ct-cancel':S.ctEdit=null;render();break;
+  case 'ct-kind':S.ctKind=id||null;render();break;
+  case 'ct-save':{const name=val('t-name');if(!name){toast('Indique o nome.');break}const o=id==='new'?{id:nid('ct'),created:Date.now()}:DB.contacts.find(x=>x.id===id);Object.assign(o,{kind:val('t-kind'),name,org:val('t-org'),role:val('t-role'),phone:val('t-phone'),email:val('t-email'),addr:val('t-addr'),notes:$('t-notes')?.value||''});if(id==='new')DB.contacts.push(o);S.ctEdit=null;save();toast('Contacto guardado.');render();break}
+  case 'ct-del':if(askConfirm('ct-del'+id)){DB.contacts=DB.contacts.filter(x=>x.id!==id);S.ctEdit=null;save();render()}break;
+  case 'tk-new':S.tEdit='new';S.tPrefill=null;render();break;
+  case 'tk-case':S.tEdit='new';S.tPrefill={caseId:id};go('tarefas');break;
+  case 'dl-task':{const d=DB.deadlines.find(x=>x.id===id);if(d){S.tEdit='new';S.tPrefill={title:'Preparar: '+d.title,caseId:d.caseId,due:key(prevBizDays(res(d).termo,3)),deadlineId:d.id,priority:'alta'};go('tarefas')}break}
+  case 'tk-edit':S.tEdit=id;render();window.scrollTo(0,0);break;
+  case 'tk-cancel':S.tEdit=null;S.tPrefill=null;render();break;
+  case 'tk-who':S.tWho=id||null;render();break;
+  case 'tk-save':{const title=val('tk-title');if(!title){toast('Descreva a tarefa.');break}const o=id==='new'?{id:nid('tk'),status:'todo',created:Date.now(),createdBy:LNAME(),deadlineId:(S.tPrefill||{}).deadlineId||null}:DB.tasks.find(x=>x.id===id);Object.assign(o,{title,assignee:val('tk-who'),due:val('tk-due')||null,caseId:val('tk-case')||null,priority:val('tk-prio'),notes:$('tk-notes')?.value||''});if(id==='new')DB.tasks.push(o);S.tEdit=null;S.tPrefill=null;save();toast('Tarefa guardada.');render();break}
+  case 'tk-move':{const t=DB.tasks.find(x=>x.id===id);if(t){t.status=a.dataset.st;t.doneAt=t.status==='done'?key(TODAY):null;save();render()}break}
+  case 'tk-del':if(askConfirm('tk-del'+id)){DB.tasks=DB.tasks.filter(x=>x.id!==id);save();render()}break;
+  case 'eq-add':{const name=val('eq-name');if(!name){toast('Indique o nome.');break}DB.team.push({id:nid('eq'),name,role:val('eq-role')});save();toast('Acrescentado à equipa.');render();break}
+  case 'eq-del':if(askConfirm('eq-del'+id)){DB.team=DB.team.filter(x=>x.id!==id);save();render()}break;
+  case 'mail-gen':{const c=caseById(id);if(c)genMail(c);break}
+  case 'mail-redo':{const m=S.mail;if(m)m.out=null;render();break}
+  case 'mail-copy':{const sj=val('m-subj'),bd=$('m-body')?.value||'';copyText('Assunto: '+sj+'\n\n'+bd,'E-mail copiado.');break}
+  case 'mail-open':{const c=caseById(id),k=clientById(c.clientId)||{};const sj=val('m-subj'),bd=$('m-body')?.value||'';const l=document.createElement('a');l.href='mailto:'+encodeURIComponent(k.email||'')+'?subject='+encodeURIComponent(sj)+'&body='+encodeURIComponent(bd);document.body.appendChild(l);l.click();l.remove();break}
+  case 'doc-ocr':{const d=DB.docs.find(x=>x.id===id);if(d)docOcr(d);break}
+  case 'inb-add':{const f=$('inb-file');if(f)f.click();break}
+  case 'inb-ok':confirmInbox(id);break;
+  case 'inb-del':if(askConfirm('inb-del'+id)){const it=DB.inbox.find(x=>x.id===id);if(it){it.status='discarded';audioDel('inb:'+id)}save();render()}break;
+  case 'inc-open':S.incFor=id;S.itype='suspension';render();setTimeout(()=>{const el=document.querySelector('[data-act="inc-close"]');if(el)el.scrollIntoView({block:'center'})},50);break;
+  case 'inc-close':S.incFor=null;render();break;
+  case 'inc-save':saveIncident(id);break;
+  case 'inc-del':if(askConfirm('inc-del'+id)){const [dl,ii]=id.split('|');const d=DB.deadlines.find(x=>x.id===dl);if(d){d.incidents=(d.incidents||[]).filter(i=>i.id!==ii);save();toast('Incidente removido. Prazo recalculado.');render()}}break;
+  case 'duc-new':S.ducNew=id;render();break;
+  case 'duc-cancel':S.ducNew=null;render();break;
+  case 'duc-save':saveDuc(id);break;
+  case 'duc-paid':{const u=DB.ducs.find(x=>x.id===id);if(u){u.paid=key(TODAY);ducExpense(u);save();toast('DUC pago. A taxa foi lançada nas despesas do processo, para debitar ao cliente.');render()}break}
+  case 'duc-proof':{const u=DB.ducs.find(x=>x.id===id);if(u){u.proof=!u.proof;save();render()}break}
+  case 'duc-del':if(askConfirm('duc-del'+id)){DB.ducs=DB.ducs.filter(x=>x.id!==id);save();render()}break;
+  case 'rcp-col':S.rcpCol=id;render();break;
   case 'rec-retry':{const r=DB.recs.find(x=>x.id===id);if(r)retryPending(r);break}
   case 'rec-tx':{const r=DB.recs.find(x=>x.id===id);if(r)txFile(r);break}
   case 'spk':S.spk=a.dataset.spk||null;render();break;
@@ -1097,11 +1401,14 @@ document.addEventListener('click',e=>{
 });
 document.addEventListener('keydown',e=>{
  if(!S.logged&&DB.profile&&!/INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName||'')){if(/^[0-9]$/.test(e.key)){pinPress(e.key);return}if(e.key==='Backspace'){pinPress('b');return}}
- if(e.key==='Enter'){const r=e.target.closest&&e.target.closest('tr[data-case]');if(r){S.caseId=r.dataset.case;go('caso')}}
+ if(e.key==='Enter'){const r=e.target.closest&&e.target.closest('tr[data-case]');if(r){S.caseId=r.dataset.case;go('caso')}const k=e.target.closest&&e.target.closest('tr[data-client]');if(k){S.clientId=k.dataset.client;go('cliente')}}
 });
 document.addEventListener('input',e=>{const t=e.target;
  if(t.id==='q'){S.q=t.value;$('ctable').innerHTML=caseTable();return}
  if(t.dataset.pclient!==undefined){$('newclient').style.display=t.value==='__new'?'grid':'none';return}
+ if(t.dataset.cq!==undefined){S.cq=t.value;const el=$('cl-list');if(el)el.innerHTML=clientRows(t.value);return}
+ if(t.dataset.ctq!==undefined){S.ctq=t.value;const el=$('ct-list');if(el)el.innerHTML=contactRows(t.value);return}
+ if(t.dataset.itype!==undefined){S.itype=t.value;const el=$('i-fields');if(el)el.innerHTML=incFields(t.value);return}
  if(t.dataset.xcat!==undefined){const cb=$('x-reemb');if(cb)cb.checked=!!EXP_REEMB[t.value];return}
  if(t.dataset.ncase!==undefined){const el=$('n-exp-list');if(el)el.innerHTML=feeExpHtml(t.value);const c=caseById(t.value);const cs=$('n-client');if(c&&cs)cs.value=c.clientId;return}
  if(t.dataset.tmdesc!==undefined){if(DB.timer){DB.timer.desc=t.value;save()}return}
@@ -1117,6 +1424,7 @@ document.addEventListener('input',e=>{const t=e.target;
  if(t.dataset.rq!==undefined){const v=t.value.toLowerCase();document.querySelectorAll('[data-row="'+t.dataset.rq+'"]').forEach(r=>r.style.display=r.textContent.toLowerCase().includes(v)?'':'none');return}
 });
 document.addEventListener('change',e=>{const t=e.target;
+ if(t.dataset&&t.dataset.inbox!==undefined){const fs=[...(t.files||[])];t.value='';fs.forEach(f=>importNotif(f));return}
  if(t.dataset&&t.dataset.docfile){const fs=[...(t.files||[])];if(fs.length)addDocs(t.dataset.docfile,fs);t.value='';return}
  if(t.dataset&&t.dataset.backup!==undefined){const f=t.files&&t.files[0];t.value='';if(!f)return;f.text().then(x=>{try{const o=JSON.parse(x);if(o.app!=='LEXVORTEX'||!Array.isArray(o.cases))throw 0;S.pendingImport=o;render()}catch(_){toast('Este ficheiro não é uma cópia de segurança da LEXVORTEX.')}});return}
  if(t.dataset&&t.dataset.file){const f=t.files&&t.files[0];if(f)attachFile(t.dataset.file,f);t.value='';return}
