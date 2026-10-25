@@ -256,6 +256,9 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
 .seg-text{outline:none;border-radius:4px}
 .seg-text:focus{background:var(--accent-soft);box-shadow:0 0 0 2px var(--accent-soft)}
 .seg-body{flex:1;min-width:0}
+.cal-links{display:flex;gap:16px;flex-wrap:wrap;padding:0 4px 10px 78px;font-size:13px;border-bottom:1px solid var(--line)}
+.cal-links a,.cal-links button{color:var(--accent);background:none;border:none;padding:6px 0;font:inherit;font-weight:600;cursor:pointer;text-decoration:none;min-height:36px}
+.ev{border-bottom:none}
 </style>
 </head>
 <body>
@@ -330,7 +333,7 @@ const graceLeft=r=>r.cells.filter(c=>c.t==='gr'&&diff(TODAY,c.d)>=0).length;
 
 /* ---------- Armazenamento local ---------- */
 const DB_KEY='lexvortex-v2';
-const fresh=()=>({profile:null,clients:[],cases:[],deadlines:[],events:[],fees:[],recs:[],seq:1});
+const fresh=()=>({profile:null,clients:[],cases:[],deadlines:[],events:[],fees:[],recs:[],docs:[],time:[],templates:[],timer:null,seq:1});
 let DB=fresh();
 function load(){try{const s=localStorage.getItem(DB_KEY);if(s)DB=Object.assign(fresh(),JSON.parse(s))}catch(_){}}
 function save(){try{localStorage.setItem(DB_KEY,JSON.stringify(DB))}catch(_){toast('Não foi possível guardar neste dispositivo.')}}
@@ -556,7 +559,7 @@ VIEWS.caso=()=>{
   <div><span>Cliente</span><b>${esc(cl.name||'—')}</b></div><div><span>Parte adversa</span><b>${esc(c.adv||'—')}</b></div>
   <div><span>Fase processual</span><b>${esc(c.phase)}</b></div><div><span>Área</span><b>${esc(c.area)}${c.urgentLegal?' · urgente':''}</b></div>
   <div><span>Valor da causa</span><b>${c.value!=null?eur(c.value):'—'}</b></div><div><span>NIF do cliente</span><b>${esc(cl.nif||'—')}</b></div></div></section>
- ${recSection(c)}
+ ${recSection(c)}${docSection(c)}${timeSection(c)}
  <section style="margin-bottom:18px"><h2 class="sec-t">Prazos</h2>${dls.length?`<div class="tscroll"><table class="tbl"><thead><tr><th>Ato</th><th>Evento</th><th>Termo</th><th>Fim da multa</th><th>Base legal</th><th>Estado</th><th></th></tr></thead><tbody>
  ${dls.map(x=>`<tr><td><b>${esc(x.d.title)}</b></td><td class="mono">${TRIG[x.d.triggerType]}<br><span class="muted">${fd(parse(x.d.trigger))}</span></td><td class="mono"><b>${fd(x.r.termo)}</b></td><td class="mono">${x.r.grace?fd(x.r.grace):'—'}</td><td>${esc(x.d.basis)}</td><td>${chip(x.l)}</td><td><div class="row-acts">${x.d.done?'':`<button class="btn sm" data-act="done" data-id="${x.d.id}">Entregue</button>`}${confirmBtn('del-dl',x.d.id,'Apagar','Confirmar')}</div></td></tr>`).join('')}
  </tbody></table></div>`:'<div class="card empty">Sem prazos neste processo. Use «Novo prazo» para calcular o primeiro.</div>'}</section>
@@ -717,6 +720,90 @@ async function exportRec(r,kind){if(!r.segs.length)return toast('Esta gravação
  catch(e){toast('Não foi possível criar o ficheiro. Verifique a ligação à internet e tente de novo.')}
  S.expBusy=null;render()}
 
+/* ---------- Bibliotecas externas (carregadas só quando precisas) ---------- */
+const LIB_PDFJS='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',LIB_PDFJS_W='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+function loadLib(src,glob){return new Promise((res,rej)=>{if(window[glob])return res(window[glob]);const s=document.createElement('script');s.src=src;s.onload=()=>window[glob]?res(window[glob]):rej(new Error('load'));s.onerror=()=>rej(new Error('load'));document.head.appendChild(s)})}
+const fmtSize=b=>b<1024*1024?Math.max(1,Math.round(b/1024))+' KB':(b/1048576).toFixed(1).replace('.',',')+' MB';
+const fmtMin=m=>{m=Math.round(m);const h=Math.floor(m/60),r=m%60;return h?h+' h'+(r?' '+r+' min':''):r+' min'};
+
+/* ---------- Documentos do processo ---------- */
+const MNUM={janeiro:0,fevereiro:1,'março':2,marco:2,abril:3,maio:4,junho:5,julho:6,agosto:7,setembro:8,outubro:9,novembro:10,dezembro:11};
+function findDates(text){const found=new Map();const push=(y,m,d)=>{if(y<100)y+=2000;const dt=D(y,m,d);if(dt.getMonth()!==m||dt.getDate()!==d)return;const k=key(dt);found.set(k,(found.get(k)||0)+1)};
+ for(const x of text.matchAll(/\b(\d{1,2})[-.\/](\d{1,2})[-.\/](\d{4})\b/g))push(+x[3],+x[2]-1,+x[1]);
+ for(const x of text.matchAll(/\b(\d{4})[-.\/](\d{1,2})[-.\/](\d{1,2})\b/g))push(+x[1],+x[2]-1,+x[3]);
+ for(const x of text.toLowerCase().matchAll(/\b(\d{1,2})\s+de\s+(janeiro|fevereiro|março|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s+de\s+(\d{4})\b/g))push(+x[3],MNUM[x[2]],+x[1]);
+ return [...found.keys()].filter(k=>{const x=diff(parse(k),TODAY);return x>=-60&&x<=400}).sort((a,b)=>Math.abs(diff(parse(a),TODAY))-Math.abs(diff(parse(b),TODAY))).slice(0,6)}
+async function scanPdf(d,file){d.scanning=true;render();
+ try{const lib=await loadLib(LIB_PDFJS,'pdfjsLib');lib.GlobalWorkerOptions.workerSrc=LIB_PDFJS_W;const pdf=await lib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;
+  let text='';for(let i=1;i<=Math.min(pdf.numPages,5);i++){const pg=await pdf.getPage(i);const tc=await pg.getTextContent();text+=tc.items.map(t=>t.str).join(' ')+'\n'}
+  d.dates=findDates(text);d.hasText=text.trim().length>20}
+ catch(_){d.dates=[];d.hasText=false}
+ d.scanning=false;d.scanned=true;save();render()}
+function addDocs(caseId,files){for(const f of files){const d={id:nid('doc'),caseId,name:f.name,size:f.size,type:f.type,date:key(TODAY),created:Date.now(),isPdf:/pdf/i.test(f.type)||/\.pdf$/i.test(f.name),dates:[]};
+ audioPut('doc:'+d.id,f);AURL['doc:'+d.id]=URL.createObjectURL(f);DB.docs.push(d);save();if(d.isPdf)scanPdf(d,f)}
+ render();toast(files.length>1?files.length+' documentos juntos ao processo.':'Documento junto ao processo.')}
+function docSection(c){const list=DB.docs.filter(d=>d.caseId===c.id).sort((a,b)=>b.created-a.created);
+ return `<section class="card pad-card" style="margin-bottom:18px"><div class="h-row" style="margin-bottom:10px;align-items:center"><h2 class="sec-t" style="margin:0">Documentos</h2><div class="row-acts"><button class="btn sm" data-act="doc-add" data-id="${c.id}">Juntar documento</button><input type="file" accept="application/pdf,image/*,.doc,.docx,.odt,.txt" id="docf-${c.id}" data-docfile="${c.id}" hidden multiple></div></div>
+ ${list.map(d=>`<div class="recbox"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start"><div style="min-width:0;flex:1"><b style="word-break:break-word">${esc(d.name)}</b><div class="muted" style="font-size:13px">${fd(parse(d.date))} · ${fmtSize(d.size)}</div></div><div class="row-acts"><button class="btn sm" data-act="doc-open" data-id="${d.id}">Abrir</button>${confirmBtn('doc-del',d.id,'Apagar','Confirmar')}</div></div>
+ ${d.scanning?'<p class="muted" style="font-size:13.5px;margin:10px 0 0">A procurar datas no documento…</p>':d.dates&&d.dates.length?`<div style="margin-top:10px"><div class="muted" style="font-size:13px;margin-bottom:6px">Datas encontradas no documento. Toque numa para calcular o prazo a partir dela.</div><div class="row-acts">${d.dates.map(x=>`<button class="seg" data-act="doc-date" data-id="${c.id}" data-d="${x}">${fd(parse(x))}</button>`).join('')}</div></div>`:d.isPdf&&d.scanned?`<p class="muted" style="font-size:13px;margin:10px 0 0">${d.hasText?'Não foram encontradas datas neste documento.':'Este PDF não tem texto pesquisável (é uma imagem digitalizada).'}</p>`:''}</div>`).join('')||'<div class="empty">Sem documentos. Junte notificações, peças ou sentenças em PDF: a app procura as datas e ajuda a calcular o prazo.</div>'}</section>`}
+
+/* ---------- Registo de tempo ---------- */
+function timeSection(c){const list=DB.time.filter(t=>t.caseId===c.id).sort((a,b)=>(b.created||0)-(a.created||0));const run=DB.timer&&DB.timer.caseId===c.id;
+ const unb=list.filter(t=>!t.billed),mins=unb.reduce((s,t)=>s+t.minutes,0),rate=+P().rate||0;
+ return `<section class="card pad-card" style="margin-bottom:18px"><div class="h-row" style="margin-bottom:10px;align-items:center"><h2 class="sec-t" style="margin:0">Registo de tempo</h2><div class="row-acts">${run?`<button class="btn sm pri" data-act="tm-stop" data-id="${c.id}">■ Parar · <span id="tm-run" class="mono">${ts((Date.now()-DB.timer.start)/1000)}</span></button>`:`<button class="btn sm dark" data-act="tm-start" data-id="${c.id}" ${DB.timer?'disabled':''}>▶ Iniciar cronómetro</button>`}<button class="btn sm" data-act="tm-add" data-id="${c.id}">Registo manual</button></div></div>
+ ${run?`<div class="f" style="margin-bottom:12px"><label for="tm-desc">O que está a fazer</label><input id="tm-desc" data-tmdesc value="${esc(DB.timer.desc||'')}" placeholder="Ex.: Preparação da contestação"></div>`:''}
+ ${DB.timer&&!run?`<p class="muted" style="font-size:13px;margin-top:0">Está um cronómetro a correr noutro processo.</p>`:''}
+ ${S.tmAdd===c.id?`<div class="form subform" style="margin-bottom:12px"><div class="f2"><div class="f"><label for="tm-min">Tempo (minutos)</label><input id="tm-min" type="number" inputmode="numeric" min="1" value="30"></div><div class="f"><label for="tm-date">Data</label><input id="tm-date" type="date" value="${key(TODAY)}"></div></div><div class="f"><label for="tm-d2">Descrição</label><input id="tm-d2" placeholder="Ex.: Reunião com o cliente"></div><div class="row-acts"><button class="btn pri" data-act="tm-save" data-id="${c.id}">Guardar</button><button class="btn" data-act="tm-cancel">Cancelar</button></div></div>`:''}
+ ${list.length?`<div class="tscroll"><table class="tbl"><thead><tr><th>Data</th><th>Descrição</th><th class="num">Tempo</th><th>Estado</th><th></th></tr></thead><tbody>${list.map(t=>`<tr><td class="mono">${fd(parse(t.date))}</td><td>${esc(t.desc||'—')}</td><td class="num">${fmtMin(t.minutes)}</td><td>${t.billed?'<span class="chip l-ok">Faturado</span>':'<span class="chip l-att">Por faturar</span>'}</td><td>${t.billed?'':confirmBtn('tm-del',t.id,'Apagar','Confirmar')}</td></tr>`).join('')}</tbody></table></div>
+ ${mins?`<div class="row-acts" style="margin-top:12px;justify-content:space-between"><span>Por faturar: <b>${fmtMin(mins)}</b>${rate?` × ${eur(rate)}/h = <b>${eur(mins/60*rate)}</b>`:''}</span><button class="btn sm pri" data-act="tm-bill" data-id="${c.id}">Criar nota de honorários</button></div>${rate?'':'<p class="muted" style="font-size:13px">Defina o seu valor por hora no Perfil para calcular os honorários.</p>'}`:''}`:'<div class="empty">Sem tempo registado neste processo.</div>'}</section>`}
+setInterval(()=>{const el=$('tm-run');if(el&&DB.timer)el.textContent=ts((Date.now()-DB.timer.start)/1000)},1000);
+
+/* ---------- Calendários externos ---------- */
+const ymd=s=>s.replace(/-/g,'');
+function evTimes(e){if(!e.time)return null;const [h,m]=e.time.split(':').map(Number);const eh=Math.min(23,h+1),em=h===23?59:m;return {s:e.date+'T'+e.time+':00',e:e.date+'T'+String(eh).padStart(2,'0')+':'+String(em).padStart(2,'0')+':00'}}
+function evDetails(e){const c=e.caseId?caseById(e.caseId):null;return [c?'Processo '+(c.num||c.title):'',c&&clientById(c.clientId)?'Cliente: '+clientById(c.clientId).name:'',e.kind==='deadline'?'Base legal: '+(e.place||''):''].filter(Boolean).join('\n')}
+function gcal(e){const t=evTimes(e);const dates=t?ymd(t.s).replace(/:/g,'')+'/'+ymd(t.e).replace(/:/g,''):ymd(e.date)+'/'+ymd(key(add(parse(e.date),1)));
+ return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(e.title)+'&dates='+dates+'&ctz=Europe%2FLisbon&details='+encodeURIComponent(evDetails(e))+'&location='+encodeURIComponent(e.kind==='deadline'?'':(e.place||''))}
+function ocal(e){const t=evTimes(e);return 'https://outlook.office.com/calendar/0/deeplink/compose?subject='+encodeURIComponent(e.title)+'&startdt='+encodeURIComponent(t?t.s:e.date)+'&enddt='+encodeURIComponent(t?t.e:key(add(parse(e.date),1)))+'&allday='+(t?'false':'true')+'&location='+encodeURIComponent(e.kind==='deadline'?'':(e.place||''))+'&body='+encodeURIComponent(evDetails(e))}
+const icsEsc=s=>String(s||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');
+function icsEvent(e){const t=evTimes(e);const st=new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d+/,'');
+ return ['BEGIN:VEVENT','UID:'+e.id+'@lexvortex','DTSTAMP:'+st,t?'DTSTART;TZID=Europe/Lisbon:'+t.s.replace(/[-:]/g,''):'DTSTART;VALUE=DATE:'+ymd(e.date),t?'DTEND;TZID=Europe/Lisbon:'+t.e.replace(/[-:]/g,''):'DTEND;VALUE=DATE:'+ymd(key(add(parse(e.date),1))),'SUMMARY:'+icsEsc(e.title),e.kind!=='deadline'&&e.place?'LOCATION:'+icsEsc(e.place):'','DESCRIPTION:'+icsEsc(evDetails(e)),e.kind==='deadline'?'BEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:'+icsEsc(e.title)+'\r\nTRIGGER:-P3D\r\nEND:VALARM\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:'+icsEsc(e.title)+'\r\nTRIGGER:-P1D\r\nEND:VALARM':'BEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:'+icsEsc(e.title)+'\r\nTRIGGER:-PT1H\r\nEND:VALARM','END:VEVENT'].filter(Boolean).join('\r\n')}
+function icsFile(evs){return new Blob(['BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//LEXVORTEX//PT\r\nCALSCALE:GREGORIAN\r\n'+evs.map(icsEvent).join('\r\n')+'\r\nEND:VCALENDAR\r\n'],{type:'text/calendar'})}
+const calLinks=e=>`<div class="cal-links"><a href="${gcal(e)}" target="_blank" rel="noopener">Google Calendar</a><a href="${ocal(e)}" target="_blank" rel="noopener">Outlook</a><button data-act="ics-one" data-id="${e.id}" data-kind="${e.kind}">Ficheiro .ics</button></div>`;
+function agendaItems(){return [...DB.events.map(e=>({...e,d:parse(e.date)})),...openDl().map(x=>({id:x.d.id,d:x.r.termo,date:key(x.r.termo),time:'',kind:'deadline',title:'Termo: '+x.d.title,caseId:x.d.caseId,place:x.d.basis}))].filter(e=>{const x=diff(TODAY,e.d);return x>=0&&x<=90})}
+
+/* ---------- Modelos próprios ---------- */
+const TFIELDS=[['cliente','Cliente'],['nif','NIF do cliente'],['morada','Morada do cliente'],['processo','N.º de processo'],['tribunal','Tribunal'],['parte_adversa','Parte adversa'],['assunto','Assunto'],['advogado','Advogado'],['cedula','Cédula'],['domicilio','Domicílio profissional'],['data','Data de hoje'],['local','Local']];
+function tplValues(c){const cl=c?clientById(c.clientId)||{}:{};const pr=P();return {cliente:cl.name,nif:cl.nif,morada:cl.addr,processo:c?.num,tribunal:c?.courtName,parte_adversa:c?.adv,assunto:c?.title,advogado:LNAME(),cedula:pr.cedula,domicilio:pr.addr,data:TODAY.getDate()+' de '+ML[TODAY.getMonth()]+' de '+TODAY.getFullYear(),local:(pr.addr.match(/\d{4}-\d{3}\s+(.+)$/)||[])[1]||''}}
+function fillTpl(body,c,mark){const v=tplValues(c);return body.replace(/\{\{\s*([a-z_]+)\s*\}\}/g,(m,k)=>{const x=v[k];return x?(mark?'[['+x+']]':x):(mark?'[[…]]':'…')})}
+function tplView(){const list=DB.templates;const ed=S.tplEdit?(S.tplEdit==='new'?{id:'new',name:'',body:''}:list.find(t=>t.id===S.tplEdit)):null;
+ if(ed)return `<section class="card pad-card" style="max-width:820px"><h2 class="sec-t">${ed.id==='new'?'Novo modelo':'Editar modelo'}</h2><div class="form">
+  <div class="f"><label for="tp-name">Nome do modelo</label><input id="tp-name" value="${esc(ed.name)}" placeholder="Ex.: Requerimento de junção de documentos"></div>
+  <div class="f"><label>Inserir campo automático</label><div class="row-acts">${TFIELDS.map(([k,l])=>`<button class="seg" data-act="tp-field" data-f="${k}">${l}</button>`).join('')}</div></div>
+  <div class="f"><label for="tp-body">Texto do modelo</label><textarea id="tp-body" style="min-height:320px;font-family:'IBM Plex Serif',Georgia,serif;line-height:1.6" placeholder="Cole aqui uma peça que já usa e substitua os dados variáveis pelos campos, por exemplo {{cliente}} ou {{processo}}.">${esc(ed.body)}</textarea></div>
+  <div class="row-acts"><button class="btn pri" data-act="tp-save" data-id="${ed.id}">Guardar modelo</button><button class="btn" data-act="tp-cancel">Cancelar</button>${ed.id!=='new'?confirmBtn('tp-del',ed.id,'Apagar modelo','Confirmar: apagar modelo'):''}</div></div></section>`;
+ const sel=list.find(t=>t.id===S.tplSel)||list[0];
+ if(!sel)return `<section class="card pad-card start"><h2 class="sec-t">Ainda não tem modelos próprios</h2><p class="muted">Cole uma peça que o escritório já usa, marque os dados variáveis com campos como {{cliente}} ou {{processo}}, e a app preenche-a com os dados de cada processo.</p><button class="btn pri" data-act="tp-new">Criar o primeiro modelo</button></section>`;
+ return `<div class="row-acts" style="margin-bottom:14px">${list.map(t=>`<button class="seg ${t.id===sel.id?'on':''}" data-act="tp-sel" data-id="${t.id}">${esc(t.name)}</button>`).join('')}<button class="btn sm" data-act="tp-new">+ Novo modelo</button></div>
+ <div class="grid2" style="align-items:start"><section class="card pad-card"><div class="form"><div class="f"><label for="d-case">Preencher a partir do processo</label><select id="d-case" data-dcase>${caseOpts(S.doc.caseId,'Sem processo')}</select></div><button class="btn" data-act="tp-edit" data-id="${sel.id}">Editar este modelo</button><p class="muted" style="font-size:13px;margin:0">Os campos sem dados aparecem destacados para completar depois no Word.</p></div></section>
+ <section><div class="paper" id="paper"><div class="tt">${esc(sel.name.toUpperCase())}</div>${esc(fillTpl(sel.body,caseById(S.doc.caseId),true)).replace(/\[\[(.*?)\]\]/g,(m,x)=>x==='…'?'<mark>…</mark>':x)}</div>
+ <div class="tool"><button class="btn pri" data-act="mexp-docx">Exportar Word</button><button class="btn pri" data-act="mexp-pdf">Exportar PDF</button><button class="btn" data-act="copy">Copiar texto</button></div></section></div>`}
+function currentDoc(){if(S.doc.tpl==='meus'){const t=DB.templates.find(x=>x.id===S.tplSel)||DB.templates[0];return t?{t:t.name.toUpperCase(),b:fillTpl(t.body,caseById(S.doc.caseId),false)}:null}const d=docText();return {t:d.t,b:d.b.replace(/\[\[(.*?)\]\]/g,'$1')}}
+function buildTextPdf(title,body,J){const doc=new J({unit:'mm',format:'a4'});const W=210,H=297,ML=25,MR=25,TW=W-ML-MR;let y=30;
+ doc.setFont('times','bold');doc.setFontSize(13);doc.text(title,W/2,y,{align:'center'});y+=12;doc.setFont('times','normal');doc.setFontSize(12);
+ for(const para of body.split('\n')){if(!para.trim()){y+=4;continue}const lines=doc.splitTextToSize(para,TW);for(const ln of lines){if(y>H-25){doc.addPage();y=25}doc.text(ln,ML,y);y+=6}}
+ const n=doc.getNumberOfPages();for(let i=1;i<=n;i++){doc.setPage(i);doc.setFontSize(9);doc.setTextColor(120);doc.text(i+'/'+n,W-MR,H-12,{align:'right'});doc.setTextColor(0)}return doc.output('blob')}
+function buildTextDocx(title,body,X){const {Document,Paragraph,TextRun,AlignmentType}=X;
+ const ps=[new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:300},children:[new TextRun({text:title,bold:true})]}),...body.split('\n').map(l=>new Paragraph({spacing:{after:120,line:360},alignment:AlignmentType.JUSTIFIED,children:[new TextRun(l)]}))];
+ return X.Packer.toBlob(new Document({creator:LNAME(),styles:{default:{document:{run:{font:'Times New Roman',size:24}}}},sections:[{properties:{page:{margin:{top:1418,bottom:1418,left:1701,right:1418}}},children:ps}]}))}
+async function exportMinuta(kind){const d=currentDoc();if(!d)return;const name=(d.t.toLowerCase().replace(/[^a-z0-9à-ú]+/gi,'-').replace(/^-|-$/g,'')||'minuta')+'.'+kind;
+ try{if(kind==='pdf'){await loadScript(LIB_PDF);if(await saveBlob(buildTextPdf(d.t,d.b,window.jspdf.jsPDF),name))toast('PDF guardado.')}
+  else{await loadScript(LIB_DOCX);if(await saveBlob(await buildTextDocx(d.t,d.b,window.docx),name))toast('Documento Word guardado.')}}
+ catch(_){toast('Não foi possível criar o ficheiro. Verifique a ligação à internet e tente de novo.')}}
+
+/* ---------- Cópia de segurança ---------- */
+function backupBlob(){const data={app:'LEXVORTEX',version:2,exported:new Date().toISOString(),...DB};delete data.timer;return new Blob([JSON.stringify(data,null,1)],{type:'application/json'})}
+
 async function summarize(id){const r=DB.recs.find(x=>x.id===id),el=$('sum-'+id);if(!el||!r)return;el.style.display='';el.textContent='A preparar o resumo…';
  let sample=null;try{sample=AI()?await window.claude.use('sample'):null}catch(_){}
  if(!sample){el.textContent='O resumo com IA não está disponível neste navegador.';return}
@@ -774,19 +861,21 @@ const DOCS={
  proc:{name:'Procuração forense',fields:[['nome','Mandante'],['nif','NIF'],['morada','Morada'],['especiais','Poderes especiais','check','Confessar, desistir e transigir'],['subst','Substabelecimento','check','Com poderes para substabelecer'],['local','Local']]},
  carta:{name:'Carta de interpelação',fields:[['nome','Cliente (credor)'],['dest','Destinatário'],['destmorada','Morada do destinatário'],['valor','Montante em dívida (€)'],['origem','Origem da dívida'],['prazo','Prazo para pagamento (dias)','','8'],['local','Local']]},
  adia:{name:'Requerimento de adiamento',fields:[['tribunal','Tribunal'],['proc','N.º de processo'],['nome','Cliente'],['qual','Qualidade nos autos'],['dilig','Diligência'],['data','Data e hora da diligência'],['motivo','Fundamento'],['alt','Datas alternativas'],['local','Local']]}};
-function docPrefill(){const f={};const c=S.doc.caseId?caseById(S.doc.caseId):null;const cl=c?clientById(c.clientId)||{}:{};
+function docPrefill(){if(!DOCS[S.doc.tpl])return;const f={};const c=S.doc.caseId?caseById(S.doc.caseId):null;const cl=c?clientById(c.clientId)||{}:{};
  const nxt=c?DB.events.filter(e=>e.caseId===c.id&&diff(TODAY,parse(e.date))>=0).sort((a,b)=>a.date.localeCompare(b.date))[0]:null;
  const local=(P().addr.match(/\d{4}-\d{3}\s+(.+)$/)||[])[1]||'';
  Object.assign(f,{nome:cl.name||'',nif:cl.nif||'',morada:cl.addr||'',dest:c?.adv||'',tribunal:c?.courtName||'',proc:c?.num||'',data:nxt?cap(fdl(parse(nxt.date)))+(nxt.time?', às '+nxt.time:''):'',dilig:nxt?nxt.title.toLowerCase():'',local});
  DOCS[S.doc.tpl].fields.forEach(([k,,type,def])=>{if(type==='check')f[k]=true;else if(f[k]===undefined)f[k]=def||''});S.doc.f=f}
-VIEWS.minutas=()=>{if(!S.doc.ready){docPrefill();S.doc.ready=true}const d=DOCS[S.doc.tpl];
+VIEWS.minutas=()=>{const tabs=`<div class="tabs">${Object.entries(DOCS).map(([k,x])=>`<button class="seg ${k===S.doc.tpl?'on':''}" data-doc="${k}">${x.name}</button>`).join('')}<button class="seg ${S.doc.tpl==='meus'?'on':''}" data-doc="meus">Os meus modelos</button></div>`;
+ if(S.doc.tpl==='meus')return `<div class="h-row"><div><h1>Minutas</h1><p>Modelos do escritório, preenchidos com os dados do processo.</p></div></div>`+tabs+tplView();
+ if(!S.doc.ready){docPrefill();S.doc.ready=true}const d=DOCS[S.doc.tpl];
  return `<div class="h-row"><div><h1>Minutas</h1><p>Peças preenchidas com os dados do processo. Reveja sempre antes de usar.</p></div></div>
- <div class="tabs">${Object.entries(DOCS).map(([k,x])=>`<button class="seg ${k===S.doc.tpl?'on':''}" data-doc="${k}">${x.name}</button>`).join('')}</div>
+ ${tabs}
  <div class="grid2" style="align-items:start"><section class="card pad-card"><div class="form">
   <div class="f"><label for="d-case">Preencher a partir do processo</label><select id="d-case" data-dcase>${caseOpts(S.doc.caseId,'Preencher à mão')}</select></div>
   ${d.fields.map(([k,l,type,def])=>type==='check'?`<label class="check"><input type="checkbox" data-df="${k}" ${S.doc.f[k]?'checked':''}>${def}</label>`:`<div class="f"><label for="df-${k}">${l}</label><input id="df-${k}" data-df="${k}" value="${esc(S.doc.f[k])}"></div>`).join('')}
  </div></section>
- <section><div class="paper" id="paper"></div><div class="tool"><button class="btn pri" data-act="copy">Copiar texto</button><button class="btn" data-act="print">Imprimir ou guardar PDF</button></div></section></div>`};
+ <section><div class="paper" id="paper"></div><div class="tool"><button class="btn pri" data-act="mexp-docx">Exportar Word</button><button class="btn pri" data-act="mexp-pdf">Exportar PDF</button><button class="btn" data-act="copy">Copiar texto</button></div></section></div>`};
 function docText(){const f=S.doc.f,v=k=>f[k]&&String(f[k]).trim()?`[[${f[k]}]]`:'[[…]]';const g=fem();const pr=P();
  const L=`${g?'a':'o'} ${pr.title} ${pr.name}, ${g?'Advogada':'Advogado'}, com cédula profissional n.º ${pr.cedula||'…'}, com domicílio profissional em ${pr.addr||'…'}`;
  const hoje=TODAY.getDate()+' de '+ML[TODAY.getMonth()]+' de '+TODAY.getFullYear();const sig=`${g?'A Advogada':'O Advogado'},\n\n${pr.title} ${pr.name}\nCédula profissional n.º ${pr.cedula||'…'}`;
@@ -794,12 +883,12 @@ function docText(){const f=S.doc.f,v=k=>f[k]&&String(f[k]).trim()?`[[${f[k]}]]`:
  if(S.doc.tpl==='carta')return {t:'INTERPELAÇÃO PARA PAGAMENTO',b:`Exmos. Senhores\n${v('dest')}\n${v('destmorada')}\n\nCarta registada com aviso de receção\n\nAssunto: Interpelação para pagamento\n\nExmos. Senhores,\n\nNa qualidade de ${g?'mandatária':'mandatário'} de ${v('nome')}, e em sua representação, venho interpelar V. Exas. para, no prazo de ${v('prazo')} dias a contar da receção da presente, procederem ao pagamento da quantia de € ${v('valor')}, referente a ${v('origem')}.\n\nFindo o referido prazo sem que o pagamento se mostre efetuado, ${g?'a':'o'} meu constituinte recorrerá aos meios judiciais ao seu dispor para cobrança do capital em dívida, acrescido de juros de mora à taxa legal e demais encargos.\n\nSem outro assunto de momento, apresento os meus melhores cumprimentos.\n\n${v('local')}, ${hoje}.\n\n${sig}`};
  return {t:'REQUERIMENTO',b:`Exmo. Senhor Juiz de Direito\n${v('tribunal')}\n\nProcesso n.º ${v('proc')}\n\n${v('nome')}, ${v('qual')} nos autos à margem referenciados, vem, através ${g?'da sua mandatária':'do seu mandatário'}, requerer a V. Exa. o adiamento da ${v('dilig')} agendada para ${v('data')}, porquanto se verifica ${v('motivo')}.\n\nPara o efeito, e com vista ao reagendamento, indica as seguintes datas alternativas: ${v('alt')}.\n\nPede deferimento.\n\n${v('local')}, ${hoje}.\n\n${sig}`};
 }
-function renderDoc(){const el=$('paper');if(!el)return;const d=docText();el.innerHTML=`<div class="tt">${d.t}</div>`+esc(d.b).replace(/\[\[(.*?)\]\]/g,(m,x)=>x==='…'?'<mark>…</mark>':x)}
+function renderDoc(){if(S.doc.tpl==='meus')return;const el=$('paper');if(!el)return;const d=docText();el.innerHTML=`<div class="tt">${d.t}</div>`+esc(d.b).replace(/\[\[(.*?)\]\]/g,(m,x)=>x==='…'?'<mark>…</mark>':x)}
 function plainDoc(){const d=docText();return d.t+'\n\n'+d.b.replace(/\[\[(.*?)\]\]/g,'$1')}
 
 /* ---------- Agenda ---------- */
 VIEWS.agenda=()=>{
- const items=[...DB.events.map(e=>({...e,d:parse(e.date)})),...openDl().map(x=>({id:x.d.id,d:x.r.termo,time:'',kind:'deadline',title:'Termo: '+x.d.title,caseId:x.d.caseId,place:x.d.basis}))].filter(e=>{const x=diff(TODAY,e.d);return x>=0&&x<=90});
+ const items=agendaItems();
  const groups={};items.forEach(e=>{(groups[key(e.d)]=groups[key(e.d)]||[]).push(e)});
  const days=Object.keys(groups).sort();
  const form=S.evOpen?`<section class="card pad-card" style="margin-bottom:16px;max-width:760px"><h2 class="sec-t">Nova marcação</h2><div class="form">
@@ -809,8 +898,8 @@ VIEWS.agenda=()=>{
   <div class="f2"><div class="f"><label for="e-date">Data</label><input id="e-date" type="date" value="${key(TODAY)}"></div><div class="f"><label for="e-time">Hora</label><input id="e-time" type="time" value="10:00"></div></div>
   <div class="f"><label for="e-place">Local</label><input id="e-place" placeholder="Ex.: Juízo Local Cível de Lisboa, sala 3"></div>
   <div class="row-acts"><button class="btn pri" data-act="ev-save">Guardar marcação</button><button class="btn" data-act="ev-cancel">Cancelar</button></div></div></section>`:'';
- return `<div class="h-row"><div><h1>Agenda</h1><p>Audiências, diligências, reuniões e termos de prazos · próximos 3 meses</p></div>${S.evOpen?'':'<button class="btn pri" data-act="ev-open">Nova marcação</button>'}</div>${form}
- ${days.map(k=>{const d=parse(k);return `<section class="card pad-card" style="margin-bottom:12px"><h2 class="sec-t" style="margin-bottom:4px">${diff(TODAY,d)===0?'Hoje, ':diff(TODAY,d)===1?'Amanhã, ':''}${fdl(d)}</h2>${groups[k].sort((a,b)=>String(a.time||'99').localeCompare(String(b.time||'99'))).map(e=>e.kind==='deadline'?`<div class="ev"><div class="tm">fim</div><div class="bar" style="background:var(--accent)"></div><div class="tt"><b>${esc(e.title)}</b><small>${esc((caseById(e.caseId)||{}).num||'')} · ${esc(e.place)}</small></div></div>`:evRow(e,true)).join('')}</section>`}).join('')||'<div class="card empty">Sem marcações nem prazos nos próximos 3 meses.</div>'}`;
+ return `<div class="h-row"><div><h1>Agenda</h1><p>Audiências, diligências, reuniões e termos de prazos · próximos 3 meses</p></div><div class="row-acts"><button class="btn" data-act="ics-all">Exportar agenda (.ics)</button>${S.evOpen?'':'<button class="btn pri" data-act="ev-open">Nova marcação</button>'}</div></div>${form}
+ ${days.map(k=>{const d=parse(k);return `<section class="card pad-card" style="margin-bottom:12px"><h2 class="sec-t" style="margin-bottom:4px">${diff(TODAY,d)===0?'Hoje, ':diff(TODAY,d)===1?'Amanhã, ':''}${fdl(d)}</h2>${groups[k].sort((a,b)=>String(a.time||'99').localeCompare(String(b.time||'99'))).map(e=>e.kind==='deadline'?`<div class="ev"><div class="tm">fim</div><div class="bar" style="background:var(--accent)"></div><div class="tt"><b>${esc(e.title)}</b><small>${esc((caseById(e.caseId)||{}).num||'')} · ${esc(e.place)}</small></div></div>`+calLinks(e):evRow(e,true)+calLinks(e)).join('')}</section>`}).join('')||'<div class="card empty">Sem marcações nem prazos nos próximos 3 meses.</div>'}`;
 };
 function saveEv(){const title=val('e-title'),date=val('e-date');if(!title)return toast('Indique a descrição da marcação.');if(!date)return toast('Indique a data.');
  DB.events.push({id:nid('e'),kind:val('e-kind'),caseId:val('e-case')||null,title,date,time:val('e-time'),place:val('e-place')});save();S.evOpen=false;S.evCase=null;toast('Marcação guardada.');render()}
@@ -859,9 +948,10 @@ VIEWS.perfil=()=>{const p=P();
  <div class="f2"><div class="f"><label for="pf-title">Título</label><select id="pf-title">${opts([['Dr.','Dr.'],['Dra.','Dra.']],p.title)}</select></div><div class="f"><label for="pf-ced">Cédula profissional</label><input id="pf-ced" value="${esc(p.cedula)}"></div></div>
  <div class="f"><label for="pf-name">Nome</label><input id="pf-name" value="${esc(p.name)}"></div>
  <div class="f"><label for="pf-addr">Domicílio profissional</label><input id="pf-addr" value="${esc(p.addr)}"></div>
- <div class="f"><label for="pf-email">Email</label><input id="pf-email" type="email" value="${esc(p.email||'')}"></div>
+ <div class="f2"><div class="f"><label for="pf-email">Email</label><input id="pf-email" type="email" value="${esc(p.email||'')}"></div><div class="f"><label for="pf-rate">Valor por hora (€, sem IVA)</label><input id="pf-rate" type="number" inputmode="decimal" min="0" step="5" value="${p.rate??''}"></div></div>
  <button class="btn pri" data-act="pf-save">Guardar perfil</button></div></section>
  <section class="card pad-card" style="max-width:640px;margin-bottom:18px"><h2 class="sec-t">Mudar o PIN</h2><div class="form"><div class="f2"><div class="f"><label for="pf-pin">Novo PIN</label><input id="pf-pin" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password"></div><div class="f"><label for="pf-pin2">Repetir</label><input id="pf-pin2" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password"></div></div><button class="btn" data-act="pin-save">Mudar o PIN</button></div></section>
+ <section class="card pad-card" style="max-width:640px;margin-bottom:18px"><h2 class="sec-t">Cópia de segurança</h2><p class="muted" style="margin-top:0">Guarda processos, clientes, prazos, marcações, honorários, transcrições, tempo e modelos num ficheiro, para guardar no computador ou passar para outro dispositivo. Os áudios e documentos juntos ficam só neste dispositivo.</p><div class="row-acts"><button class="btn" data-act="bk-export">Exportar cópia</button><button class="btn" data-act="bk-import">Importar cópia</button><input type="file" accept="application/json,.json" id="bk-file" data-backup hidden></div>${S.pendingImport?`<div class="note">Cópia de ${esc(String(S.pendingImport.exported||'').slice(0,10))} com ${S.pendingImport.cases.length} processo(s). Os dados atuais deste dispositivo serão substituídos.<div class="row-acts" style="margin-top:8px"><button class="btn sm danger-on" data-act="bk-apply">Substituir pelos dados da cópia</button><button class="btn sm" data-act="bk-cancel">Cancelar</button></div></div>`:''}</section>
  <section class="card pad-card" style="max-width:640px"><h2 class="sec-t">Sessão e dados</h2><p class="muted" style="margin-top:0">Os dados ficam guardados apenas neste dispositivo e neste navegador.</p><div class="row-acts"><button class="btn" data-act="logout">Terminar sessão</button>${confirmBtn('reset','all','Apagar todos os dados','Confirmar: apagar tudo deste dispositivo')}</div></section>`};
 
 /* ---------- Eventos ---------- */
@@ -872,7 +962,7 @@ document.addEventListener('click',e=>{
  const g=e.target.closest('[data-go]');if(g){go(g.dataset.go);return}
  const cs=e.target.closest('[data-case]');if(cs){S.caseId=cs.dataset.case;go('caso');return}
  const fl=e.target.closest('[data-filter]');if(fl){S.filter=fl.dataset.filter;render();return}
- const dc=e.target.closest('[data-doc]');if(dc){S.doc.tpl=dc.dataset.doc;docPrefill();render();return}
+ const dc=e.target.closest('[data-doc]');if(dc){S.doc.tpl=dc.dataset.doc;if(dc.dataset.doc!=='meus')docPrefill();render();return}
  const a=e.target.closest('[data-act]');if(!a)return;const id=a.dataset.id;
  switch(a.dataset.act){
   case 'onb-save':onbSave();break;
@@ -880,19 +970,19 @@ document.addEventListener('click',e=>{
   case 'theme':{const r=document.documentElement,cur=r.dataset.theme||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');r.dataset.theme=cur==='dark'?'light':'dark';try{localStorage.setItem('lv-theme',r.dataset.theme)}catch(_){}break}
   case 'logout':S.logged=false;S.pin='';login();break;
   case 'reset':if(askConfirm('resetall'))resetAll();break;
-  case 'pf-save':{const name=val('pf-name');if(!name){toast('Indique o nome.');break}Object.assign(DB.profile,{title:val('pf-title'),name,cedula:val('pf-ced'),addr:val('pf-addr'),email:val('pf-email')});save();S.doc.ready=false;shell();toast('Perfil guardado.');break}
+  case 'pf-save':{const name=val('pf-name');if(!name){toast('Indique o nome.');break}Object.assign(DB.profile,{title:val('pf-title'),name,cedula:val('pf-ced'),addr:val('pf-addr'),email:val('pf-email'),rate:+val('pf-rate')||0});save();S.doc.ready=false;shell();toast('Perfil guardado.');break}
   case 'pin-save':{const a1=val('pf-pin'),a2=val('pf-pin2');if(!/^\d{4}$/.test(a1)){toast('O PIN tem de ter 4 algarismos.');break}if(a1!==a2){toast('Os dois PIN não são iguais.');break}hashPin(a1).then(h=>{DB.profile.pin=h;save();toast('PIN alterado.');render()});break}
   case 'new-proc':S.editCase=null;go('novo-proc');break;
   case 'edit-case':S.editCase=id;go('novo-proc');break;
   case 'save-proc':saveProc();break;
   case 'archive':{const c=caseById(id);c.status=c.status==='archived'?'active':'archived';save();toast(c.status==='archived'?'Processo arquivado.':'Processo reativado.');render();break}
-  case 'del-case':if(askConfirm('del-case'+id)){DB.recs.filter(r=>r.caseId===id).forEach(r=>audioDel(r.id));DB.recs=DB.recs.filter(r=>r.caseId!==id);DB.deadlines=DB.deadlines.filter(d=>d.caseId!==id);DB.events=DB.events.filter(x=>x.caseId!==id);DB.fees.forEach(f=>{if(f.caseId===id)f.caseId=null});DB.cases=DB.cases.filter(c=>c.id!==id);save();toast('Processo apagado.');go('processos')}break;
+  case 'del-case':if(askConfirm('del-case'+id)){DB.recs.filter(r=>r.caseId===id).forEach(r=>audioDel(r.id));DB.recs=DB.recs.filter(r=>r.caseId!==id);DB.deadlines=DB.deadlines.filter(d=>d.caseId!==id);DB.events=DB.events.filter(x=>x.caseId!==id);DB.docs.filter(d=>d.caseId===id).forEach(d=>audioDel('doc:'+d.id));DB.docs=DB.docs.filter(d=>d.caseId!==id);DB.time=DB.time.filter(t=>t.caseId!==id);if(DB.timer&&DB.timer.caseId===id)DB.timer=null;DB.fees.forEach(f=>{if(f.caseId===id)f.caseId=null});DB.cases=DB.cases.filter(c=>c.id!==id);save();toast('Processo apagado.');go('processos')}break;
   case 'done':{const d=DB.deadlines.find(x=>x.id===id);if(d){d.done=true;d.doneAt=key(TODAY);save();toast('Prazo marcado como entregue.');render()}break}
   case 'del-dl':if(askConfirm('del-dl'+id)){DB.deadlines=DB.deadlines.filter(d=>d.id!==id);save();toast('Prazo apagado.');render()}break;
   case 'new-dl':{const c=caseById(id);S.calc.caseId=id;S.calc.court=c.court;S.calc.urgent=!!c.urgentLegal;go('prazos');break}
   case 'save-dl':{const p=calcParams(),t=TPL[S.calc.tpl];if(!S.calc.caseId)break;DB.deadlines.push({id:nid('d'),caseId:S.calc.caseId,title:S.calc.title||t.name,basis:t.basis,trigger:S.calc.trigger,triggerType:p.triggerType,days:p.days,dil:p.dil,regime:p.regime,urgent:p.urgent,done:false});save();toast('Prazo guardado no processo.');S.caseId=S.calc.caseId;go('caso');break}
   case 'doc-case':S.doc.caseId=id;docPrefill();S.doc.ready=true;go('minutas');break;
-  case 'copy':copyText(plainDoc(),'Texto copiado.');break;
+  case 'copy':{const d=currentDoc();if(d)copyText(d.t+'\n\n'+d.b,'Texto copiado.');break}
   case 'print':{const w=window.open('','_blank');if(!w){toast('O navegador bloqueou a janela de impressão. Use «Copiar texto».');break}w.document.write('<html><head><title>Minuta</title></head><body style="font-family:Georgia,serif;font-size:13pt;line-height:1.7;white-space:pre-wrap;max-width:680px;margin:48px auto">'+esc(plainDoc())+'</body></html>');w.document.close();w.focus();w.print();break}
   case 'ev-open':S.evOpen=true;S.evCase=null;if(S.view!=='agenda')go('agenda');else render();break;
   case 'ev-case':S.evOpen=true;S.evCase=id;go('agenda');break;
@@ -914,6 +1004,32 @@ document.addEventListener('click',e=>{
   case 'spk-set':if(S.live){const L=S.live;L.spk=+a.dataset.i;L.spkLog.push({t:L.samples/16000,s:L.spk});renderLive()}break;
   case 'seg-spk':{e.preventDefault();const r=DB.recs.find(x=>x.id===id);if(r){const sp=r.speakers||DEF_SPK();const i=+a.dataset.i;const cur=sp.indexOf(r.segs[i][1]);r.segs[i][1]=sp[(cur+1)%sp.length];save();render()}break}
   case 'exp-pdf':case 'exp-docx':{const r=DB.recs.find(x=>x.id===id);if(r)exportRec(r,a.dataset.act==='exp-pdf'?'pdf':'docx');break}
+  case 'doc-add':{const f=$('docf-'+id);if(f)f.click();break}
+  case 'doc-open':{audioUrl('doc:'+id).then(u=>{if(!u)return toast('Este documento não está guardado neste dispositivo.');const d=DB.docs.find(x=>x.id===id);const a=document.createElement('a');a.href=u;a.target='_blank';a.rel='noopener';if(d&&!d.isPdf)a.download=d.name;document.body.appendChild(a);a.click();a.remove()});break}
+  case 'doc-del':if(askConfirm('doc-del'+id)){audioDel('doc:'+id);DB.docs=DB.docs.filter(d=>d.id!==id);save();toast('Documento apagado.');render()}break;
+  case 'doc-date':{const c=caseById(id);S.calc.caseId=id;S.calc.court=c.court;S.calc.urgent=!!c.urgentLegal;S.calc.trigger=a.dataset.d;S.calc.triggerType='electronic';go('prazos');toast('Data da notificação preenchida. Escolha o ato e confirme o termo.');break}
+  case 'tm-start':if(!DB.timer){DB.timer={caseId:id,start:Date.now(),desc:''};save();render()}break;
+  case 'tm-stop':{const t=DB.timer;if(t){DB.time.push({id:nid('t'),caseId:t.caseId,date:key(TODAY),minutes:Math.max(1,Math.round((Date.now()-t.start)/60000)),desc:t.desc||'',billed:false,created:Date.now()});DB.timer=null;save();toast('Tempo registado.');render()}break}
+  case 'tm-add':S.tmAdd=id;render();break;
+  case 'tm-cancel':S.tmAdd=null;render();break;
+  case 'tm-save':{const m=+val('tm-min');if(!(m>0)){toast('Indique os minutos.');break}DB.time.push({id:nid('t'),caseId:id,date:val('tm-date')||key(TODAY),minutes:Math.round(m),desc:val('tm-d2'),billed:false,created:Date.now()});S.tmAdd=null;save();toast('Tempo registado.');render();break}
+  case 'tm-del':if(askConfirm('tm-del'+id)){DB.time=DB.time.filter(t=>t.id!==id);save();render()}break;
+  case 'tm-bill':{const c=caseById(id),rate=+P().rate||0;if(!rate){toast('Defina primeiro o valor por hora no Perfil.');go('perfil');break}const ent=DB.time.filter(t=>t.caseId===id&&!t.billed);const mins=ent.reduce((s,t)=>s+t.minutes,0);const fid=nid('f');DB.fees.push({id:fid,clientId:c.clientId,caseId:id,desc:'Honorários — '+fmtMin(mins)+' de trabalho',H:Math.round(mins/60*rate*100)/100,exp:0,status:'draft',issued:null});ent.forEach(t=>{t.billed=true;t.feeId=fid});save();toast('Nota de honorários criada como rascunho.');go('honorarios');break}
+  case 'ics-one':{const e2=agendaItems().find(x=>x.id===id&&x.kind===a.dataset.kind);if(e2)saveBlob(icsFile([e2]),'lexvortex-'+e2.date+'.ics');break}
+  case 'ics-all':{const it=agendaItems();if(!it.length){toast('Não há marcações nem prazos para exportar.');break}saveBlob(icsFile(it),'lexvortex-agenda.ics').then(ok=>ok&&toast('Agenda exportada. Abra o ficheiro para a juntar ao seu calendário.'));break}
+  case 'tp-new':S.tplEdit='new';render();break;
+  case 'tp-edit':S.tplEdit=id;render();break;
+  case 'tp-sel':S.tplSel=id;render();break;
+  case 'tp-cancel':S.tplEdit=null;render();break;
+  case 'tp-field':{const ta=$('tp-body');if(ta){const ins='{{'+a.dataset.f+'}}';const p0=ta.selectionStart??ta.value.length,p1=ta.selectionEnd??p0;ta.value=ta.value.slice(0,p0)+ins+ta.value.slice(p1);ta.focus();ta.selectionStart=ta.selectionEnd=p0+ins.length}break}
+  case 'tp-save':{const name=val('tp-name'),body=$('tp-body')?.value||'';if(!name){toast('Indique o nome do modelo.');break}if(!body.trim()){toast('Escreva ou cole o texto do modelo.');break}if(id==='new'){const t={id:nid('tp'),name,body};DB.templates.push(t);S.tplSel=t.id}else{const t=DB.templates.find(x=>x.id===id);t.name=name;t.body=body}S.tplEdit=null;save();toast('Modelo guardado.');render();break}
+  case 'tp-del':if(askConfirm('tp-del'+id)){DB.templates=DB.templates.filter(t=>t.id!==id);S.tplEdit=null;S.tplSel=null;save();render()}break;
+  case 'mexp-docx':exportMinuta('docx');break;
+  case 'mexp-pdf':exportMinuta('pdf');break;
+  case 'bk-export':saveBlob(backupBlob(),'lexvortex-copia-'+key(TODAY)+'.json').then(ok=>ok&&toast('Cópia de segurança guardada.'));break;
+  case 'bk-import':{const f=$('bk-file');if(f)f.click();break}
+  case 'bk-cancel':S.pendingImport=null;render();break;
+  case 'bk-apply':{const o=S.pendingImport;if(!o)break;delete o.app;delete o.version;delete o.exported;DB=Object.assign(fresh(),o);save();S.pendingImport=null;toast('Dados importados.');shell();break}
   case 'rec-retry':{const r=DB.recs.find(x=>x.id===id);if(r)retryPending(r);break}
   case 'rec-tx':{const r=DB.recs.find(x=>x.id===id);if(r)txFile(r);break}
   case 'spk':S.spk=a.dataset.spk||null;render();break;
@@ -930,6 +1046,7 @@ document.addEventListener('keydown',e=>{
 document.addEventListener('input',e=>{const t=e.target;
  if(t.id==='q'){S.q=t.value;$('ctable').innerHTML=caseTable();return}
  if(t.dataset.pclient!==undefined){$('newclient').style.display=t.value==='__new'?'grid':'none';return}
+ if(t.dataset.tmdesc!==undefined){if(DB.timer){DB.timer.desc=t.value;save()}return}
  if(t.dataset.lvcase!==undefined){S.liveCase=t.value;return}
  if(t.dataset.c!==undefined){const k=t.dataset.c;S.calc[k]=t.type==='checkbox'?t.checked:t.value;
   if(k==='tpl'){const tp=TPL[t.value];S.calc.days=tp.days;S.calc.triggerType=tp.trigger;S.calc.title=tp.name;render();return}
@@ -942,6 +1059,8 @@ document.addEventListener('input',e=>{const t=e.target;
  if(t.dataset.rq!==undefined){const v=t.value.toLowerCase();document.querySelectorAll('[data-row="'+t.dataset.rq+'"]').forEach(r=>r.style.display=r.textContent.toLowerCase().includes(v)?'':'none');return}
 });
 document.addEventListener('change',e=>{const t=e.target;
+ if(t.dataset&&t.dataset.docfile){const fs=[...(t.files||[])];if(fs.length)addDocs(t.dataset.docfile,fs);t.value='';return}
+ if(t.dataset&&t.dataset.backup!==undefined){const f=t.files&&t.files[0];t.value='';if(!f)return;f.text().then(x=>{try{const o=JSON.parse(x);if(o.app!=='LEXVORTEX'||!Array.isArray(o.cases))throw 0;S.pendingImport=o;render()}catch(_){toast('Este ficheiro não é uma cópia de segurança da LEXVORTEX.')}});return}
  if(t.dataset&&t.dataset.file){const f=t.files&&t.files[0];if(f)attachFile(t.dataset.file,f);t.value='';return}
  if(t.tagName==='SELECT'||t.type==='checkbox'||t.type==='date')t.dispatchEvent(new Event('input',{bubbles:true}))},true);
 
