@@ -272,6 +272,9 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
 .nav{grid-template-columns:repeat(7,1fr)}
 .nav button{font-size:10.5px}
 td a,.ev a{color:var(--accent)}
+.f3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+select.evst{min-height:40px;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:0 10px;font-size:14px}
+select.evst.ok{border-color:var(--ok);color:var(--ok);font-weight:600}
 </style>
 </head>
 <body>
@@ -358,7 +361,7 @@ const graceLeft=r=>r.cells.filter(c=>c.t==='gr'&&diff(TODAY,c.d)>=0).length;
 
 /* ---------- Armazenamento local ---------- */
 const DB_KEY='lexvortex-v2';
-const fresh=()=>({profile:null,clients:[],cases:[],deadlines:[],events:[],fees:[],recs:[],docs:[],time:[],templates:[],timer:null,expenses:[],feeSeq:{},contacts:[],tasks:[],team:[],inbox:[],ducs:[],seq:1});
+const fresh=()=>({profile:null,clients:[],cases:[],deadlines:[],events:[],fees:[],recs:[],docs:[],time:[],templates:[],timer:null,expenses:[],feeSeq:{},contacts:[],tasks:[],team:[],inbox:[],ducs:[],limitations:[],evidence:[],seq:1});
 let DB=fresh();
 function load(){try{const s=localStorage.getItem(DB_KEY);if(s)DB=Object.assign(fresh(),JSON.parse(s))}catch(_){}}
 function save(){try{localStorage.setItem(DB_KEY,JSON.stringify(DB))}catch(_){toast('Não foi possível guardar neste dispositivo.')}}
@@ -519,7 +522,7 @@ VIEWS.hoje=()=>{
   banner=`<section class="alert" role="alert"><div><p class="k">${t<0?'Prazo ultrapassado — ainda dentro do período de multa':'Prazo fatal mais próximo'}</p><h2>${esc(crit.d.title)}</h2><p class="meta">${esc(c.num||c.title)} · ${esc((clientById(c.clientId)||{}).name||'')} · termo a ${fdl(crit.r.termo)}</p></div><div class="when">${when}</div>
   <div class="acts"><button class="btn sm" data-act="done" data-id="${crit.d.id}">Marcar como entregue</button><button class="btn sm o" data-case="${c.id}">Abrir processo</button></div></section>`}
  const soon=DB.events.filter(e=>{const x=diff(TODAY,parse(e.date));return x>=0&&x<=1}).sort((a,b)=>a.date.localeCompare(b.date)||String(a.time).localeCompare(String(b.time)));
- return head+banner+taxAlerts()+inboxAlert()+`<div class="kpis">
+ return head+banner+taxAlerts()+limAlerts()+evidAlerts()+inboxAlert()+`<div class="kpis">
   <button class="kpi ${in48+multa?'hot':''}" data-go="agenda"><b>${in48}${multa?` <small style="font-size:14px">+${multa} em multa</small>`:''}</b><span>Prazos fatais nas próximas 48 horas</span></button>
   <button class="kpi" data-go="agenda"><b>${hear}</b><span>Audiências nos próximos 7 dias</span></button>
   <button class="kpi" data-go="honorarios"><b style="font-size:24px">${eur(pend)}</b><span>Honorários por receber</span></button>
@@ -592,7 +595,7 @@ VIEWS.caso=()=>{
   <div><span>Cliente</span><b>${esc(cl.name||'—')}</b></div><div><span>Parte adversa</span><b>${esc(c.adv||'—')}</b></div>
   <div><span>Fase processual</span><b>${esc(c.phase)}</b></div><div><span>Área</span><b>${esc(c.area)}${c.urgentLegal?' · urgente':''}</b></div>
   <div><span>Valor da causa</span><b>${c.value!=null?eur(c.value):'—'}</b></div><div><span>NIF do cliente</span><b>${esc(cl.nif||'—')}</b></div></div></section>
- ${commSection(c)}${recSection(c)}${docSection(c)}${caseTasks(c)}${timeSection(c)}${expSection(c)}${ducSection(c)}
+ ${commSection(c)}${recSection(c)}${docSection(c)}${caseTasks(c)}${timeSection(c)}${expSection(c)}${ducSection(c)}${evSection(c)}${limSection(l=>l.caseId===c.id,{caseId:c.id,clientId:c.clientId})}
  <section style="margin-bottom:18px"><h2 class="sec-t">Prazos</h2>${dls.length?`<div class="tscroll"><table class="tbl"><thead><tr><th>Ato</th><th>Evento</th><th>Termo</th><th>Fim da multa</th><th>Base legal</th><th>Estado</th><th></th></tr></thead><tbody>
  ${dls.map(x=>`<tr><td><b>${esc(x.d.title)}</b></td><td class="mono">${TRIG[x.d.triggerType]}<br><span class="muted">${fd(parse(x.d.trigger))}</span></td><td class="mono"><b>${fd(x.r.termo)}</b></td><td class="mono">${x.r.grace?fd(x.r.grace):'—'}</td><td>${esc(x.d.basis)}</td><td>${chip(x.l)}${taxChip(x.d)}${(x.d.incidents||[]).length?' <span class="chip l-att">'+x.d.incidents.length+' incidente(s)</span>':''}</td><td><div class="row-acts">${x.d.done?'':`<button class="btn sm" data-act="done" data-id="${x.d.id}">Entregue</button><button class="btn sm" data-act="inc-open" data-id="${x.d.id}">Incidente</button><button class="btn sm" data-act="dl-task" data-id="${x.d.id}">Tarefa</button>`}${confirmBtn('del-dl',x.d.id,'Apagar','Confirmar')}</div></td></tr>`).join('')}
  </tbody></table></div>`:'<div class="card empty">Sem prazos neste processo. Use «Novo prazo» para calcular o primeiro.</div>'}${incPanel(c)}</section>
@@ -929,7 +932,7 @@ VIEWS.cliente=()=>{const c=clientById(S.clientId);if(!c){S.view='clientes';retur
  <label class="check"><input type="checkbox" id="k-org" ${c.org?'checked':''}>Tem contabilidade organizada (retém IRS nos honorários)</label>
  <div class="f"><label for="k-notes">Notas</label><textarea id="k-notes">${esc(c.notes||'')}</textarea></div>
  <div class="row-acts"><button class="btn pri" data-act="client-save" data-id="${c.id}">Guardar alterações</button></div></div></section>
- <h2 class="sec-t">Processos</h2>${cases.length?`<div class="tscroll"><table class="tbl"><thead><tr><th>N.º</th><th>Assunto</th><th>Fase</th><th>Estado</th></tr></thead><tbody>${cases.map(x=>`<tr class="click" data-case="${x.id}"><td class="mono"><b>${esc(x.num||'—')}</b></td><td>${esc(x.title||'')}</td><td>${esc(x.phase)}</td><td>${x.status==='archived'?'Arquivado':'Ativo'}</td></tr>`).join('')}</tbody></table></div>`:'<div class="card empty">Sem processos.</div>'}`};
+ ${limSection(l=>l.clientId===c.id,{clientId:c.id})}<h2 class="sec-t">Processos</h2>${cases.length?`<div class="tscroll"><table class="tbl"><thead><tr><th>N.º</th><th>Assunto</th><th>Fase</th><th>Estado</th></tr></thead><tbody>${cases.map(x=>`<tr class="click" data-case="${x.id}"><td class="mono"><b>${esc(x.num||'—')}</b></td><td>${esc(x.title||'')}</td><td>${esc(x.phase)}</td><td>${x.status==='archived'?'Arquivado':'Ativo'}</td></tr>`).join('')}</tbody></table></div>`:'<div class="card empty">Sem processos.</div>'}`};
 function contactForm(){const t=S.ctEdit==='new'?{}:DB.contacts.find(x=>x.id===S.ctEdit)||{};
  return `<section class="card pad-card" style="margin-bottom:16px;max-width:780px"><h2 class="sec-t">${t.id?'Editar contacto':'Novo contacto'}</h2><div class="form">
  <div class="f2"><div class="f"><label for="t-kind">Tipo</label><select id="t-kind">${opts(CKINDS,t.kind||'magistrado')}</select></div><div class="f"><label for="t-name">Nome</label><input id="t-name" value="${esc(t.name||'')}"></div></div>
@@ -1105,6 +1108,95 @@ function conflicts(name,asClient,exceptCase){const n=normName(name).trim();if(n.
 /* ====================== Mais ====================== */
 VIEWS.mais=()=>`<div class="h-row"><div><h1>Mais</h1></div></div><div class="tiles">${[['minutas','Minutas','Procurações, cartas, requerimentos e modelos próprios'],['honorarios','Honorários','Notas de honorários, despesas e calculadora'],['direto','Transcrever em direto','Gravar e transcrever uma reunião ou diligência'],['perfil','Perfil e equipa','Dados do advogado, equipa, PIN e cópia de segurança']].map(([k,t,s])=>`<button class="tile" data-go="${k}"><b>${t}</b><span>${s}</span></button>`).join('')}</div>`;
 
+/* ====================== Prescrição e caducidade ====================== */
+const LIMCAT={
+ ordinaria:{name:'Prescrição ordinária',y:20,basis:'art. 309.º CC',start:'Data em que o direito pode ser exercido (art. 306.º CC)',kind:'Prescrição'},
+ quinquenal:{name:'Prestações periódicas (rendas, juros, quotas de condomínio…)',y:5,basis:'art. 310.º CC',start:'Data de vencimento da prestação',kind:'Prescrição'},
+ extracontratual:{name:'Responsabilidade civil extracontratual',y:3,basis:'art. 498.º, n.º 1 CC',start:'Data em que o lesado teve conhecimento do direito',kind:'Prescrição',warn:'Se o facto constituir crime com prazo de prescrição mais longo, aplica-se esse prazo (art. 498.º, n.º 3 CC).'},
+ enriquecimento:{name:'Enriquecimento sem causa',y:3,basis:'art. 482.º CC',start:'Data em que o credor teve conhecimento do direito',kind:'Prescrição'},
+ laboral:{name:'Créditos laborais',y:1,basis:'art. 337.º, n.º 1 CT',start:'Data da cessação do contrato de trabalho',kind:'Prescrição',warn:'Contado de forma conservadora a partir da data da cessação.'},
+ presuntiva6:{name:'Presuntiva de 6 meses (alojamento, comidas, bebidas)',m:6,basis:'art. 316.º CC',start:'Data da prestação',kind:'Prescrição presuntiva'},
+ presuntiva2:{name:'Presuntiva de 2 anos (comerciantes, profissionais liberais…)',y:2,basis:'art. 317.º CC',start:'Data da prestação ou do serviço',kind:'Prescrição presuntiva'},
+ seguro:{name:'Direitos emergentes do contrato de seguro',y:5,basis:'art. 121.º, n.º 2 do Regime Jurídico do Contrato de Seguro',start:'Data em que o direito pode ser exercido',kind:'Prescrição'},
+ anulacao:{name:'Anulação de negócio jurídico',y:1,basis:'art. 287.º, n.º 1 CC',start:'Data em que cessou o vício que serve de fundamento',kind:'Caducidade'},
+ despedimento:{name:'Impugnação judicial do despedimento',dd:60,basis:'art. 387.º, n.º 2 CT',start:'Data da receção da comunicação de despedimento ou da cessação',kind:'Caducidade'},
+ outro:{name:'Outro prazo',y:1,basis:'',start:'Data de início da contagem',kind:'Prescrição'}};
+const LIM_INT=[['citacao','Citação ou notificação judicial (art. 323.º CC)'],['reconhecimento','Reconhecimento do direito pelo devedor (art. 325.º CC)'],['outro','Outro ato interruptivo']];
+function addYMD(d,y,m,dd){if(dd)return add(d,dd);const tm=d.getMonth()+(m||0)+(y||0)*12;const ty=d.getFullYear()+Math.floor(tm/12),mm=((tm%12)+12)%12;const last=new Date(ty,mm+1,0,12).getDate();return D(ty,mm,Math.min(d.getDate(),last))}
+const limLen=l=>l.dd?l.dd+' dias':l.y?l.y+(l.y===1?' ano':' anos'):l.m+(l.m===1?' mês':' meses');
+function limCalc(l){const ints=(l.interruptions||[]).filter(i=>i.date).sort((a,b)=>a.date.localeCompare(b.date));const last=ints[ints.length-1];const from=last?last.date:l.start;
+ const due=addYMD(parse(from),+l.y||0,+l.m||0,+l.dd||0);const cad=(LIMCAT[l.cat]||LIMCAT.outro).kind==='Caducidade';const fileBy=cad?due:add(due,-5);
+ const steps=[(last?'Último ato interruptivo a '+fd(parse(from))+' (o novo prazo começa daí, art. 326.º CC).':'Início da contagem a '+fd(parse(from))+'.'),'Prazo de '+limLen(l)+' ('+(l.basis||'—')+'), contado nos termos do art. 279.º CC: termina a '+fd(due)+'.',cad?'Prazo de caducidade: só a prática do ato dentro do prazo impede a caducidade (art. 331.º, n.º 1 CC). Pratique-o até '+fd(due)+'.':'A citação considera-se feita 5 dias depois de requerida, se não for feita antes por causa não imputável ao autor (art. 323.º, n.º 2 CC): instaure a ação até '+fd(fileBy)+'.'];
+ return {from,due,fileBy,left:diff(TODAY,due),leftFile:diff(TODAY,fileBy),steps}}
+function limLevel(l){if(l.status==='exercised')return ['l-ok','Exercido'];const r=limCalc(l);if(r.left<0)return ['l-crit','Terminado'];if(r.leftFile<=30)return ['l-crit','Urgente'];if(r.leftFile<=90)return ['l-urg','A aproximar-se'];if(r.leftFile<=180)return ['l-att','Atenção'];return ['l-norm','Em curso']}
+function limForm(pre){const l=S.limEdit==='new'?(pre||{}):DB.limitations.find(x=>x.id===S.limEdit)||{};const ck=l.cat||'extracontratual',cat=LIMCAT[ck];
+ return `<section class="card pad-card" style="margin-bottom:16px;max-width:780px"><h2 class="sec-t">${l.id?'Editar prazo de prescrição ou caducidade':'Novo prazo de prescrição ou caducidade'}</h2><div class="form">
+ <div class="f"><label for="lim-cat">Tipo de direito</label><select id="lim-cat" data-limcat>${Object.entries(LIMCAT).map(([k,v])=>`<option value="${k}" ${k===ck?'selected':''}>${v.name} — ${limLen(v)}</option>`).join('')}</select></div>
+ <div class="f"><label for="lim-title">Descrição</label><input id="lim-title" value="${esc(l.title||'')}" placeholder="Ex.: Indemnização pelo acidente de 12 de março"></div>
+ <div class="f2"><div class="f"><label for="lim-client">Cliente ou lead</label><select id="lim-client">${'<option value="">—</option>'+DB.clients.filter(c=>cstatus(c)!=='lost').map(c=>`<option value="${c.id}" ${l.clientId===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div><div class="f"><label for="lim-case">Processo (opcional)</label><select id="lim-case">${caseOpts(l.caseId||'','Ainda sem processo')}</select></div></div>
+ <div class="f"><label for="lim-start" id="lim-start-l">${esc(cat.start)}</label><input id="lim-start" type="date" value="${l.start||''}"></div>
+ <div id="lim-len" class="f3">${limLenFields(l.id?l:cat)}</div>
+ <div class="f"><label for="lim-basis">Base legal</label><input id="lim-basis" value="${esc(l.basis??cat.basis)}"></div>
+ <p class="muted" style="font-size:13px;margin:0" id="lim-warn">${esc(cat.warn||'')}</p>
+ <div class="f"><label for="lim-notes">Notas</label><textarea id="lim-notes">${esc(l.notes||'')}</textarea></div>
+ <div class="row-acts"><button class="btn pri" data-act="lim-save" data-id="${l.id||'new'}">Guardar</button><button class="btn" data-act="lim-cancel">Cancelar</button></div></div></section>`}
+const limLenFields=v=>`<div class="f"><label for="lim-y">Anos</label><input id="lim-y" type="number" inputmode="numeric" min="0" value="${v.y||0}"></div><div class="f"><label for="lim-m">Meses</label><input id="lim-m" type="number" inputmode="numeric" min="0" value="${v.m||0}"></div><div class="f"><label for="lim-d">Dias</label><input id="lim-d" type="number" inputmode="numeric" min="0" value="${v.dd||0}"></div>`;
+function limRow(l){const r=limCalc(l),lv=limLevel(l),cl=l.clientId?clientById(l.clientId):null,c=l.caseId?caseById(l.caseId):null,cat=LIMCAT[l.cat]||LIMCAT.outro;
+ return `<div class="recbox"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start"><div style="min-width:0;flex:1"><b>${esc(l.title||cat.name)}</b><div class="muted" style="font-size:13px">${esc(cat.kind)} · ${limLen(l)} · ${esc(l.basis||'')}${cl?' · '+esc(cl.name):''}${c?' · <a href="#" data-case="'+c.id+'">'+esc(c.num||c.title)+'</a>':''}</div></div><span class="chip ${lv[0]}">${lv[1]}</span></div>
+ ${l.status==='exercised'?`<p class="pos" style="margin:10px 0 0;font-size:14px">Direito exercido a ${fd(parse(l.exercisedAt))}.</p>`:`<div class="termo" style="margin:10px 0 6px"><div><div class="muted" style="font-size:13px">Termina a</div><div class="big serif" style="font-size:34px">${fds(r.due)}</div><div class="wd">${WD[r.due.getDay()]}, ${r.due.getFullYear()}</div></div><div class="left"><span class="chip ${lv[0]}">${r.left<0?'Terminou há '+(-r.left)+' dias':'Faltam '+r.left+' dias'}</span><div style="font-size:13.5px;margin-top:6px">${(LIMCAT[l.cat]||{}).kind==='Caducidade'?'Praticar o ato até':'Instaurar até'} <b class="${r.leftFile<=30?'neg':''}">${fd(r.fileBy)}</b></div></div></div>
+ <ol class="steps" style="font-size:13.5px">${r.steps.map(s=>`<li>${esc(s)}</li>`).join('')}</ol>${cat.warn?`<p class="muted" style="font-size:12.5px;margin:8px 0 0">${esc(cat.warn)}</p>`:''}`}
+ ${(l.interruptions||[]).length?`<div style="margin-top:8px">${l.interruptions.map(i=>`<div class="ev"><div class="tt" style="flex:1"><b>Interrupção · ${fd(parse(i.date))}</b><small>${esc((LIM_INT.find(x=>x[0]===i.act)||LIM_INT[2])[1])}${i.note?' · '+esc(i.note):''}</small></div>${confirmBtn('lim-int-del',l.id+'|'+i.id,'Remover','Confirmar')}</div>`).join('')}</div>`:''}
+ ${S.limInt===l.id?`<div class="form subform" style="margin-top:10px"><div class="f2"><div class="f"><label for="li-date">Data do ato interruptivo</label><input id="li-date" type="date" value="${key(TODAY)}"></div><div class="f"><label for="li-act">Ato</label><select id="li-act">${opts(LIM_INT,'citacao')}</select></div></div><div class="f"><label for="li-note">Nota</label><input id="li-note"></div><div class="row-acts"><button class="btn pri" data-act="lim-int-save" data-id="${l.id}">Registar interrupção</button><button class="btn" data-act="lim-int-cancel">Cancelar</button></div></div>`:''}
+ ${l.status==='exercised'?'':`<div class="row-acts" style="margin-top:10px"><button class="btn sm pri" data-act="lim-done" data-id="${l.id}">Direito exercido</button><button class="btn sm" data-act="lim-int" data-id="${l.id}">Interrupção</button><button class="btn sm" data-act="lim-edit" data-id="${l.id}">Editar</button>${confirmBtn('lim-del',l.id,'Apagar','Confirmar')}</div>`}</div>`}
+function limSorted(f){return DB.limitations.filter(f||(()=>true)).sort((a,b)=>(a.status==='exercised')-(b.status==='exercised')||limCalc(a).due-limCalc(b).due)}
+function limView(){const list=limSorted();
+ return `${S.limEdit?limForm(S.limPre):''}<div class="h-row" style="margin-bottom:12px"><p class="muted" style="margin:0;max-width:640px">Prazos de prescrição e caducidade dos direitos dos clientes, antes e durante o processo. Contagem conservadora: confirme sempre a data de início e eventuais causas de suspensão (arts. 318.º a 322.º CC).</p>${S.limEdit?'':'<button class="btn pri" data-act="lim-new">Novo prazo</button>'}</div>
+ ${list.map(limRow).join('')||'<div class="card empty">Sem prazos de prescrição ou caducidade registados.</div>'}`}
+function limSection(filterFn,pre,title){const list=limSorted(filterFn);return `<section class="card pad-card" style="margin-bottom:18px"><div class="h-row" style="margin-bottom:10px;align-items:center"><h2 class="sec-t" style="margin:0">${title||'Prescrição e caducidade'}</h2><button class="btn sm" data-act="lim-new-pre" data-pre='${esc(JSON.stringify(pre))}'>Novo prazo</button></div>${list.map(limRow).join('')||'<div class="empty">Sem prazos de prescrição ou caducidade.</div>'}</section>`}
+function limAlerts(){const list=DB.limitations.filter(l=>l.status!=='exercised'&&limCalc(l).leftFile<=90).sort((a,b)=>limCalc(a).due-limCalc(b).due);if(!list.length)return '';
+ return `<section class="warnbox"><b>Prescrição e caducidade a aproximar-se</b>${list.slice(0,5).map(l=>{const r=limCalc(l),cl=l.clientId?clientById(l.clientId):null;return `<button class="dl" data-go="prazos" data-ptab="presc" style="padding:8px 0;min-height:52px"><div class="t"><b>${esc(l.title||LIMCAT[l.cat]?.name||'')}</b><small>${cl?esc(cl.name)+' · ':''}termina a ${fds(r.due)} · instaurar até ${fds(r.fileBy)}</small></div><span class="chip ${r.leftFile<=30?'l-crit':'l-urg'}">${r.left<0?'Terminou':r.left+' d'}</span></button>`}).join('')}</section>`}
+function saveLim(id){const ck=val('lim-cat')||'outro';const start=val('lim-start');if(!start)return toast('Indique a data de início da contagem.');const y=+val('lim-y')||0,m=+val('lim-m')||0,dd=+val('lim-d')||0;if(!y&&!m&&!dd)return toast('Indique a duração do prazo.');
+ const o=id==='new'?{id:nid('lim'),status:'open',interruptions:[],created:Date.now()}:DB.limitations.find(x=>x.id===id);
+ Object.assign(o,{cat:ck,title:val('lim-title')||LIMCAT[ck].name,clientId:val('lim-client')||null,caseId:val('lim-case')||null,start,y,m,dd,basis:val('lim-basis'),notes:$('lim-notes')?.value||''});
+ if(id==='new')DB.limitations.push(o);S.limEdit=null;S.limPre=null;save();toast('Guardado: termina a '+fd(limCalc(o).due)+'.');render()}
+
+/* ====================== Meios de prova ====================== */
+const EVK2={testemunha:'Testemunha',documento:'Documento',pericia:'Perícia',declaracoes:'Declarações de parte',outro:'Outro meio de prova'};
+const EVST={testemunha:[['a_indicar','A indicar'],['indicada','Indicada'],['notificada','Notificada'],['ouvida','Ouvida'],['prescindida','Prescindida']],documento:[['em_falta','Em falta'],['pedido','Pedido'],['recebido','Recebido'],['junto','Junto ao processo']],pericia:[['a_requerer','A requerer'],['requerida','Requerida'],['quesitos','Quesitos apresentados'],['realizada','Realizada']],declaracoes:[['a_requerer','A requerer'],['requerida','Requeridas'],['prestadas','Prestadas']],outro:[['pendente','Pendente'],['tratado','Tratado']]};
+const evReady=e=>e.kind==='testemunha'?['notificada','ouvida','prescindida'].includes(e.status)||(e.status==='indicada'&&!e.toNotify):e.kind==='documento'?e.status==='junto':e.kind==='pericia'?['quesitos','realizada'].includes(e.status):e.kind==='declaracoes'?['requerida','prestadas'].includes(e.status):e.status==='tratado';
+function evFields(k,e){e=e||{};const f=(id,l,v,ph,type)=>`<div class="f"><label for="${id}">${l}</label><input id="${id}" type="${type||'text'}" value="${esc(v||'')}" ${ph?`placeholder="${esc(ph)}"`:''}></div>`;
+ if(k==='testemunha')return `${f('ev-name','Nome da testemunha',e.name)}<div class="f2">${f('ev-job','Profissão',e.job)}${f('ev-phone','Telefone',e.phone,'','tel')}</div>${f('ev-addr','Morada (para notificação)',e.addr)}${f('ev-facts','Factos ou artigos a que depõe',e.facts,'Ex.: artigos 5.º a 12.º da petição')}<label class="check"><input type="checkbox" id="ev-notify" ${e.toNotify!==false?'checked':''}>A notificar pelo tribunal (desmarque se a parte a apresenta)</label>`;
+ if(k==='documento')return `${f('ev-name','Documento',e.name,'Ex.: Contrato de empreitada assinado')}<div class="f2">${f('ev-from','Quem o tem',e.from,'Ex.: cliente, banco, conservatória')}${f('ev-due','Pedir ou obter até','' +(e.due||''),'','date')}</div>`;
+ if(k==='pericia')return `${f('ev-name','Objeto da perícia',e.name,'Ex.: Avaliação dos defeitos da obra')}<div class="f"><label for="ev-ques">Quesitos (um por linha)</label><textarea id="ev-ques" style="min-height:140px">${esc(e.ques||'')}</textarea></div>`;
+ return `${f('ev-name','Descrição',e.name)}`}
+function evForm(c){const e=S.evEdit==='new'?{kind:S.evKind||'testemunha'}:DB.evidence.find(x=>x.id===S.evEdit)||{};const k=e.kind||'testemunha';
+ return `<div class="form subform" style="margin:12px 0"><div class="f"><label for="ev-kind">Meio de prova</label><select id="ev-kind" data-evkind ${e.id?'disabled':''}>${opts(Object.entries(EVK2),k)}</select></div><div id="ev-fields" class="form">${evFields(k,e)}</div><div class="f"><label for="ev-notes">Notas</label><input id="ev-notes" value="${esc(e.notes||'')}"></div><div class="row-acts"><button class="btn pri" data-act="ev-save" data-id="${e.id||'new'}" data-cid="${c.id}">Guardar</button><button class="btn" data-act="ev-cancel">Cancelar</button></div></div>`}
+function evSection(c){const list=DB.evidence.filter(e=>e.caseId===c.id);const wit=list.filter(e=>e.kind==='testemunha'&&e.status!=='prescindida');const docs=list.filter(e=>e.kind==='documento');
+ const next=DB.events.filter(e=>e.caseId===c.id&&e.kind==='hearing'&&diff(TODAY,parse(e.date))>=0).sort((a,b)=>a.date.localeCompare(b.date))[0];const pend=list.filter(e=>!evReady(e));
+ const order=['testemunha','documento','pericia','declaracoes','outro'];
+ return `<section class="card pad-card" style="margin-bottom:18px"><div class="h-row" style="margin-bottom:8px;align-items:center"><h2 class="sec-t" style="margin:0">Meios de prova</h2><div class="row-acts">${wit.length?'<button class="btn sm" data-act="ev-rol" data-id="'+c.id+'">Rol de testemunhas (Word)</button>':''}${list.some(e=>e.kind==='pericia'&&e.ques)?'<button class="btn sm" data-act="ev-ques" data-id="'+c.id+'">Quesitos (Word)</button>':''}<button class="btn sm" data-act="ev-new" data-id="${c.id}">Acrescentar</button></div></div>
+ ${list.length?`<div class="row-acts" style="margin-bottom:10px">${wit.length?`<span class="chip ${wit.every(evReady)?'l-ok':'l-att'}">Testemunhas: ${wit.filter(evReady).length} de ${wit.length} prontas</span>`:''}${docs.length?`<span class="chip ${docs.every(evReady)?'l-ok':'l-att'}">Documentos: ${docs.filter(evReady).length} de ${docs.length} juntos</span>`:''}${wit.length>10?'<span class="chip l-crit">Mais de 10 testemunhas (art. 511.º, n.º 1 CPC)</span>':''}</div>`:''}
+ ${next&&pend.length?`<div class="warnbox" style="margin-bottom:10px"><b>${pend.length} meio(s) de prova por tratar</b><br><span style="font-size:13.5px">${esc(next.title)} a ${fdl(parse(next.date))} (faltam ${diff(TODAY,parse(next.date))} dias).</span></div>`:''}
+ ${S.evEdit&&S.evCase===c.id?evForm(c):''}
+ ${list.length?`<div class="tscroll"><table class="tbl"><thead><tr><th>Tipo</th><th>Descrição</th><th>Detalhe</th><th>Estado</th><th></th></tr></thead><tbody>${list.sort((a,b)=>order.indexOf(a.kind)-order.indexOf(b.kind)).map(e=>`<tr><td>${EVK2[e.kind]}</td><td><b>${esc(e.name)}</b>${e.notes?'<br><span class="muted" style="font-size:12.5px">'+esc(e.notes)+'</span>':''}</td><td style="font-size:13px">${e.kind==='testemunha'?esc([e.job,e.addr].filter(Boolean).join(' · '))+(e.facts?'<br>'+esc(e.facts):'')+'<br>'+(e.toNotify!==false?'A notificar':'A apresentar'):e.kind==='documento'?esc(e.from||'')+(e.due?' · até '+fds(parse(e.due)):''):e.kind==='pericia'&&e.ques?esc(e.ques.split('\n').filter(Boolean).length+' quesito(s)'):''}</td><td><select class="evst ${evReady(e)?'ok':''}" data-evst="${e.id}" aria-label="Estado">${opts(EVST[e.kind]||EVST.outro,e.status)}</select></td><td><div class="row-acts"><button class="btn sm" data-act="ev-edit" data-id="${e.id}">Editar</button>${confirmBtn('ev-del',e.id,'Apagar','Confirmar')}</div></td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">Sem meios de prova registados. Acrescente testemunhas, documentos, perícias e declarações de parte.</div>'}</section>`}
+function saveEvid(id,caseId){const k=id==='new'?(val('ev-kind')||'testemunha'):DB.evidence.find(x=>x.id===id).kind;const name=val('ev-name');if(!name)return toast('Indique a descrição.');
+ const o=id==='new'?{id:nid('ev'),caseId,kind:k,status:EVST[k][0][0],created:Date.now()}:DB.evidence.find(x=>x.id===id);
+ Object.assign(o,{name,notes:val('ev-notes')});if(k==='testemunha')Object.assign(o,{job:val('ev-job'),phone:val('ev-phone'),addr:val('ev-addr'),facts:val('ev-facts'),toNotify:chk('ev-notify')});
+ if(k==='documento')Object.assign(o,{from:val('ev-from'),due:val('ev-due')||null});if(k==='pericia')o.ques=$('ev-ques')?.value||'';
+ if(id==='new')DB.evidence.push(o);S.evEdit=null;save();toast('Meio de prova guardado.');render()}
+async function exportEvid(caseId,kind){const c=caseById(caseId),cl=clientById(c.clientId)||{};let title,body;
+ if(kind==='rol'){const w=DB.evidence.filter(e=>e.caseId===caseId&&e.kind==='testemunha'&&e.status!=='prescindida');title='ROL DE TESTEMUNHAS';
+  body=`Exmo. Senhor Juiz de Direito\n${c.courtName||'…'}\n\nProcesso n.º ${c.num||'…'}\n\n${cl.name||'…'}, nos autos à margem referenciados, vem apresentar o seu rol de testemunhas:\n\n`+w.map((e,i)=>`${i+1}. ${e.name}${e.job?', '+e.job:''}${e.addr?', residente em '+e.addr:''}${e.facts?' — à matéria '+e.facts:''} (${e.toNotify!==false?'a notificar':'a apresentar'}).`).join('\n')+`\n\nPede deferimento.\n\n${(P().addr.match(/\d{4}-\d{3}\s+(.+)$/)||[])[1]||'…'}, ${TODAY.getDate()} de ${ML[TODAY.getMonth()]} de ${TODAY.getFullYear()}.\n\n${fem()?'A Advogada':'O Advogado'},\n\n${LNAME()}\nCédula profissional n.º ${P().cedula||'…'}`}
+ else{const p=DB.evidence.filter(e=>e.caseId===caseId&&e.kind==='pericia'&&e.ques);title='QUESITOS';let n=0;
+  body=`Exmo. Senhor Juiz de Direito\n${c.courtName||'…'}\n\nProcesso n.º ${c.num||'…'}\n\n${cl.name||'…'}, nos autos à margem referenciados, vem apresentar os seguintes quesitos:\n\n`+p.map(e=>`Perícia: ${e.name}\n`+e.ques.split('\n').map(q=>q.trim()).filter(Boolean).map(q=>`${++n}.º ${q}`).join('\n')).join('\n\n')+`\n\nPede deferimento.\n\n${fem()?'A Advogada':'O Advogado'},\n\n${LNAME()}\nCédula profissional n.º ${P().cedula||'…'}`}
+ try{await loadScript(LIB_DOCX);if(await saveBlob(await buildTextDocx(title,body,window.docx),(kind==='rol'?'Rol-testemunhas-':'Quesitos-')+(c.num||'processo').replace(/[\/\s]+/g,'-')+'.docx'))toast('Documento Word guardado.')}catch(_){toast('Não foi possível criar o documento. Verifique a ligação à internet.')}}
+function evidAlerts(){const items=DB.events.filter(e=>e.kind==='hearing'&&e.caseId&&diff(TODAY,parse(e.date))>=0&&diff(TODAY,parse(e.date))<=15).map(e=>({e,n:DB.evidence.filter(x=>x.caseId===e.caseId&&!evReady(x)).length})).filter(x=>x.n);
+ if(!items.length)return '';return `<section class="warnbox"><b>Prova por preparar antes de audiências</b>${items.map(({e,n})=>{const c=caseById(e.caseId);return `<button class="dl" data-case="${c.id}" style="padding:8px 0;min-height:52px"><div class="t"><b>${esc(e.title)} · ${fds(parse(e.date))}</b><small>${esc(c.num||c.title)} · ${n} meio(s) de prova por tratar</small></div><span class="chip l-urg">${diff(TODAY,parse(e.date))} d</span></button>`}).join('')}</section>`}
+
+VIEWS.prazos=()=>{const t=S.ptab||'proc';const open=DB.limitations.filter(l=>l.status!=='exercised').length;
+ const tabs=`<div class="tabs"><button class="seg ${t==='proc'?'on':''}" data-act="ptab" data-id="proc">Prazos processuais</button><button class="seg ${t==='presc'?'on':''}" data-act="ptab" data-id="presc">Prescrição e caducidade${open?' ('+open+')':''}</button></div>`;
+ return t==='presc'?`<div class="h-row"><div><h1>Prescrição e caducidade</h1></div></div>`+tabs+limView():tabs+VIEWS.prazosCalc()};
+
 async function summarize(id){const r=DB.recs.find(x=>x.id===id),el=$('sum-'+id);if(!el||!r)return;el.style.display='';el.textContent='A preparar o resumo…';
  let sample=null;try{sample=AI()?await window.claude.use('sample'):null}catch(_){}
  if(!sample){el.textContent='O resumo com IA não está disponível neste navegador.';return}
@@ -1125,7 +1217,7 @@ VIEWS.direto=()=>{const L=S.live;
  return `<div class="live-top"><div style="flex:1;min-width:0"><b class="neg">● ${L.kind==='note'?'Nota ditada':'Em gravação'}</b> · <span id="rec-timer" class="mono">00:00:00</span><div class="lvl"><i id="lvl"></i></div><div id="tx-status" class="muted" style="font-size:12.5px;margin-top:6px">${esc(txStatus(L))}</div><div class="muted" style="font-size:12.5px">${esc(c?(c.num||c.title):'')}</div></div><button class="btn pri" data-act="rec-stop" ${L.stopping?'disabled':''}>${L.stopping?'A guardar…':'Parar e guardar'}</button></div>
  ${L.speakers.length>1?`<div class="muted" style="font-size:13px;margin:14px 0 6px">Quem está a falar agora</div><div id="spk-chips" class="spk-chips"></div>`:''}
  <div id="live" class="live-big"></div>`};
-VIEWS.prazos=()=>{const c=S.calc;
+VIEWS.prazosCalc=()=>{const c=S.calc;
  return `<div class="h-row"><div><h1>Calculadora de prazos</h1><p>Contagem segundo o CPC, o CPT e o Código Civil, com férias judiciais e feriados do município do tribunal.</p></div></div>
  ${inboxSection()}
  <div class="grid2">
@@ -1266,7 +1358,7 @@ let toastT;function toast(m){document.querySelector('.toast')?.remove();const t=
 function copyText(txt,msg){const ok=()=>toast(msg);(navigator.clipboard?navigator.clipboard.writeText(txt).then(ok):Promise.reject()).catch(()=>{const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');ok()}catch(_){toast('Não foi possível copiar. Selecione o texto.')}ta.remove()})}
 document.addEventListener('click',e=>{
  const p=e.target.closest('[data-pin]');if(p){pinPress(p.dataset.pin);return}
- const g=e.target.closest('[data-go]');if(g){go(g.dataset.go);return}
+ const g=e.target.closest('[data-go]');if(g){if(g.dataset.ptab)S.ptab=g.dataset.ptab;go(g.dataset.go);return}
  const cs=e.target.closest('[data-case]');if(cs){e.preventDefault();S.caseId=cs.dataset.case;go('caso');return}
  const ck=e.target.closest('[data-client]');if(ck){S.clientId=ck.dataset.client;go('cliente');return}
  const fl=e.target.closest('[data-filter]');if(fl){S.filter=fl.dataset.filter;render();return}
@@ -1390,6 +1482,25 @@ document.addEventListener('click',e=>{
   case 'duc-proof':{const u=DB.ducs.find(x=>x.id===id);if(u){u.proof=!u.proof;save();render()}break}
   case 'duc-del':if(askConfirm('duc-del'+id)){DB.ducs=DB.ducs.filter(x=>x.id!==id);save();render()}break;
   case 'rcp-col':S.rcpCol=id;render();break;
+  case 'ptab':S.ptab=id;render();break;
+  case 'lim-new':S.limEdit='new';S.limPre=null;render();break;
+  case 'lim-new-pre':{let pre={};try{pre=JSON.parse(a.dataset.pre||'{}')}catch(_){}S.limEdit='new';S.limPre=pre;S.ptab='presc';go('prazos');break}
+  case 'lim-edit':S.limEdit=id;S.limPre=null;S.ptab='presc';go('prazos');break;
+  case 'lim-cancel':S.limEdit=null;S.limPre=null;render();break;
+  case 'lim-save':saveLim(id);break;
+  case 'lim-done':{const l=DB.limitations.find(x=>x.id===id);if(l){l.status='exercised';l.exercisedAt=key(TODAY);save();toast('Marcado como exercido.');render()}break}
+  case 'lim-int':S.limInt=id;render();break;
+  case 'lim-int-cancel':S.limInt=null;render();break;
+  case 'lim-int-save':{const l=DB.limitations.find(x=>x.id===id);const d=val('li-date');if(!l||!d){toast('Indique a data.');break}(l.interruptions=l.interruptions||[]).push({id:nid('li'),date:d,act:val('li-act'),note:val('li-note')});S.limInt=null;save();toast('Interrupção registada: novo termo a '+fd(limCalc(l).due)+'.');render();break}
+  case 'lim-int-del':if(askConfirm('lim-int-del'+id)){const [lid,iid]=id.split('|');const l=DB.limitations.find(x=>x.id===lid);if(l){l.interruptions=(l.interruptions||[]).filter(i=>i.id!==iid);save();render()}}break;
+  case 'lim-del':if(askConfirm('lim-del'+id)){DB.limitations=DB.limitations.filter(x=>x.id!==id);save();render()}break;
+  case 'ev-new':S.evEdit='new';S.evCase=id;S.evKind='testemunha';render();break;
+  case 'ev-edit':{const ev=DB.evidence.find(x=>x.id===id);if(ev){S.evEdit=id;S.evCase=ev.caseId;render()}break}
+  case 'ev-cancel':S.evEdit=null;render();break;
+  case 'ev-save':saveEvid(id,a.dataset.cid);break;
+  case 'ev-del':if(askConfirm('ev-del'+id)){DB.evidence=DB.evidence.filter(x=>x.id!==id);save();render()}break;
+  case 'ev-rol':exportEvid(id,'rol');break;
+  case 'ev-ques':exportEvid(id,'ques');break;
   case 'rec-retry':{const r=DB.recs.find(x=>x.id===id);if(r)retryPending(r);break}
   case 'rec-tx':{const r=DB.recs.find(x=>x.id===id);if(r)txFile(r);break}
   case 'spk':S.spk=a.dataset.spk||null;render();break;
@@ -1406,6 +1517,9 @@ document.addEventListener('keydown',e=>{
 document.addEventListener('input',e=>{const t=e.target;
  if(t.id==='q'){S.q=t.value;$('ctable').innerHTML=caseTable();return}
  if(t.dataset.pclient!==undefined){$('newclient').style.display=t.value==='__new'?'grid':'none';return}
+ if(t.dataset.limcat!==undefined){const cat=LIMCAT[t.value]||LIMCAT.outro;const sl=$('lim-start-l');if(sl)sl.textContent=cat.start;const ln=$('lim-len');if(ln)ln.innerHTML=limLenFields(cat);const b=$('lim-basis');if(b)b.value=cat.basis;const w=$('lim-warn');if(w)w.textContent=cat.warn||'';return}
+ if(t.dataset.evkind!==undefined){S.evKind=t.value;const el=$('ev-fields');if(el)el.innerHTML=evFields(t.value,{});return}
+ if(t.dataset.evst!==undefined){const ev=DB.evidence.find(x=>x.id===t.dataset.evst);if(ev){ev.status=t.value;save();render()}return}
  if(t.dataset.cq!==undefined){S.cq=t.value;const el=$('cl-list');if(el)el.innerHTML=clientRows(t.value);return}
  if(t.dataset.ctq!==undefined){S.ctq=t.value;const el=$('ct-list');if(el)el.innerHTML=contactRows(t.value);return}
  if(t.dataset.itype!==undefined){S.itype=t.value;const el=$('i-fields');if(el)el.innerHTML=incFields(t.value);return}
