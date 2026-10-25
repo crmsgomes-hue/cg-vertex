@@ -95,3 +95,50 @@ DB.limitations[] = { id, clientId|caseId, right, regime, startDate, years|months
 ## Aviso
 
 Bases legais, valores e tabelas devem ser revistos por um jurista antes de uso comercial. As estimativas não substituem a análise do profissional.
+
+---
+
+## Refinamento final da advocacia de trincheira
+
+### 1. Processos urgentes e férias judiciais ✅
+
+- A urgência é uma **propriedade do processo** (`case.urgentLegal`, `urgentType`, `urgentBasis`) e o motor aplica-a a todos os prazos do processo, incluindo os já criados; mudar a natureza do processo recalcula tudo.
+- Catálogo com base legal: procedimento cautelar (art. 363.º, n.º 1 CPC), insolvência e PER (art. 9.º, n.º 1 CIRE), tutelar cível (art. 13.º RGPTC), promoção e proteção (art. 102.º, n.º 1 LPCJP), penal com arguido detido ou preso (arts. 103.º, n.º 2, al. a) e 104.º, n.º 2 CPP), impugnação do despedimento (art. 26.º, n.º 1 CPT), urgentes administrativos (art. 36.º CPTA), outro (base livre).
+- Regras do motor (art. 138.º, n.º 1 CPC): os prazos não se suspendem em férias judiciais (art. 28.º LOSJ: 22 dez–3 jan, Domingo de Ramos–Segunda-feira de Páscoa, 16 jul–31 ago) quando o processo é urgente ou o prazo é de 6 meses ou mais; o termo em sábado, domingo, feriado ou tolerância continua a passar para o dia útil seguinte (art. 138.º, n.º 2); os dias de férias contados são assinalados na linha temporal e na explicação.
+- Ecrã Hoje: aviso durante as férias judiciais (e 10 dias antes de começarem) com o número de processos urgentes que continuam a contar.
+
+### 2. Mandatos, procurações e substabelecimentos 🔵
+
+```js
+DB.mandates[] = { id, caseId, clientId, kind: 'procuracao'|'substabelecimento', date, grantor, grantee,
+  powers: { gerais: true, confessar, desistir, transigir, substabelecer, receber },
+  reserve: 'com'|'sem'|null, status: 'em_vigor'|'substabelecida_com_reserva'|'substabelecida_sem_reserva'|'revogada'|'renunciada'|'caducada',
+  endDate, docId }
+```
+- Estado por processo e aviso se não houver procuração em vigor junta.
+- Poderes especiais (art. 45.º, n.º 2 CPC) verificados antes de minutas de confissão, desistência ou transação: aviso «a procuração não confere poderes para transigir».
+- Substabelecimento sem reserva retira o mandatário anterior; com reserva mantém ambos.
+- Revogação e renúncia (art. 47.º CPC): data de efeito, prazo para constituir novo mandatário quando a constituição é obrigatória e tarefa automática de comunicação ao cliente.
+- A minuta «Procuração forense» passa a criar o registo do mandato com os poderes escolhidos.
+
+### 3. Trânsito em julgado e execução 🔵
+
+```js
+case.judgment = { decisionDate, noticeDate, appealDays, estimatedFinal, finalDate, confirmed: boolean,
+  type: 'condenacao_pecuniaria'|'entrega'|'facto'|'absolvicao'|'outro', amount }
+```
+- **Trânsito estimado** = notificação (presunção do art. 248.º) + prazo de recurso (30 dias, ou 15 nos urgentes e nos casos do art. 638.º CPC), com o motor de prazos (férias, transferência de termo). O advogado confirma a data real (art. 628.º CPC).
+- Ao confirmar, cria automaticamente:
+  - prazo da **nota discriminativa e justificativa de custas de parte** (art. 25.º, n.º 1 RCP);
+  - **prescrição do direito reconhecido por sentença**: 20 anos (art. 311.º CC), no módulo de prescrição;
+  - em condenações pecuniárias, início dos **juros compulsórios** de 5% ao ano (art. 829.º-A, n.º 4 CC);
+  - prazo de cumprimento voluntário quando a decisão o fixar, e tarefa «Avaliar execução», com a sentença como título executivo (art. 703.º, n.º 1, al. a) CPC).
+
+### 4. Obrigações profissionais 🔵
+
+```js
+DB.obligations[] = { id, kind: 'quota_ordem'|'seguro_rc'|'previdencia'|'formacao'|'outro', label, dueDate,
+  recurrence: 'mensal'|'trimestral'|'semestral'|'anual'|null, amount, reminderDays: [30, 7, 1], history: [{ date, amount, note }] }
+```
+- Painel no Perfil: quotas da Ordem (OA ou OSAE), seguro de responsabilidade civil profissional, contribuições de previdência e outras obrigações configuráveis pelo próprio advogado (valores e periodicidade não vêm pré-definidos, para não ficarem desatualizados).
+- «Paguei» regista o histórico e avança a data seguinte conforme a periodicidade; alertas no ecrã Hoje.
