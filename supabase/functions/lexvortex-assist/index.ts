@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-// LEXVORTEX — assistente de comunicação com o cliente (modelo de linguagem na Groq).
+// CG VERTEX — assistente de comunicação com o cliente (modelo de linguagem na Groq).
 // Não guarda dados: recebe o contexto do processo e devolve um rascunho de e-mail.
 // A chave da Groq vem do Secret GROQ_API_KEY do projeto Supabase.
 
