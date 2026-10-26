@@ -1,0 +1,8 @@
+{
+  "appId": "pt.lexvortex.app",
+  "appName": "LEXVORTEX",
+  "webDir": "www",
+  "backgroundColor": "#14213D",
+  "android": { "allowMixedContent": false, "backgroundColor": "#14213D" },
+  "plugins": { "LocalNotifications": { "iconColor": "#E47A2A" } }
+}
