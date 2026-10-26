@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>CG VERTEX — Painel de utilização</title>
+<link rel="icon" href="icon-192.png">
+<style>
+:root{--bg:#F1F3F7;--card:#fff;--text:#18203A;--muted:#5B6478;--line:#DCE1EA;--navy:#14213D;--accent:#D9661A;--ok:#1D7A63;--ok-soft:#DDF1EA;--crit:#C62828;--crit-soft:#FBE4E4;--att:#8A6D00;--att-soft:#FAF3D2;color-scheme:light;box-sizing:border-box}
+@media (prefers-color-scheme:dark){:root{--bg:#0D1424;--card:#152036;--text:#E7EBF4;--muted:#9AA6BE;--line:#27344F;--navy:#0A1020;--accent:#E47A2A;--ok:#4CC3A2;--ok-soft:#143229;--crit:#F0625F;--crit-soft:#3B1A1D;--att:#E2C24F;--att-soft:#352F15;color-scheme:dark}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+header{background:var(--navy);color:#fff;padding:18px 20px calc(18px + env(safe-area-inset-top,0px)) ;padding-top:calc(18px + env(safe-area-inset-top,0px))}
+.brand{font-weight:700;letter-spacing:.14em;font-size:19px}.brand span{color:#E47A2A}
+header p{margin:4px 0 0;color:#A9B4CC;font-size:13px}
+main{max-width:1180px;margin:0 auto;padding:18px 16px 40px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}.kpi b{display:block;font-size:28px;line-height:1.1}.kpi span{font-size:13px;color:var(--muted)}
+.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:12px}
+button,input{font:inherit;color:inherit}button{min-height:44px;padding:0 16px;border-radius:12px;border:1px solid var(--line);background:var(--card);font-weight:600;cursor:pointer}button.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+input{min-height:48px;border:1px solid var(--line);border-radius:12px;background:var(--card);padding:0 14px;width:100%;max-width:420px}
+.tscroll{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--card)}
+table{width:100%;border-collapse:collapse;font-size:14px}th{background:var(--accent);color:#fff;text-align:left;padding:11px 12px;white-space:nowrap;font-weight:600}td{padding:11px 12px;border-top:1px solid var(--line);vertical-align:top}
+tbody tr.dev:nth-child(4n+1) td{background:transparent}tr.dev{cursor:pointer}tr.dev:hover td{background:rgba(217,102,26,.07)}
+.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}.pos{color:var(--ok);font-weight:600}.neg{color:var(--crit);font-weight:600}.muted{color:var(--muted)}
+.chip{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12.5px;font-weight:600}.c-ok{background:var(--ok-soft);color:var(--ok)}.c-att{background:var(--att-soft);color:var(--att)}.c-crit{background:var(--crit-soft);color:var(--crit)}
+.det td{background:var(--bg)!important}.det .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}.det h4{margin:0 0 6px;font-size:13.5px}.det ol{margin:0;padding-left:20px;font-size:13.5px}
+.login{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;max-width:520px}
+.note{font-size:12.5px;color:var(--muted);margin-top:14px}
+</style>
+</head>
+<body>
+<header><div class="brand">CG <span>VERTEX</span></div><p>Painel de utilização · só contagens anónimas, enviadas por quem autorizou na app</p></header>
+<main id="app"></main>
+<script>
+const URL_='https://mnbtfatkdllhsekmnpzk.supabase.co/functions/v1/cgvertex-telemetry';
+const ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1uYnRmYXRrZGxsaHNla21ucHprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcwODMyNjYsImV4cCI6MjEwMjY1OTI2Nn0.pPHvX8HStZ7vqK_LqlTUG33YPITGzbwkjEfHovTxbSA';
+const $=id=>document.getElementById(id);const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const VIEWN={hoje:'Hoje',processos:'Processos',caso:'Ficha de processo',prazos:'Prazos',agenda:'Agenda',tarefas:'Tarefas',clientes:'Clientes',cliente:'Ficha de cliente',minutas:'Minutas',honorarios:'Honorários',direto:'Transcrição em direto',perfil:'Perfil',juros:'Calculadoras',conflitos:'Conflitos',mais:'Mais','novo-proc':'Novo processo'};
+const PLAT={'app-android':'App Android','instalada-computador':'Instalada no computador','navegador-computador':'Navegador (computador)','instalada-android':'Instalada (Android)','navegador-android':'Navegador (Android)','instalada-ios':'Instalada (iPhone)','navegador-ios':'Navegador (iPhone)'};
+const M=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+const fdt=s=>{if(!s)return '—';const d=new Date(s);return d.getDate()+' '+M[d.getMonth()]+' '+d.getFullYear()+', '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')};
+const ago=s=>{const h=(Date.now()-new Date(s))/36e5;return h<1?'há menos de 1 hora':h<24?'há '+Math.floor(h)+' h':'há '+Math.floor(h/24)+' dia(s)'};
+let token=(()=>{const m=location.hash.match(/t=([\w-]+)/);if(m){try{localStorage.setItem('cgv-owner',m[1])}catch(_){}history.replaceState(null,'',location.pathname);return m[1]}try{return localStorage.getItem('cgv-owner')}catch(_){return null}})();
+let open=null,data=null;
+function loginView(msg){$('app').innerHTML=`<div class="login"><h2 style="margin:0 0 8px;font-size:18px">Acesso ao painel</h2><p class="muted" style="margin-top:0">Abra o link completo do painel ou cole aqui a chave.</p><input id="tk" type="password" placeholder="Chave do painel" autocomplete="off"><div style="margin-top:10px"><button class="pri" id="go">Entrar</button></div>${msg?'<p class="neg">'+esc(msg)+'</p>':''}</div>`;
+ $('go').onclick=()=>{token=$('tk').value.trim();try{localStorage.setItem('cgv-owner',token)}catch(_){}load()}}
+async function load(){if(!token)return loginView();$('app').innerHTML='<p class="muted">A carregar…</p>';
+ try{const r=await fetch(URL_,{headers:{Authorization:'Bearer '+ANON,apikey:ANON,'x-owner-token':token}});const j=await r.json().catch(()=>({}));
+  if(r.status===403){try{localStorage.removeItem('cgv-owner')}catch(_){}token=null;return loginView('Chave inválida.')}if(!r.ok)throw 0;data=j;draw()}catch(_){$('app').innerHTML='<p class="neg">Não foi possível carregar os dados. Verifique a ligação e tente de novo.</p><button class="pri" onclick="load()">Tentar de novo</button>'}}
+function sum(list,k){return list.reduce((s,d)=>s+(+((d.totals||{})[k])||0),0)}
+function draw(){const L=data.devices||[];const d7=L.filter(d=>Date.now()-new Date(d.last_seen)<7*864e5).length;
+ const kp=(v,t)=>`<div class="kpi"><b>${v}</b><span>${t}</span></div>`;
+ $('app').innerHTML=`<div class="kpis">${kp(L.length,'Aparelhos a partilhar')}${kp(d7,'Ativos nos últimos 7 dias')}${kp(L.reduce((s,d)=>s+(d.logins||0),0),'Entradas com PIN')}${kp(sum(L,'processos'),'Processos criados')}${kp(sum(L,'prazos'),'Prazos calculados')}${kp(sum(L,'gravacoes'),'Gravações')}</div>
+ <div class="bar"><span class="muted" style="font-size:13px">Atualizado: ${fdt(data.at)} · toque numa linha para ver o detalhe</span><button class="pri" onclick="load()">Atualizar</button></div>
+ ${L.length?`<div class="tscroll"><table><thead><tr><th>Utilizador</th><th>Aparelho</th><th>Versão</th><th>Desde</th><th>Última utilização</th><th class="num">Entradas</th><th class="num">Processos</th><th class="num">Prazos</th><th class="num">DUC</th><th class="num">Gravações</th><th>Ecrã mais usado</th></tr></thead><tbody>
+ ${L.map((d,i)=>{const t=d.totals||{};const v=Object.entries(d.views||{}).sort((a,b)=>b[1]-a[1]);const recent=Date.now()-new Date(d.last_seen)<2*864e5;
+  return `<tr class="dev" data-i="${i}"><td><b>${esc(d.label||'Sem nome')}</b><br><span class="muted" style="font-size:12px">${esc(String(d.device_id).slice(0,8))}</span></td><td>${esc(PLAT[d.platform]||d.platform||'—')}</td><td>${esc(d.app_version||'—')}</td><td class="num">${d.first_seen?fdt(d.first_seen).split(',')[0]:'—'}</td><td><span class="${recent?'pos':'neg'}">${ago(d.last_seen)}</span><br><span class="muted" style="font-size:12px">${fdt(d.last_seen)}</span></td><td class="num">${d.logins||0}</td><td class="num">${t.processos||0}</td><td class="num">${t.prazos||0}</td><td class="num">${t.duc||0}</td><td class="num">${t.gravacoes||0}</td><td>${v.length?esc(VIEWN[v[0][0]]||v[0][0])+' <span class="muted">('+v[0][1]+')</span>':'—'}</td></tr>
+  ${open===i?`<tr class="det"><td colspan="11"><div class="cols"><div><h4>Ecrãs mais usados</h4><ol>${v.slice(0,10).map(([k,n])=>`<li>${esc(VIEWN[k]||k)} — ${n}</li>`).join('')||'<li>—</li>'}</ol></div><div><h4>Ações mais usadas</h4><ol>${Object.entries(d.acts||{}).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([k,n])=>`<li>${esc(k)} — ${n}</li>`).join('')||'<li>—</li>'}</ol></div><div><h4>Totais no aparelho</h4><ol>${Object.entries(t).map(([k,n])=>`<li>${esc(k.replace(/_/g,' '))}: ${n}</li>`).join('')||'<li>—</li>'}</ol></div></div></td></tr>`:''}`}).join('')}
+ </tbody></table></div>`:'<div class="login"><b>Ainda sem dados.</b><p class="muted" style="margin-bottom:0">Os aparelhos aparecem aqui depois de o utilizador tocar em «Partilhar» na app (ecrã Hoje ou Perfil → Estatísticas de utilização) e de abrir a app com internet.</p></div>'}
+ <p class="note">Este painel mostra só contagens enviadas pelos aparelhos cujos utilizadores autorizaram a partilha. Não contém nomes de clientes, processos, textos nem gravações.</p>`;
+ document.querySelectorAll('tr.dev').forEach(tr=>tr.onclick=()=>{const i=+tr.dataset.i;open=open===i?null:i;draw()})}
+load();
+</script>
+</body>
+</html>
