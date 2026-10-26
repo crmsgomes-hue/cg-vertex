@@ -2,7 +2,7 @@
   "name": "lexvortex-android",
   "private": true,
   "version": "1.0.0",
-  "description": "LEXVORTEX — app Android (Capacitor) gerada a partir de index.html",
+  "description": "CG VERTEX — app Android (Capacitor) gerada a partir de index.html",
   "dependencies": {
     "@capacitor/android": "6.2.2",
     "@capacitor/cli": "6.2.2",
