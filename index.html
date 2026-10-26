@@ -8,9 +8,6 @@
 <meta name="theme-color" content="#14213D">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@500;600&display=swap" rel="stylesheet">
 <style>
 :root{
   --paper:#F1F3F7;--surface:#FFFFFF;--surface2:#F7F8FB;--text:#18203A;--muted:#5B6478;--line:#DCE1EA;
@@ -286,6 +283,12 @@ select.evst.ok{border-color:var(--ok);color:var(--ok);font-weight:600}
 .pin-input::placeholder{color:rgba(255,255,255,.28);letter-spacing:.55em}
 .pin-small{font-size:22px;letter-spacing:.35em}
 .lawres{display:block;width:100%;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;margin-bottom:8px;min-height:56px;color:var(--text)}
+.semgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.sem{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;border-radius:14px;padding:14px;min-height:104px;border:2px solid transparent;color:var(--text)}
+.sem b{font-size:32px;line-height:1.1}.sem span{font-weight:600;font-size:14px}.sem small{font-size:12px;color:var(--muted)}
+.sem-r{background:var(--crit-soft)}.sem-r b{color:var(--crit)}.sem-y{background:var(--att-soft)}.sem-y b{color:var(--att)}.sem-g{background:var(--ok-soft)}.sem-g b{color:var(--ok)}
+.sem.on{border-color:currentColor}.sem-r.on{border-color:var(--crit)}.sem-y.on{border-color:var(--att)}.sem-g.on{border-color:var(--ok)}
+@media (max-width:420px){.sem{padding:10px;min-height:96px}.sem b{font-size:26px}.sem span{font-size:13px}}
 </style>
 </head>
 <body>
@@ -381,7 +384,7 @@ const graceLeft=r=>r.cells.filter(c=>c.t==='gr'&&diff(TODAY,c.d)>=0).length;
 
 /* ---------- Armazenamento local ---------- */
 const DB_KEY='lexvortex-v2';
-const fresh=()=>({profile:null,clients:[],cases:[],deadlines:[],events:[],fees:[],recs:[],docs:[],time:[],templates:[],timer:null,expenses:[],feeSeq:{},contacts:[],tasks:[],team:[],inbox:[],ducs:[],limitations:[],evidence:[],obligations:[],mandates:[],jurosTab:null,closures:[],lastBackup:null,seq:1});
+const fresh=()=>({profile:null,clients:[],cases:[],deadlines:[],events:[],fees:[],recs:[],docs:[],time:[],templates:[],timer:null,expenses:[],feeSeq:{},contacts:[],tasks:[],team:[],inbox:[],ducs:[],limitations:[],evidence:[],obligations:[],mandates:[],jurosTab:null,closures:[],lastBackup:null,notes:[],audit:[],seq:1});
 let DB=fresh();
 function load(){try{const s=localStorage.getItem(DB_KEY);if(s)DB=Object.assign(fresh(),JSON.parse(s))}catch(_){}}
 function save(){try{localStorage.setItem(DB_KEY,JSON.stringify(DB))}catch(_){toast('Não foi possível guardar neste dispositivo.')}if(typeof scheduleAlerts==='function')scheduleAlerts()}
@@ -487,7 +490,8 @@ async function pinPress(v){if(S.pinBusy)return;const len=pinLen();
  if(v==='c')S.pin='';else if(v==='b')S.pin=S.pin.slice(0,-1);else if(/^\d$/.test(v)&&S.pin.length<len)S.pin+=v;
  pinShow();if(S.pin.length===len)await pinCheck()}
 async function pinCheck(){S.pinBusy=true;const h=await hashPin(S.pin);S.pinBusy=false;
- if(h===DB.profile.pin){S.pin='';S.logged=true;S.forgot=false;shell();return}
+ if(h===DB.profile.pin){S.pin='';S.logged=true;S.forgot=false;lastAct=Date.now();audit('login');shell();return}
+ audit('login_fail');
  S.pin='';pinShow();const pm=$('pm');if(pm){pm.textContent='PIN incorreto. Tente de novo.';pm.classList.add('err')}
  const lb=$('lb');if(lb){lb.classList.remove('shake');void lb.offsetWidth;lb.classList.add('shake')}if(navigator.vibrate)try{navigator.vibrate(120)}catch(_){}}
 function resetAll(){try{localStorage.removeItem(DB_KEY)}catch(_){}try{indexedDB.deleteDatabase('lexvortex-audio')}catch(_){}DB=fresh();S.forgot=false;S.logged=false;idbOpen();onboarding()}
@@ -500,7 +504,7 @@ function shell(){
   <div class="foot">${esc(LNAME())}${P().cedula?'<br>Cédula '+esc(P().cedula):''}</div></aside>
  <div class="main">
   <header class="top"><div class="brand">LEX<span style="color:var(--accent)">VORTEX</span></div>
-   <div class="top-right"><button class="iconbtn" data-go="conflitos" aria-label="Verificar conflito de interesses" title="Verificar conflito de interesses"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></button><button class="iconbtn" data-act="theme" aria-label="Mudar tema">${I.sun}</button><button class="avatar" data-go="perfil" aria-label="Perfil">${esc(initials())}</button></div></header>
+   <div class="top-right"><button class="iconbtn" data-go="conflitos" aria-label="Verificar conflito de interesses" title="Verificar conflito de interesses"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></button><button class="iconbtn" data-act="lock-now" aria-label="Bloquear a app" title="Bloquear a app"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></button><button class="iconbtn" data-act="theme" aria-label="Mudar tema">${I.sun}</button><button class="avatar" data-go="perfil" aria-label="Perfil">${esc(initials())}</button></div></header>
   <div class="view" id="view"></div>
  </div>
  <nav class="nav">${NAV_MOB.map(([k,l])=>`<button data-go="${k}" data-nav="${k}">${I[k]}<span>${l}</span></button>`).join('')}</nav>
@@ -547,7 +551,7 @@ VIEWS.hoje=()=>{
   banner=`<section class="alert" role="alert"><div><p class="k">${t<0?'Prazo ultrapassado — ainda dentro do período de multa':'Prazo fatal mais próximo'}</p><h2>${esc(crit.d.title)}</h2><p class="meta">${esc(c.num||c.title)} · ${esc((clientById(c.clientId)||{}).name||'')} · termo a ${fdl(crit.r.termo)}</p></div><div class="when">${when}</div>
   <div class="acts"><button class="btn sm" data-act="done" data-id="${crit.d.id}">Marcar como entregue</button><button class="btn sm o" data-case="${c.id}">Abrir processo</button></div></section>`}
  const soon=DB.events.filter(e=>{const x=diff(TODAY,parse(e.date));return x>=0&&x<=1}).sort((a,b)=>a.date.localeCompare(b.date)||String(a.time).localeCompare(String(b.time)));
- return head+backupAlert()+feriasInfo()+banner+taxAlerts()+limAlerts()+evidAlerts()+inboxAlert()+oblAlerts()+`<div class="kpis">
+ return head+backupAlert()+feriasInfo()+banner+semaforo()+taxAlerts()+ducAlerts()+limAlerts()+evidAlerts()+inboxAlert()+oblAlerts()+`<div class="kpis">
   <button class="kpi ${in48+multa?'hot':''}" data-go="agenda"><b>${in48}${multa?` <small style="font-size:14px">+${multa} em multa</small>`:''}</b><span>Prazos fatais nas próximas 48 horas</span></button>
   <button class="kpi" data-go="agenda"><b>${hear}</b><span>Audiências nos próximos 7 dias</span></button>
   <button class="kpi" data-go="honorarios"><b style="font-size:24px">${eur(pend)}</b><span>Honorários por receber</span></button>
@@ -620,7 +624,7 @@ VIEWS.caso=()=>{
   <div><span>Cliente</span><b>${esc(cl.name||'—')}</b></div><div><span>Parte adversa</span><b>${esc(c.adv||'—')}</b></div>
   <div><span>Fase processual</span><b>${esc(c.phase)}</b></div><div><span>Área</span><b>${esc(c.area)}</b></div>
   <div><span>Valor da causa</span><b>${c.value!=null?eur(c.value):'—'}</b></div><div><span>NIF do cliente</span><b>${esc(cl.nif||'—')}</b></div></div></section>
- ${commSection(c)}${recSection(c)}${docSection(c)}${caseTasks(c)}${timeSection(c)}${expSection(c)}${ducSection(c)}${evSection(c)}${limSection(l=>l.caseId===c.id,{caseId:c.id,clientId:c.clientId})}${judgSection(c)}${mandSection(c)}${reportSection(c)}${portalSection(c)}${archSection(c)}
+ ${histSection(c)}${commSection(c)}${recSection(c)}${docSection(c)}${caseTasks(c)}${timeSection(c)}${expSection(c)}${ducSection(c)}${evSection(c)}${limSection(l=>l.caseId===c.id,{caseId:c.id,clientId:c.clientId})}${judgSection(c)}${mandSection(c)}${reportSection(c)}${portalSection(c)}${archSection(c)}
  <section style="margin-bottom:18px"><h2 class="sec-t">Prazos</h2>${dls.length?`<div class="tscroll"><table class="tbl"><thead><tr><th>Ato</th><th>Evento</th><th>Termo</th><th>Fim da multa</th><th>Base legal</th><th>Estado</th><th></th></tr></thead><tbody>
  ${dls.map(x=>`<tr><td><b>${esc(x.d.title)}</b></td><td class="mono">${TRIG[x.d.triggerType]}<br><span class="muted">${fd(parse(x.d.trigger))}</span></td><td class="mono"><b>${fd(x.r.termo)}</b></td><td class="mono">${x.r.grace?fd(x.r.grace):'—'}</td><td>${esc(x.d.basis)}</td><td>${chip(x.l)}${taxChip(x.d)}${(x.d.incidents||[]).length?' <span class="chip l-att">'+x.d.incidents.length+' incidente(s)</span>':''}</td><td><div class="row-acts">${x.d.done?'':`<button class="btn sm" data-act="done" data-id="${x.d.id}">Entregue</button><button class="btn sm" data-act="inc-open" data-id="${x.d.id}">Incidente</button><button class="btn sm" data-act="dl-task" data-id="${x.d.id}">Tarefa</button>`}${confirmBtn('del-dl',x.d.id,'Apagar','Confirmar')}</div></td></tr>`).join('')}
  </tbody></table></div>`:'<div class="card empty">Sem prazos neste processo. Use «Novo prazo» para calcular o primeiro.</div>'}${incPanel(c)}</section>
@@ -637,8 +641,8 @@ const TX_URL='https://mnbtfatkdllhsekmnpzk.supabase.co/functions/v1/lexvortex-tr
 const TX_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1uYnRmYXRrZGxsaHNla21ucHprIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcwODMyNjYsImV4cCI6MjEwMjY1OTI2Nn0.pPHvX8HStZ7vqK_LqlTUG33YPITGzbwkjEfHovTxbSA';
 const DEF_SPK=()=>[LNAME(),'Juiz','Testemunha','Cliente','Parte contrária','Orador'];
 let TX_STATE=null;
-async function txCheck(){try{const r=await fetch(TX_URL,{headers:{Authorization:'Bearer '+TX_KEY,apikey:TX_KEY}});const j=await r.json();TX_STATE=j.configured?true:false}catch(_){TX_STATE='offline'}renderTxNote()}
-function txNoteHtml(){if(TX_STATE===false)return '<div class="note">O servidor de transcrição ainda não está ativo. Pode gravar na mesma: o áudio fica guardado e o texto é gerado depois, com «Transcrever o que falta».</div>';if(TX_STATE==='offline')return '<div class="note">Sem ligação ao servidor de transcrição. Pode gravar na mesma: o texto é gerado quando a ligação voltar.</div>';return ''}
+async function txCheck(){if(SIGILO()){TX_STATE='sigilo';renderTxNote();return}try{const r=await fetch(TX_URL,{headers:{Authorization:'Bearer '+TX_KEY,apikey:TX_KEY}});const j=await r.json();TX_STATE=j.configured?true:false}catch(_){TX_STATE='offline'}renderTxNote()}
+function txNoteHtml(){if(SIGILO())return '<div class="note">Modo sigilo total: o áudio é gravado e guardado só neste aparelho, sem transcrição. Pode transcrevê-lo depois, se desligar o modo sigilo.</div>';if(TX_STATE===false)return '<div class="note">O servidor de transcrição ainda não está ativo. Pode gravar na mesma: o áudio fica guardado e o texto é gerado depois, com «Transcrever o que falta».</div>';if(TX_STATE==='offline')return '<div class="note">Sem ligação ao servidor de transcrição. Pode gravar na mesma: o texto é gerado quando a ligação voltar.</div>';return ''}
 function renderTxNote(){document.querySelectorAll('.tx-note').forEach(el=>el.innerHTML=txNoteHtml())}
 const txErrMsg=e=>e&&e.code==='not_configured'?'O servidor de transcrição ainda não está ativo.':e&&e.code==='rate_limited'?'Limite de transcrição atingido por agora. Tente daqui a alguns minutos.':e&&e.code==='too_large'?'Ficheiro demasiado grande.':'Sem ligação ao servidor de transcrição. Tente de novo.';
 async function sendChunk(file,prompt){const fd=new FormData();fd.append('file',file,file.name||'excerto.wav');fd.append('prompt',prompt||'');
@@ -674,12 +678,12 @@ function cutChunk(L){if(!L.bufLen)return;const all=new Int16Array(L.bufLen);let 
  const start=L.chunkStart;L.chunkStart+=L.bufLen/16000;L.buf=[];L.bufLen=0;L.silent=0;
  if(peak(all)<500)return;
  L.queue.push({idx:L.idx++,start,blob:encodeWav(all,16000)});pump(L)}
-function pump(L){if(L.busy||!L.queue.length||L.final)return;L.busy=true;const it=L.queue[0];
+function pump(L){if(L.busy||!L.queue.length||L.final)return;if(SIGILO()){L.failed.push(...L.queue);L.queue=[];return}L.busy=true;const it=L.queue[0];
  sendChunk(it.blob,promptFrom(L.segs)).then(j=>{L.queue.shift();L.netErr=0;addSegs(L.segs,L.speakers,L.spkLog,it.start,j.segments);L.busy=false;renderLive();pump(L)})
  .catch(e=>{L.busy=false;if(e.code==='not_configured'){TX_STATE=false;L.failed.push(...L.queue);L.queue=[];renderLive();return}
   if(e.code==='too_large'||e.code==='bad_request'||e.code==='no_file'){L.failed.push(L.queue.shift());pump(L);return}
   L.netErr++;renderLive();setTimeout(()=>pump(L),e.retry?e.retry*1000:Math.min(30000,2000*L.netErr))})}
-function txStatus(L){if(L.stopping)return L.queue.length||L.busy?'A concluir a transcrição…':'A guardar…';if(TX_STATE===false)return 'Servidor de transcrição inativo · o áudio está a ser gravado';if(L.netErr)return 'Sem ligação · '+L.queue.length+' excerto(s) à espera, o áudio continua a ser gravado';if(L.busy||L.queue.length)return 'A transcrever o último excerto…';return 'A gravar · o texto aparece a cada pausa de quem fala'}
+function txStatus(L){if(SIGILO()&&!L.stopping)return 'Modo sigilo · a gravar só neste aparelho, sem transcrição';if(L.stopping)return L.queue.length||L.busy?'A concluir a transcrição…':'A guardar…';if(TX_STATE===false)return 'Servidor de transcrição inativo · o áudio está a ser gravado';if(L.netErr)return 'Sem ligação · '+L.queue.length+' excerto(s) à espera, o áudio continua a ser gravado';if(L.busy||L.queue.length)return 'A transcrever o último excerto…';return 'A gravar · o texto aparece a cada pausa de quem fala'}
 function tickLive(L){const t=$('rec-timer');if(t)t.textContent=ts(L.samples/16000);const lv=$('lvl');if(lv)lv.style.width=Math.min(100,L.level*600)+'%';const st=$('tx-status');if(st)st.textContent=txStatus(L)}
 function renderLive(){const L=S.live,el=$('live');if(!L||!el)return;
  el.innerHTML=L.segs.map(s=>`<div class="trow" style="cursor:default"><span class="ts">${s[0]}</span><span><span class="spk">${esc(s[1])}:</span> ${esc(s[2])}</span></div>`).join('')+(!L.segs.length?'<div class="muted" style="padding:10px 0">O texto aparece aqui pouco depois de cada pausa de quem fala.</div>':'');
@@ -700,12 +704,12 @@ function finalize(L){if(L.final)return;L.final=true;clearInterval(S.recInt);
  DB.recs.push(r);save();try{L.wake&&L.wake.release()}catch(_){}
  S.live=null;S.caseId=L.id;S.view='caso';render();window.scrollTo(0,0);
  toast(pend.length?'Gravação guardada. Falta transcrever '+pend.length+' excerto(s): use «Transcrever o que falta».':r.segs.length?'Gravação e transcrição guardadas no processo.':'Gravação guardada. Não foi detetada fala.')}
-async function retryPending(r){if(S.txBusy)return;S.txBusy=r.id;render();let ok=0;
+async function retryPending(r){if(sigiloBlock())return;if(S.txBusy)return;S.txBusy=r.id;render();let ok=0;
  for(const p of [...r.pending]){const b=await audioGet(r.id+':p'+p.idx);if(!b){r.pending=r.pending.filter(x=>x!==p);continue}
   try{const j=await sendChunk(new File([b],'excerto.wav',{type:'audio/wav'}),promptFrom(r.segs));addSegs(r.segs,r.speakers||DEF_SPK(),r.spkLog,p.start,j.segments);r.pending=r.pending.filter(x=>x!==p);audioDel(r.id+':p'+p.idx);ok++;save()}
   catch(e){toast(txErrMsg(e));break}}
  S.txBusy=null;save();render();if(ok&&!r.pending.length)toast('Transcrição concluída.')}
-async function txFile(r){if(S.txBusy)return;S.txBusy=r.id;S.txProg='';render();
+async function txFile(r){if(sigiloBlock())return;if(S.txBusy)return;S.txBusy=r.id;S.txProg='';render();
  try{let b=await audioGet(r.id);if(!b&&AURL[r.id])b=await fetch(AURL[r.id]).then(x=>x.blob());if(!b)throw Object.assign(new Error('x'),{code:'nofile'});
   r.speakers=r.speakers||DEF_SPK();r.segs=[];
   if(b.size<=24*1024*1024){S.txProg='A transcrever o ficheiro…';updProg();const j=await sendChunk(new File([b],r.fname||'gravacao.mp3',{type:b.type||'audio/mpeg'}),'');addSegs(r.segs,r.speakers,null,0,j.segments,'Orador')}
@@ -742,7 +746,7 @@ function recSection(c){const list=DB.recs.filter(r=>r.caseId===c.id).sort((a,b)=
  <div class="tx-note">${txNoteHtml()}</div>
  ${idx}${list.map(recBox).join('')||'<div class="empty">Sem gravações neste processo. Use a transcrição em direto numa reunião ou diligência, dite uma nota, ou anexe um ficheiro de áudio.</div>'}</section>`}
 /* ---------- Exportar transcrição: PDF e Word ---------- */
-const LIB_DOCX='https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js',LIB_PDF='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+let LIB_DOCX='https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js',LIB_PDF='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
 function loadScript(src){return new Promise((res,rej)=>{if(document.querySelector('script[src="'+src+'"]')&&(src===LIB_PDF?window.jspdf:window.docx))return res();const s=document.createElement('script');s.src=src;s.onload=()=>res();s.onerror=()=>rej(new Error('load'));document.head.appendChild(s)})}
 function recMeta(r){const c=caseById(r.caseId)||{},cl=clientById(c.clientId)||{};return [['Processo',c.num||'—'],['Assunto',c.title||'—'],['Tribunal',c.courtName||'—'],['Cliente',cl.name||'—'],['Parte adversa',c.adv||'—'],['Registo',(RK[r.kind]||RK.live)[1]],['Data',fd(parse(r.date))],['Duração',r.dur],['Elaborada por',LNAME()+(P().cedula?', cédula profissional n.º '+P().cedula:'')]]}
 const EXP_NOTE='Transcrição gerada automaticamente a partir da gravação áudio. As marcas de tempo indicam a posição de cada fala na gravação.';
@@ -782,7 +786,7 @@ async function exportRec(r,kind){if(!r.segs.length)return toast('Esta gravação
  S.expBusy=null;render()}
 
 /* ---------- Bibliotecas externas (carregadas só quando precisas) ---------- */
-const LIB_PDFJS='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',LIB_PDFJS_W='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+let LIB_PDFJS='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',LIB_PDFJS_W='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 function loadLib(src,glob){return new Promise((res,rej)=>{if(window[glob])return res(window[glob]);const s=document.createElement('script');s.src=src;s.onload=()=>window[glob]?res(window[glob]):rej(new Error('load'));s.onerror=()=>rej(new Error('load'));document.head.appendChild(s)})}
 const fmtSize=b=>b<1024*1024?Math.max(1,Math.round(b/1024))+' KB':(b/1048576).toFixed(1).replace('.',',')+' MB';
 const fmtMin=m=>{m=Math.round(m);const h=Math.floor(m/60),r=m%60;return h?h+' h'+(r?' '+r+' min':''):r+' min'};
@@ -1017,7 +1021,7 @@ function commSection(c){const cl=clientById(c.clientId)||{};const m=S.mail&&S.ma
  <div class="row-acts"><button class="btn pri" data-act="mail-open" data-id="${c.id}">Abrir no e-mail${cl.email?'':' (sem email do cliente)'}</button><button class="btn" data-act="mail-copy">Copiar</button><button class="btn" data-act="mail-redo" data-id="${c.id}">Fazer outro</button></div></div>`:'';
  const wa=S.wa&&S.wa.caseId===c.id&&S.wa.text?`<div class="recbox" style="border-color:#25D366;margin-bottom:12px"><b>Mensagem de WhatsApp</b><div class="f" style="margin-top:8px"><label for="wa-text" class="sr">Mensagem</label><textarea id="wa-text" style="min-height:150px;line-height:1.55">${esc(S.wa.text)}</textarea></div><div class="row-acts"><button class="btn pri" data-act="wa-open" data-id="${c.id}">Abrir no WhatsApp${cl.phone?'':' (escolher contacto)'}</button><button class="btn" data-act="wa-copy">Copiar</button><button class="btn" data-act="wa-close">Fechar</button></div><p class="muted" style="font-size:12.5px;margin:6px 0 0">Reveja antes de enviar.${cl.phone?'':' A ficha do cliente não tem telefone: o WhatsApp abre para escolher o contacto.'}</p></div>`:'';
  return `<section class="card pad-card" style="margin-bottom:18px"><h2 class="sec-t">Comunicar com o cliente</h2>${wa}${ed||form}</section>`}
-async function genMail(c){const cl=clientById(c.clientId)||{};const m=S.mail={caseId:c.id,notes:val('m-notes'),dl:chk('m-dl'),tx:chk('m-tx'),tone:val('m-tone')||'formal',busy:true};render();
+async function genMail(c){if(sigiloBlock())return;const cl=clientById(c.clientId)||{};const m=S.mail={caseId:c.id,notes:val('m-notes'),dl:chk('m-dl'),tx:chk('m-tx'),tone:val('m-tone')||'formal',busy:true};render();
  const od=openDl().filter(x=>x.d.caseId===c.id).slice(0,5).map(x=>({ato:x.d.title,termo:fd(x.r.termo)}));
  const done=DB.deadlines.filter(d=>d.caseId===c.id&&d.done).slice(-3).map(d=>({ato:d.title,entregue:d.doneAt?fd(parse(d.doneAt)):''}));
  const evs=DB.events.filter(e=>e.caseId===c.id&&diff(TODAY,parse(e.date))>=0).slice(0,5).map(e=>({tipo:(EVK[e.kind]||EVK.other)[0],descricao:e.title,data:fd(parse(e.date)),hora:e.time||'',local:e.place||''}));
@@ -1105,7 +1109,7 @@ function taxChip(d){if(d.done||!requiresTax(d))return '';if(taxOk(d))return ' <s
 const RCP_I=[[2000,1],[8000,2],[16000,3],[24000,4],[30000,5],[40000,6],[60000,7],[80000,8],[100000,9],[150000,10],[200000,12],[250000,14],[275000,16]];
 function rcpEstimate(v,col){if(!(v>0))return null;const f=col==='B'?.5:col==='C'?1.5:1;let uc=null;for(const [lim,u] of RCP_I){if(v<=lim){uc=u;break}}let extra=0;if(uc===null){uc=16;extra=Math.ceil((v-275000)/25000)*3}const ucv=+P().uc||102;return {uc:uc*f,eur:uc*f*ucv,extraUc:extra*f,extraEur:extra*f*ucv,ucv}}
 const RCP_COL=[['A','Tabela I-A (regra geral)'],['B','Tabela I-B (ex.: recursos)'],['C','Tabela I-C (especial complexidade)']];
-function ducStatus(u){if(u.aj)return ['l-ok','Apoio judiciário'];if(u.paid&&u.proof)return ['l-ok','Pago e comprovativo junto'];if(u.paid)return ['l-urg','Pago · falta juntar comprovativo'];return ['l-crit','Por pagar']}
+function ducStatus(u){if(u.aj)return ['l-ok','Apoio judiciário'];if(u.paid&&u.proof)return ['l-ok','Pago e comprovativo junto'];if(u.paid)return ['l-urg','Pago · falta juntar comprovativo'];if(u.due&&u.due<key(TODAY))return ['l-crit','Em atraso desde '+fds(parse(u.due))];return [u.due&&diff(TODAY,parse(u.due))<=3?'l-crit':'l-urg','Por pagar'+(u.due?' até '+fds(parse(u.due)):'')]}
 function ducSection(c){const list=DB.ducs.filter(u=>u.caseId===c.id).sort((a,b)=>(b.created||0)-(a.created||0));const col=S.rcpCol||'A';const est=rcpEstimate(+c.value,col);
  const acts=DB.deadlines.filter(d=>d.caseId===c.id&&!d.done&&requiresTax(d));
  return `<section class="card pad-card" style="margin-bottom:18px"><div class="h-row" style="margin-bottom:10px;align-items:center"><h2 class="sec-t" style="margin:0">Taxas de justiça (DUC)</h2><button class="btn sm" data-act="duc-new" data-id="${c.id}">Registar DUC</button></div>
@@ -1113,13 +1117,13 @@ function ducSection(c){const list=DB.ducs.filter(u=>u.caseId===c.id).sort((a,b)=
  ${S.ducNew===c.id?`<div class="form subform" style="margin:12px 0">
   <div class="f"><label for="u-act">Peça ou ato</label><select id="u-act">${acts.map(d=>`<option value="dl:${d.id}">${esc(d.title)} · termo ${fds(res(d).termo)}</option>`).join('')}<option value="t:Petição inicial">Petição inicial</option><option value="t:Requerimento">Requerimento</option><option value="t:Outro ato">Outro ato</option></select></div>
   <div class="f2"><div class="f"><label for="u-ref">Referência do DUC</label><input id="u-ref" inputmode="numeric" placeholder="N.º do documento"></div><div class="f"><label for="u-amount">Valor (€)</label><input id="u-amount" type="number" inputmode="decimal" min="0" step="0.01" value="${est?est.eur.toFixed(2):''}"></div></div>
-  <div class="f2"><div class="f"><label for="u-issued">Data de emissão</label><input id="u-issued" type="date" value="${key(TODAY)}"></div><div class="f"><label for="u-paid">Data de pagamento (vazio se por pagar)</label><input id="u-paid" type="date"></div></div>
+  <div class="f3"><div class="f"><label for="u-issued">Emitido a</label><input id="u-issued" type="date" value="${key(TODAY)}"></div><div class="f"><label for="u-due">Pagar até</label><input id="u-due" type="date"></div><div class="f"><label for="u-paid">Pago a (vazio se por pagar)</label><input id="u-paid" type="date"></div></div>
   <label class="check"><input type="checkbox" id="u-aj">Dispensado por apoio judiciário</label>
   <div class="row-acts"><button class="btn pri" data-act="duc-save" data-id="${c.id}">Guardar</button><button class="btn" data-act="duc-cancel">Cancelar</button></div></div>`:''}
- ${list.length?`<div class="tscroll" style="margin-top:12px"><table class="tbl"><thead><tr><th>Peça ou ato</th><th>Referência</th><th class="num">Valor</th><th>Emitido</th><th>Pago</th><th>Estado</th><th></th></tr></thead><tbody>${list.map(u=>{const st=ducStatus(u);return `<tr><td><b>${esc(u.act)}</b></td><td class="mono">${esc(u.ref||'—')}</td><td class="num">${u.aj?'—':eur(u.amount)}</td><td class="mono">${u.issued?fds(parse(u.issued)):'—'}</td><td class="mono">${u.paid?fds(parse(u.paid)):'—'}</td><td><span class="chip ${st[0]}">${st[1]}</span></td><td><div class="row-acts">${!u.paid&&!u.aj?`<button class="btn sm pri" data-act="duc-paid" data-id="${u.id}">Marcar pago</button>`:''}${u.paid&&!u.aj?`<button class="btn sm" data-act="duc-proof" data-id="${u.id}">${u.proof?'Desmarcar comprovativo':'Comprovativo junto'}</button>`:''}${confirmBtn('duc-del',u.id,'Apagar','Confirmar')}</div></td></tr>`}).join('')}</tbody></table></div>`:''}
+ ${list.length?`<div class="tscroll" style="margin-top:12px"><table class="tbl"><thead><tr><th>Peça ou ato</th><th>Referência</th><th class="num">Valor</th><th>Emitido</th><th>Pagar até</th><th>Pago</th><th>Estado</th><th></th></tr></thead><tbody>${list.map(u=>{const st=ducStatus(u);return `<tr><td><b>${esc(u.act)}</b></td><td class="mono">${esc(u.ref||'—')}</td><td class="num">${u.aj?'—':eur(u.amount)}</td><td class="mono">${u.issued?fds(parse(u.issued)):'—'}</td><td class="mono">${u.due?fds(parse(u.due)):'—'}</td><td class="mono">${u.paid?fds(parse(u.paid)):'—'}</td><td><span class="chip ${st[0]}">${st[1]}</span></td><td><div class="row-acts">${!u.paid&&!u.aj?`<button class="btn sm pri" data-act="duc-paid" data-id="${u.id}">Marcar pago</button>`:''}${u.paid&&!u.aj?`<button class="btn sm" data-act="duc-proof" data-id="${u.id}">${u.proof?'Desmarcar comprovativo':'Comprovativo junto'}</button>`:''}${confirmBtn('duc-del',u.id,'Apagar','Confirmar')}</div></td></tr>`}).join('')}</tbody></table></div>`:''}
  ${acts.filter(d=>!taxOk(d)).length?`<p class="neg" style="font-size:14px;margin:10px 0 0">Atenção: ${acts.filter(d=>!taxOk(d)).map(d=>esc(d.title)).join(', ')} sem taxa de justiça paga. A peça deve ser acompanhada do comprovativo do pagamento ou da concessão do apoio judiciário (art. 145.º CPC).</p>`:''}</section>`}
 function saveDuc(caseId){const a=val('u-act');const dl=a.startsWith('dl:')?DB.deadlines.find(d=>d.id===a.slice(3)):null;const aj=chk('u-aj');const amount=+val('u-amount')||0;if(!aj&&!(amount>0))return toast('Indique o valor do DUC.');
- const u={id:nid('u'),caseId,deadlineId:dl?dl.id:null,act:dl?dl.title:a.slice(2),ref:val('u-ref'),amount:Math.round(amount*100)/100,issued:val('u-issued')||key(TODAY),paid:aj?null:(val('u-paid')||null),proof:false,aj,created:Date.now()};
+ const u={id:nid('u'),caseId,deadlineId:dl?dl.id:null,act:dl?dl.title:a.slice(2),ref:val('u-ref'),amount:Math.round(amount*100)/100,issued:val('u-issued')||key(TODAY),due:val('u-due')||null,paid:aj?null:(val('u-paid')||null),proof:false,aj,created:Date.now()};
  DB.ducs.push(u);if(u.paid)ducExpense(u);S.ducNew=null;save();toast(u.paid?'DUC registado como pago e lançado nas despesas do processo.':'DUC registado.');render()}
 function ducExpense(u){if(u.aj||!(u.amount>0)||DB.expenses.some(x=>x.ducId===u.id))return;DB.expenses.push({id:nid('x'),caseId:u.caseId,date:u.paid||key(TODAY),cat:'taxa',desc:'Taxa de justiça — '+u.act+(u.ref?' (DUC '+u.ref+')':''),amount:u.amount,reemb:true,paidBy:'office',billed:false,created:Date.now(),ducId:u.id})}
 function taxAlerts(){const list=openDl().filter(x=>requiresTax(x.d)&&!taxOk(x.d)&&!x.r.pending&&diff(TODAY,x.r.termo)<=10);if(!list.length)return '';
@@ -1243,7 +1247,7 @@ function parseNoticeText(text,cs0){const T=String(text||'');const flat=T.replace
  return {num,caseId:cs?cs.id:'',court:juizo||trib,ref,act,triggerType,days:dm?+dm[1]:TPL[tpl].days,daysFound:!!dm,date:date||key(TODAY),dateFound:!!date,tpl,sample:flat.trim().slice(0,280)}}
 function importNoticeText(text){if(!text.trim())return toast('Cole o texto da notificação.');const it={id:nid('in'),name:'Texto colado · '+fds(TODAY),size:text.length,type:'text/plain',receivedAt:key(TODAY),created:Date.now(),status:'pending',text:text.slice(0,20000)};
  it.parsed=parseNoticeText(text);DB.inbox.push(it);S.inbPaste=false;save();toast(it.parsed.num?'Notificação lida: processo '+it.parsed.num+'. Confirme os dados.':'Notificação lida. Não encontrei o número do processo: escolha-o à mão.');render()}
-async function aiNotice(id){const it=DB.inbox.find(x=>x.id===id);if(!it)return;let text=it.text||'';if(!text){toast('A IA só lê notificações coladas em texto ou com texto reconhecido.');return}
+async function aiNotice(id){if(sigiloBlock())return;const it=DB.inbox.find(x=>x.id===id);if(!it)return;let text=it.text||'';if(!text){toast('A IA só lê notificações coladas em texto ou com texto reconhecido.');return}
  S.inbAi=id;render();
  try{const r=await fetch(AS_URL,{method:'POST',headers:{Authorization:'Bearer '+TX_KEY,apikey:TX_KEY,'Content-Type':'application/json'},body:JSON.stringify({task:'parse_notice',text:scrub(text).slice(0,8000)})});const j=await r.json().catch(()=>({}));if(!r.ok)throw Object.assign(new Error('x'),{code:j.error});
   const p=it.parsed||{};const num=String(j.numero_processo||'').trim();if(num&&CITIUS_RE.test(num)){const m=num.match(CITIUS_RE);p.num=m[1]+'/'+m[2]+'.'+m[3];const cs=DB.cases.find(c=>normNum(c.num)===normNum(p.num));if(cs)p.caseId=cs.id}
@@ -1429,6 +1433,7 @@ function scheduleAlerts(){if(!NATIVE||!DB.profile||!DB.profile.notify)return;cle
   if(x.r.grace){const w=at(add(x.r.termo,1),9);if(w.getTime()>now)list.push({w,title:'Prazo terminado: '+x.d.title,body:(c.num||c.title||'')+' · ainda com multa até '+fds(x.r.grace)+' (art. 139.º CPC)'})}});
  DB.events.filter(e=>e.kind==='hearing'&&e.date>=key(TODAY)).forEach(e=>{const w=at(add(parse(e.date),-1),18);if(w.getTime()>now)list.push({w,title:'Amanhã: '+e.title,body:[e.time,e.place].filter(Boolean).join(' · ')})});
  DB.limitations.filter(l=>l.status!=='exercised').forEach(l=>{const r=limCalc(l);[30,7,1].forEach(of=>{const w=at(add(r.fileBy,-of),9);if(w.getTime()>now)list.push({w,title:'Prescrição ou caducidade: '+(l.title||''),body:'Instaurar ou praticar o ato até '+fds(r.fileBy)})})});
+ DB.ducs.filter(u=>!u.paid&&!u.aj&&u.due).forEach(u=>{[1,0].forEach(of=>{const w=at(add(parse(u.due),-of),9);if(w.getTime()>now)list.push({w,title:'DUC por pagar: '+u.act,body:(of?'Vence amanhã':'Vence hoje')+' · '+eur(u.amount)})})});
  (DB.obligations||[]).forEach(o=>{[7,1].forEach(of=>{const w=at(add(parse(o.due),-of),9);if(w.getTime()>now)list.push({w,title:'Obrigação: '+(o.label||'pagamento'),body:'Vence a '+fds(parse(o.due))})})});
  list.sort((a,b)=>a.w-b.w);const sel=list.slice(0,60);
  if(sel.length)await LN.schedule({notifications:sel.map((n,i)=>({id:1000+i,title:n.title,body:n.body,schedule:{at:n.w,allowWhileIdle:true}}))});
@@ -1444,7 +1449,7 @@ function caseCtx(c,o){const cl=clientById(c.clientId)||{};
   mensagem_do_advogado:scrub(o.notes||''),prazos_em_curso:od,atos_ja_entregues:done,diligencias_marcadas:evs,
   excerto_da_ultima_transcricao:o.tx&&lastRec?scrub(lastRec.segs.map(s=>s[1]+': '+s[2]).join('\n')).slice(0,2000):''}}
 const waPhone=p=>{let d=String(p||'').replace(/\D/g,'');if(d.startsWith('00'))d=d.slice(2);if(d.length===9&&/^[29]/.test(d))d='351'+d;return d};
-async function genWa(c){S.wa={caseId:c.id,busy:true};render();
+async function genWa(c){if(sigiloBlock())return;S.wa={caseId:c.id,busy:true};render();
  try{const r=await fetch(AS_URL,{method:'POST',headers:{Authorization:'Bearer '+TX_KEY,apikey:TX_KEY,'Content-Type':'application/json'},body:JSON.stringify({task:'client_whatsapp',context:caseCtx(c,{notes:val('m-notes')||(S.mail&&S.mail.notes)||'',tx:chk('m-tx')})})});
   const j=await r.json().catch(()=>({}));if(!r.ok||!j.mensagem)throw Object.assign(new Error('x'),{code:j.error||'http'});S.wa.text=j.mensagem}
  catch(e){toast(e.code==='rate_limited'?'Limite de pedidos atingido. Tente daqui a um minuto.':'Não foi possível gerar a mensagem. Verifique a ligação e tente de novo.')}
@@ -1472,7 +1477,72 @@ VIEWS.conflitos=()=>`<div class="h-row"><div><h1>Verificar conflito de interesse
  <div id="cc-res" style="margin-top:14px">${ccResults(S.ccQ||'')}</div>
  <p class="muted" style="font-size:12.5px">Compara nomes sem acentos e sem «Lda», «S.A.» e semelhantes. Uma ausência de resultados não dispensa a verificação pelo advogado.</p>`;
 
-async function summarize(id){const r=DB.recs.find(x=>x.id===id),el=$('sum-'+id);if(!el||!r)return;el.style.display='';el.textContent='A preparar o resumo…';
+/* ====================== Segurança: administrador, auditoria e bloqueio ====================== */
+const AUDIT_L={login:'Entrada com PIN',login_fail:'PIN errado',lock:'Sessão bloqueada',admin_ok:'Acesso de administrador',admin_fail:'PIN de administrador errado',admin_set:'PIN de administrador definido ou alterado',backup_export:'Cópia de segurança exportada',backup_import:'Cópia de segurança importada',reset:'Todos os dados apagados',sigilo_on:'Modo sigilo ligado',sigilo_off:'Modo sigilo desligado'};
+function audit(e,d){try{(DB.audit=DB.audit||[]).push({t:Date.now(),e,d:d||''});if(DB.audit.length>500)DB.audit=DB.audit.slice(-500);localStorage.setItem(DB_KEY,JSON.stringify(DB))}catch(_){}}
+const adminValid=()=>!!S.adminOk&&Date.now()-S.adminOk<10*60e3;
+function needAdmin(act){if(!DB.profile.adminPin){S.view='perfil';S.adminSetup=true;render();toast('Defina primeiro o PIN de administrador.');return true}
+ if(adminValid())return false;S.adminAsk=act;if(S.view!=='perfil')S.view='perfil';render();setTimeout(()=>{const i=$('adm-pin');try{i&&i.focus&&i.focus();i&&i.scrollIntoView&&i.scrollIntoView({block:'center'})}catch(_){}},60);return true}
+const ADM_ACT={'bk-export':'exportar a cópia de segurança','bk-import':'importar uma cópia de segurança',reset:'apagar todos os dados',audit:'ver o registo de auditoria','adm-change':'alterar o PIN de administrador'};
+function adminAskBox(){return S.adminAsk?`<div class="form subform" style="margin:10px 0"><div class="f"><label for="adm-pin">PIN de administrador, para ${esc(ADM_ACT[S.adminAsk]||'continuar')}</label><input id="adm-pin" class="pin-small" data-pinin type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off"></div><div class="row-acts"><button class="btn pri" data-act="adm-ok">Confirmar</button><button class="btn" data-act="adm-cancel">Cancelar</button></div></div>`:''}
+async function adminCheck(){const act=S.adminAsk;const p=val('adm-pin');const h=await hashPin('adm:'+p);
+ if(h===DB.profile.adminPin){S.adminOk=Date.now();S.adminAsk=null;audit('admin_ok',ADM_ACT[act]||'');runAdmin(act)}else{audit('admin_fail');toast('PIN de administrador incorreto.');const i=$('adm-pin');if(i)i.value=''}}
+function runAdmin(act){if(act==='bk-export')doExport();else if(act==='bk-import'){render();setTimeout(()=>{const f=$('bk-file');if(f)f.click()},50)}else if(act==='reset'){S.resetReady=true;render()}else if(act==='audit'){S.showAudit=true;render()}else if(act==='adm-change'){S.adminSetup=true;render()}else render()}
+function doExport(){saveBlob(backupBlob(),'lexvortex-copia-'+key(TODAY)+'.json').then(ok=>{if(ok){DB.lastBackup=Date.now();audit('backup_export');save();toast('Cópia de segurança guardada. Guarde-a fora do aparelho (disco externo, pen ou Drive).');render()}})}
+async function adminSave(){const a=val('adm-new'),b=val('adm-new2');if(!/^\d{4,8}$/.test(a))return toast('O PIN de administrador tem de ter 4 a 8 algarismos.');if(a!==b)return toast('Os dois PIN não são iguais.');
+ if(await hashPin(a)===DB.profile.pin)return toast('O PIN de administrador tem de ser diferente do PIN de entrada.');
+ DB.profile.adminPin=await hashPin('adm:'+a);S.adminSetup=false;S.adminOk=Date.now();audit('admin_set');save();toast('PIN de administrador guardado.');render()}
+function securitySection(){const p=P();const lk=p.lockMin===undefined?5:+p.lockMin;
+ return `<section class="card pad-card" style="max-width:640px;margin-bottom:18px"><h2 class="sec-t">Segurança e privacidade</h2>
+ <div class="f"><label for="lk-min">Bloquear a app ao fim de</label><select id="lk-min" data-lockmin>${opts([['1','1 minuto sem atividade'],['2','2 minutos sem atividade'],['5','5 minutos sem atividade'],['10','10 minutos sem atividade'],['15','15 minutos sem atividade'],['0','Nunca bloquear sozinha']],String(lk))}</select></div>
+ <p class="muted" style="font-size:13px;margin:6px 0 14px">Também pode bloquear de imediato com o cadeado no topo do ecrã. Durante uma gravação a app não bloqueia.</p>
+ <div class="recbox" style="${p.offline?'border-color:var(--ok)':''}"><b>Modo sigilo total ${p.offline?'<span class="chip l-ok">ligado</span>':'<span class="chip l-norm">desligado</span>'}</b><p class="muted" style="font-size:13.5px;margin:6px 0 10px">${p.offline?'Nenhum dado sai deste aparelho. As gravações ficam guardadas aqui mas não são transcritas, e as funções de IA estão desligadas.':'Com o modo sigilo ligado, nenhum dado sai deste aparelho: a transcrição e a IA, que usam serviços externos, ficam desligadas. Tudo o resto funciona igual, mesmo sem internet.'}</p><button class="btn ${p.offline?'':'pri'}" data-act="sigilo">${p.offline?'Desligar o modo sigilo':'Ligar o modo sigilo'}</button></div>
+ <h3 class="sec-t" style="font-size:15px;margin:16px 0 6px">PIN de administrador</h3>
+ <p class="muted" style="font-size:13px;margin:0 0 10px">Protege a exportação e a importação de cópias de segurança, o apagar de todos os dados e o registo de auditoria. Deve ser diferente do PIN de entrada e conhecido só pelo responsável do escritório.</p>
+ ${S.adminSetup||!p.adminPin?`<div class="form"><div class="f2"><div class="f"><label for="adm-new">${p.adminPin?'Novo PIN de administrador':'PIN de administrador'} (4 a 8 algarismos)</label><input id="adm-new" class="pin-small" data-pinin type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="new-password"></div><div class="f"><label for="adm-new2">Repetir</label><input id="adm-new2" class="pin-small" data-pinin type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="new-password"></div></div><div class="row-acts"><button class="btn pri" data-act="adm-save">Guardar PIN de administrador</button>${p.adminPin?'<button class="btn" data-act="adm-setup-cancel">Cancelar</button>':''}</div></div>`
+  :`<div class="row-acts"><span class="chip l-ok">Definido</span><button class="btn sm" data-act="adm-change">Alterar</button><button class="btn sm" data-act="audit-view">Ver registo de auditoria</button></div>`}
+ ${S.adminAsk==='audit'||S.adminAsk==='adm-change'?adminAskBox():''}
+ ${S.showAudit&&adminValid()?`<div class="tscroll" style="margin-top:12px"><table class="tbl"><thead><tr><th>Data e hora</th><th>Acontecimento</th><th>Detalhe</th></tr></thead><tbody>${(DB.audit||[]).slice(-100).reverse().map(a=>{const d=new Date(a.t);return `<tr class="${/fail/.test(a.e)?'neg':''}"><td class="mono">${fds(d)} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}</td><td>${esc(AUDIT_L[a.e]||a.e)}</td><td>${esc(a.d||'')}</td></tr>`}).join('')||'<tr><td colspan="3">Sem registos.</td></tr>'}</tbody></table></div><p class="muted" style="font-size:12.5px">Registo local, guardado só neste aparelho (últimos 500 acontecimentos). Não é enviado para lado nenhum.</p>`:''}
+ </section>`}
+let lastAct=Date.now();
+['pointerdown','keydown','touchstart','wheel'].forEach(ev=>document.addEventListener(ev,()=>{lastAct=Date.now()},{passive:true,capture:true}));
+const lockLim=()=>{const m=DB.profile&&DB.profile.lockMin;return m===undefined?5:+m};
+function lockNow(msg){if(!S.logged)return;S.logged=false;S.adminOk=null;S.showAudit=false;audit('lock',msg?'por inatividade':'manual');login(msg||'Sessão bloqueada. Introduza o PIN para continuar.')}
+setInterval(()=>{if(!S.logged||!lockLim()||S.live)return;if(Date.now()-lastAct>lockLim()*60e3)lockNow('Sessão bloqueada por inatividade.')},15000);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){S.hiddenAt=Date.now();return}if(S.logged&&!S.live&&S.hiddenAt&&lockLim()&&Date.now()-S.hiddenAt>lockLim()*60e3)lockNow('Sessão bloqueada por inatividade.');lastAct=Date.now()});
+const SIGILO=()=>!!(DB.profile&&DB.profile.offline);
+const sigiloBlock=()=>{if(SIGILO()){toast('Desligado no modo sigilo total: nenhum dado sai deste aparelho.');return true}return false};
+
+/* ====================== Semáforo de prazos ====================== */
+function semaforo(){const all=openDl();const od=all.filter(x=>!x.r.pending);const t=x=>diff(TODAY,x.r.termo);
+ const red=od.filter(x=>t(x)<=1),yel=od.filter(x=>t(x)>=2&&t(x)<=7),grn=od.filter(x=>t(x)>7),sus=all.filter(x=>x.r.pending);
+ const col=(k,lab,sub,list)=>`<button class="sem sem-${k} ${S.semSel===k?'on':''}" data-act="sem" data-id="${k}" aria-pressed="${S.semSel===k}"><b>${list.length}</b><span>${lab}</span><small>${sub}</small></button>`;
+ const list=S.semSel==='r'?red:S.semSel==='y'?yel:S.semSel==='g'?grn:null;
+ return `<section class="card pad-card" style="margin-bottom:18px"><h2 class="sec-t">Semáforo de prazos</h2><div class="semgrid">${col('r','Hoje ou amanhã','inclui prazos em multa',red)}${col('y','Esta semana','faltam 2 a 7 dias',yel)}${col('g','Em dia','faltam mais de 7 dias',grn)}</div>
+ ${sus.length?`<p class="muted" style="font-size:13px;margin:8px 0 0">Mais ${sus.length} prazo(s) suspenso(s) por incidente.</p>`:''}${list?`<div style="margin-top:10px">${list.map(dlRow).join('')||'<div class="empty">Sem prazos neste grupo.</div>'}</div>`:'<p class="muted" style="font-size:12.5px;margin:8px 0 0">Toque numa cor para ver os prazos.</p>'}</section>`}
+
+/* ====================== DUC: data-limite e atraso ====================== */
+function ducAlerts(){const l=DB.ducs.filter(u=>!u.paid&&!u.aj&&u.due&&diff(TODAY,parse(u.due))<=3).sort((a,b)=>a.due.localeCompare(b.due));if(!l.length)return '';
+ return `<section class="warnbox"><b>DUC por pagar a vencer</b>${l.map(u=>{const c=caseById(u.caseId)||{};const x=diff(TODAY,parse(u.due));return `<button class="dl" data-case="${c.id}" style="padding:8px 0;min-height:52px"><div class="t"><b>${esc(u.act)}${u.ref?' · DUC '+esc(u.ref):''}</b><small>${esc(c.num||c.title||'')} · ${eur(u.amount)} · pagar até ${fds(parse(u.due))}</small></div><span class="chip ${x<0?'l-crit':'l-urg'}">${x<0?'Em atraso':x===0?'Hoje':x+' d'}</span></button>`}).join('')}</section>`}
+
+/* ====================== Notas e histórico do processo ====================== */
+function histSection(c){const notes=(DB.notes||[]).filter(n=>n.caseId===c.id).map(n=>({d:n.date,k:'Nota',x:n.text,id:n.id,c:n.created||0}));
+ const ev=reportItems(c,'0000-01-01',key(TODAY),{exp:true}).map(i=>({d:i.d,k:i.k,x:(i.x||'')+(i.m?' · '+fmtMin(i.m):''),c:0}));
+ const all=[...notes,...ev].sort((a,b)=>b.d.localeCompare(a.d)||b.c-a.c);const n=S.histAll===c.id?all.length:6;
+ return `<section class="card pad-card" style="margin-bottom:18px"><h2 class="sec-t">Notas e histórico</h2>
+ <div class="form"><label class="sr" for="hn-text">Nova nota</label><textarea id="hn-text" style="min-height:64px" placeholder="Nota rápida: telefonema, decisão do cliente, ponto a lembrar…"></textarea><div class="row-acts"><button class="btn pri" data-act="hn-add" data-id="${c.id}">Guardar nota</button></div></div>
+ <div style="margin-top:10px">${all.slice(0,n).map(i=>`<div class="ev"><div class="tm" style="font-size:12.5px;width:58px;flex:0 0 58px">${fds(parse(i.d))}</div><div class="bar" style="background:${i.k==='Nota'?'var(--accent)':'var(--line)'}"></div><div class="tt" style="flex:1;min-width:0"><b>${esc(i.k)}</b><small style="white-space:pre-wrap">${esc(i.x||'')}</small></div>${i.id?confirmBtn('hn-del',i.id,'Apagar','Confirmar'):''}</div>`).join('')||'<div class="empty">Sem notas nem histórico.</div>'}</div>
+ ${all.length>6?`<button class="btn sm" style="margin-top:6px" data-act="hn-all" data-id="${c.id}">${S.histAll===c.id?'Mostrar menos':'Ver todo o histórico ('+all.length+')'}</button>`:''}</section>`}
+
+/* ====================== Instalar no computador ou telemóvel ====================== */
+let deferredInstall=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e;if(S.logged&&(S.view==='perfil'||S.view==='mais'))render()});
+window.addEventListener('appinstalled',()=>{deferredInstall=null;toast('LEXVORTEX instalada.')});
+function installSection(){if(NATIVE)return '';const inst=matchMedia('(display-mode: standalone)').matches;
+ return `<section class="card pad-card" style="max-width:640px;margin-bottom:18px"><h2 class="sec-t">Instalar a app</h2>${inst?'<p class="pos" style="margin:0">A LEXVORTEX está instalada neste aparelho.</p>':deferredInstall?'<p class="muted" style="margin-top:0;font-size:13.5px">Instala a LEXVORTEX como uma aplicação, com ícone próprio e janela sem barra de endereços. Funciona sem internet.</p><button class="btn pri" data-act="install">Instalar LEXVORTEX</button>':'<p class="muted" style="margin:0;font-size:13.5px">No Chrome ou no Edge (Windows, Mac ou Android): menu ⋮ → <b>Instalar LEXVORTEX</b>, ou o ícone de instalar na barra de endereço. No Safari (Mac): Ficheiro → <b>Adicionar à Dock</b>. No iPhone: Partilhar → <b>Ecrã principal</b>.</p>'}</section>`}
+if((typeof location!=='undefined'&&/github\.io$/.test(location.hostname))||NATIVE){LIB_PDF='lib/jspdf.umd.min.js';LIB_DOCX='lib/docx.umd.js';LIB_PDFJS='lib/pdf.min.js';LIB_PDFJS_W='lib/pdf.worker.min.js'}
+
+async function summarize(id){if(sigiloBlock())return;const r=DB.recs.find(x=>x.id===id),el=$('sum-'+id);if(!el||!r)return;el.style.display='';el.textContent='A preparar o resumo…';
  let sample=null;try{sample=AI()?await window.claude.use('sample'):null}catch(_){}
  if(!sample){el.textContent='O resumo com IA não está disponível neste navegador.';return}
  const c=caseById(r.caseId),lines=r.segs.map(s=>'['+s[0]+'] '+s[1]+': '+s[2]).join('\n');
@@ -1623,7 +1693,7 @@ VIEWS.perfil=()=>{const p=P();
  <div class="f2"><div class="f"><label for="pf-email">Email</label><input id="pf-email" type="email" value="${esc(p.email||'')}"></div><div class="f"><label for="pf-rate">Valor por hora (€, sem IVA)</label><input id="pf-rate" type="number" inputmode="decimal" min="0" step="5" value="${p.rate??''}"></div></div>
  <div class="f"><label for="pf-uc">Valor da unidade de conta, UC (€)</label><input id="pf-uc" type="number" inputmode="decimal" min="0" step="0.01" value="${p.uc??102}"></div>
  <button class="btn pri" data-act="pf-save">Guardar perfil</button></div></section>
- <section class="card pad-card" style="max-width:640px;margin-bottom:18px"><h2 class="sec-t">Mudar o PIN</h2><div class="form"><div class="f2"><div class="f"><label for="pf-pin">Novo PIN</label><input id="pf-pin" class="pin-small" data-pinin type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password" placeholder="4 a 6 algarismos"></div><div class="f"><label for="pf-pin2">Repetir</label><input id="pf-pin2" class="pin-small" data-pinin type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password"></div></div><button class="btn" data-act="pin-save">Mudar o PIN</button></div></section>
+ ${securitySection()}${installSection()}<section class="card pad-card" style="max-width:640px;margin-bottom:18px"><h2 class="sec-t">Mudar o PIN</h2><div class="form"><div class="f2"><div class="f"><label for="pf-pin">Novo PIN</label><input id="pf-pin" class="pin-small" data-pinin type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password" placeholder="4 a 6 algarismos"></div><div class="f"><label for="pf-pin2">Repetir</label><input id="pf-pin2" class="pin-small" data-pinin type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password"></div></div><button class="btn" data-act="pin-save">Mudar o PIN</button></div></section>
  <section class="card pad-card" style="max-width:640px;margin-bottom:18px"><h2 class="sec-t">Tolerâncias de ponto e encerramentos dos tribunais</h2><p class="muted" style="margin-top:0;font-size:13.5px">Dias em que os tribunais estão encerrados por tolerância de ponto ou outro motivo (ex.: Carnaval, 24 e 31 de dezembro, quando concedidas). O termo de um prazo que caia nesses dias passa para o dia útil seguinte (art. 138.º, n.ºs 2 e 3 CPC). Os feriados nacionais e os municipais da lista já estão incluídos.</p>
  ${(DB.closures||[]).slice().sort((a,b)=>a.date.localeCompare(b.date)).map(x=>`<div class="ev" style="border-bottom:1px solid var(--line)"><div class="tt" style="flex:1"><b>${fdl(parse(x.date))}</b><small>${esc(x.label||'Tribunais encerrados')}${x.muni?' · só '+esc((MUNIS[x.muni]||[])[0]||''):' · todo o país'}</small></div>${confirmBtn('cl-del',x.date+'|'+(x.muni||''),'Apagar','Confirmar')}</div>`).join('')}
  <div class="form" style="margin-top:10px"><div class="f3"><div class="f"><label for="cl-date">Data</label><input id="cl-date" type="date"></div><div class="f"><label for="cl-label">Motivo</label><input id="cl-label" placeholder="Ex.: Tolerância de ponto — Carnaval"></div><div class="f"><label for="cl-muni">Âmbito</label><select id="cl-muni"><option value="">Todo o país</option>${Object.entries(MUNIS).filter(([k])=>k!=='outro').map(([k,m])=>`<option value="${k}">Só ${m[0]}</option>`).join('')}</select></div></div><button class="btn" data-act="cl-add">Acrescentar encerramento</button></div></section>
@@ -1633,8 +1703,8 @@ VIEWS.perfil=()=>{const p=P();
  <div class="tscroll"><table class="tbl"><thead><tr><th>Período</th><th class="num">Créditos de empresas</th><th class="num">Transações comerciais</th><th>Fonte</th><th></th></tr></thead><tbody>${jurosTable().map((r,i)=>`<tr><td class="mono">${fds(parse(r.from))} – ${fd(parse(r.to))}</td><td class="num">${String(r.com).replace('.',',')}%</td><td class="num">${String(r.tc).replace('.',',')}%</td><td style="font-size:12.5px">${esc(r.src||'')}</td><td>${confirmBtn('jt-del',String(i),'Apagar','Confirmar')}</td></tr>`).join('')}</tbody></table></div>
  <div class="form" style="margin-top:10px"><div class="f2"><div class="f"><label for="jt-from">De</label><input id="jt-from" type="date"></div><div class="f"><label for="jt-to">Até</label><input id="jt-to" type="date"></div></div><div class="f3"><div class="f"><label for="jt-com">Créditos de empresas (%)</label><input id="jt-com" type="number" inputmode="decimal" step="0.01"></div><div class="f"><label for="jt-tc">Transações (%)</label><input id="jt-tc" type="number" inputmode="decimal" step="0.01"></div><div class="f"><label for="jt-src">Aviso</label><input id="jt-src" placeholder="Aviso n.º …"></div></div><div class="row-acts"><button class="btn" data-act="jt-add">Acrescentar semestre</button><button class="btn" data-act="jt-reset">Repor valores de origem</button></div></div></section>
  <section class="card pad-card" style="max-width:640px;margin-bottom:18px"><h2 class="sec-t">Equipa do escritório</h2><p class="muted" style="margin-top:0">Para atribuir tarefas a colegas, estagiários ou administrativos.</p>${(DB.team||[]).map(t=>`<div class="ev"><div class="tt" style="flex:1"><b>${esc(t.name)}</b><small>${esc(t.role)}</small></div>${confirmBtn('eq-del',t.id,'Remover','Confirmar')}</div>`).join('')}<div class="form" style="margin-top:10px"><div class="f2"><div class="f"><label for="eq-name">Nome</label><input id="eq-name"></div><div class="f"><label for="eq-role">Função</label><select id="eq-role">${opts([['Advogado','Advogado'],['Advogado estagiário','Advogado estagiário'],['Solicitador','Solicitador'],['Administrativo','Administrativo']],'Advogado estagiário')}</select></div></div><button class="btn" data-act="eq-add">Acrescentar à equipa</button></div></section>
- <section class="card pad-card" style="max-width:640px;margin-bottom:18px"><h2 class="sec-t">Cópia de segurança</h2><p class="muted" style="margin-top:0">Guarda processos, clientes, prazos, marcações, honorários, transcrições, tempo e modelos num ficheiro, para guardar no computador ou passar para outro dispositivo. Os áudios e documentos juntos ficam só neste dispositivo.</p><div class="row-acts"><button class="btn" data-act="bk-export">Exportar cópia</button><button class="btn" data-act="bk-import">Importar cópia</button><input type="file" accept="application/json,.json" id="bk-file" data-backup hidden></div>${S.pendingImport?`<div class="note">Cópia de ${esc(String(S.pendingImport.exported||'').slice(0,10))} com ${S.pendingImport.cases.length} processo(s). Os dados atuais deste dispositivo serão substituídos.<div class="row-acts" style="margin-top:8px"><button class="btn sm danger-on" data-act="bk-apply">Substituir pelos dados da cópia</button><button class="btn sm" data-act="bk-cancel">Cancelar</button></div></div>`:''}</section>
- <section class="card pad-card" style="max-width:640px"><h2 class="sec-t">Sessão e dados</h2><p class="muted" style="margin-top:0">Os dados ficam guardados apenas neste dispositivo e neste navegador.</p><div class="row-acts"><button class="btn" data-act="logout">Terminar sessão</button>${confirmBtn('reset','all','Apagar todos os dados','Confirmar: apagar tudo deste dispositivo')}</div></section>`};
+ <section class="card pad-card" style="max-width:640px;margin-bottom:18px"><h2 class="sec-t">Cópia de segurança</h2><p class="muted" style="margin-top:0">Guarda processos, clientes, prazos, marcações, honorários, transcrições, tempo e modelos num ficheiro, para guardar no computador ou passar para outro dispositivo. Os áudios e documentos juntos ficam só neste dispositivo.</p><div class="row-acts"><button class="btn" data-act="bk-export">Exportar cópia</button><button class="btn" data-act="bk-import">Importar cópia</button><input type="file" accept="application/json,.json" id="bk-file" data-backup hidden></div>${['bk-export','bk-import'].includes(S.adminAsk)?adminAskBox():''}${S.pendingImport?`<div class="note">Cópia de ${esc(String(S.pendingImport.exported||'').slice(0,10))} com ${S.pendingImport.cases.length} processo(s). Os dados atuais deste dispositivo serão substituídos.<div class="row-acts" style="margin-top:8px"><button class="btn sm danger-on" data-act="bk-apply">Substituir pelos dados da cópia</button><button class="btn sm" data-act="bk-cancel">Cancelar</button></div></div>`:''}</section>
+ <section class="card pad-card" style="max-width:640px"><h2 class="sec-t">Sessão e dados</h2><p class="muted" style="margin-top:0">Os dados ficam guardados apenas neste dispositivo e neste navegador.</p><div class="row-acts"><button class="btn" data-act="logout">Terminar sessão</button>${confirmBtn('reset','all','Apagar todos os dados','Confirmar: apagar tudo deste dispositivo')}</div>${S.adminAsk==='reset'?adminAskBox():''}</section>`};
 
 /* ---------- Eventos ---------- */
 let toastT;function toast(m){document.querySelector('.toast')?.remove();const t=document.createElement('div');t.className='toast';t.setAttribute('role','status');t.textContent=m;document.body.appendChild(t);clearTimeout(toastT);toastT=setTimeout(()=>t.remove(),3400)}
@@ -1652,7 +1722,7 @@ document.addEventListener('click',e=>{
   case 'forgot':if(S.forgot)resetAll();else{S.forgot=true;login()}break;
   case 'theme':{const r=document.documentElement,cur=r.dataset.theme||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');r.dataset.theme=cur==='dark'?'light':'dark';try{localStorage.setItem('lv-theme',r.dataset.theme)}catch(_){}break}
   case 'logout':S.logged=false;S.pin='';login();break;
-  case 'reset':if(askConfirm('resetall'))resetAll();break;
+  case 'reset':if(needAdmin('reset'))break;if(askConfirm('resetall')){audit('reset');resetAll()}break;
   case 'pf-save':{const name=val('pf-name');if(!name){toast('Indique o nome.');break}Object.assign(DB.profile,{title:val('pf-title'),name,cedula:val('pf-ced'),addr:val('pf-addr'),email:val('pf-email'),rate:+val('pf-rate')||0,uc:+val('pf-uc')||102});save();S.doc.ready=false;shell();toast('Perfil guardado.');break}
   case 'pin-save':{const a1=val('pf-pin'),a2=val('pf-pin2');if(!/^\d{4,6}$/.test(a1)){toast('O PIN tem de ter 4 a 6 algarismos.');break}if(a1!==a2){toast('Os dois PIN não são iguais.');break}hashPin(a1).then(h=>{DB.profile.pin=h;DB.profile.pinLen=a1.length;save();toast('PIN alterado.');render()});break}
   case 'new-proc':S.editCase=null;S.newProcClient=null;go('novo-proc');break;
@@ -1709,10 +1779,10 @@ document.addEventListener('click',e=>{
   case 'tp-del':if(askConfirm('tp-del'+id)){DB.templates=DB.templates.filter(t=>t.id!==id);S.tplEdit=null;S.tplSel=null;save();render()}break;
   case 'mexp-docx':exportMinuta('docx');break;
   case 'mexp-pdf':exportMinuta('pdf');break;
-  case 'bk-export':saveBlob(backupBlob(),'lexvortex-copia-'+key(TODAY)+'.json').then(ok=>{if(ok){DB.lastBackup=Date.now();save();toast('Cópia de segurança guardada. Guarde o ficheiro fora do telemóvel (e-mail, Google Drive).');render()}});break;
-  case 'bk-import':{const f=$('bk-file');if(f)f.click();break}
+  case 'bk-export':if(needAdmin('bk-export'))break;doExport();break;
+  case 'bk-import':{if(needAdmin('bk-import'))break;const f=$('bk-file');if(f)f.click();break}
   case 'bk-cancel':S.pendingImport=null;render();break;
-  case 'bk-apply':{const o=S.pendingImport;if(!o)break;delete o.app;delete o.version;delete o.exported;DB=Object.assign(fresh(),o);save();S.pendingImport=null;toast('Dados importados.');shell();break}
+  case 'bk-apply':{audit('backup_import');const o=S.pendingImport;if(!o)break;delete o.app;delete o.version;delete o.exported;DB=Object.assign(fresh(),o);save();S.pendingImport=null;toast('Dados importados.');shell();break}
   case 'exp-add':S.expAdd=id;render();break;
   case 'exp-cancel':S.expAdd=null;render();break;
   case 'exp-save':{const amount=+val('x-amount');if(!(amount>0)){toast('Indique o valor da despesa.');break}const cat=val('x-cat');DB.expenses.push({id:nid('x'),caseId:id,date:val('x-date')||key(TODAY),cat,desc:val('x-desc')||catName(cat),amount:Math.round(amount*100)/100,reemb:chk('x-reemb'),paidBy:val('x-paid')||'office',billed:false,created:Date.now()});S.expAdd=null;save();toast('Despesa registada.');render();break}
@@ -1813,6 +1883,19 @@ document.addEventListener('click',e=>{
   case 'wa-copy':copyText($('wa-text')?.value||'','Mensagem copiada.');break;
   case 'wa-open':{const c=caseById(id),k=clientById(c.clientId)||{};const t=$('wa-text')?.value||'';const l=document.createElement('a');l.href='https://wa.me/'+waPhone(k.phone)+'?text='+encodeURIComponent(t);l.target='_blank';l.rel='noopener';document.body.appendChild(l);l.click();l.remove();break}
   case 'cc-go':{if(a.dataset.t==='case'){S.caseId=id;go('caso')}else{S.clientId=id;go('cliente')}break}
+  case 'adm-ok':adminCheck();break;
+  case 'adm-cancel':S.adminAsk=null;render();break;
+  case 'adm-save':adminSave();break;
+  case 'adm-setup-cancel':S.adminSetup=false;render();break;
+  case 'adm-change':if(needAdmin('adm-change'))break;S.adminSetup=true;render();break;
+  case 'audit-view':if(needAdmin('audit'))break;S.showAudit=!S.showAudit;render();break;
+  case 'sigilo':{DB.profile.offline=!DB.profile.offline;audit(DB.profile.offline?'sigilo_on':'sigilo_off');save();TX_STATE=null;if(!DB.profile.offline)txCheck();toast(DB.profile.offline?'Modo sigilo ligado: nenhum dado sai deste aparelho.':'Modo sigilo desligado: transcrição e IA disponíveis.');render();break}
+  case 'lock-now':lockNow();break;
+  case 'sem':S.semSel=S.semSel===id?null:id;render();break;
+  case 'hn-add':{const t=($('hn-text')?.value||'').trim();if(!t){toast('Escreva a nota.');break}(DB.notes=DB.notes||[]).push({id:nid('n'),caseId:id,date:key(TODAY),text:t,created:Date.now()});save();toast('Nota guardada.');render();break}
+  case 'hn-del':if(askConfirm('hn-del'+id)){DB.notes=(DB.notes||[]).filter(n=>n.id!==id);save();render()}break;
+  case 'hn-all':S.histAll=S.histAll===id?null:id;render();break;
+  case 'install':if(deferredInstall){deferredInstall.prompt();deferredInstall.userChoice.finally(()=>{deferredInstall=null;render()})}break;
   case 'rec-retry':{const r=DB.recs.find(x=>x.id===id);if(r)retryPending(r);break}
   case 'rec-tx':{const r=DB.recs.find(x=>x.id===id);if(r)txFile(r);break}
   case 'spk':S.spk=a.dataset.spk||null;render();break;
@@ -1836,6 +1919,7 @@ document.addEventListener('input',e=>{const t=e.target;
  if(t.dataset.limcat!==undefined){const cat=LIMCAT[t.value]||LIMCAT.outro;const sl=$('lim-start-l');if(sl)sl.textContent=cat.start;const ln=$('lim-len');if(ln)ln.innerHTML=limLenFields(cat);const b=$('lim-basis');if(b)b.value=cat.basis;const w=$('lim-warn');if(w)w.textContent=cat.warn||'';return}
  if(t.dataset.evkind!==undefined){S.evKind=t.value;const el=$('ev-fields');if(el)el.innerHTML=evFields(t.value,{});return}
  if(t.dataset.evst!==undefined){const ev=DB.evidence.find(x=>x.id===t.dataset.evst);if(ev){ev.status=t.value;save();render()}return}
+ if(t.dataset.lockmin!==undefined){DB.profile.lockMin=+t.value;save();toast(+t.value?'A app bloqueia ao fim de '+t.value+' minuto(s) sem atividade.':'Bloqueio automático desligado.');return}
  if(t.dataset.ju!==undefined){S.jur[t.dataset.ju]=t.type==='checkbox'?t.checked:t.value;if(t.dataset.ju==='type'){render();return}renderJuros();return}
  if(t.dataset.rcpv!==undefined){S.rcpVal=t.value;const el=$('rc-out');if(el)el.innerHTML=rcpOut(rcpEstimate(+t.value||0,S.rcpCol||'A'));return}
  if(t.dataset.rp!==undefined){if(t.dataset.rp==='from')S.rpFrom=t.value;else S.rpTo=t.value;return}
@@ -1872,6 +1956,7 @@ window.addEventListener('beforeunload',e=>{if(S.live){e.preventDefault();e.retur
 try{const th=localStorage.getItem('lv-theme');if(th)document.documentElement.dataset.theme=th}catch(_){}
 if('serviceWorker' in navigator&&/github\.io$/.test(location.hostname))navigator.serviceWorker.register('sw.js').catch(()=>{});
 load();idbOpen();try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(_){}
+try{const h=(location.hash||'').slice(1);if(h&&VIEWS[h]&&!['caso','cliente','novo-proc'].includes(h))S.view=h}catch(_){}
 if(!DB.profile)onboarding();else login();
 </script>
 </body>
