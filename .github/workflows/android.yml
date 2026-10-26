@@ -52,5 +52,5 @@ jobs:
           cp android-app/android/app/build/outputs/apk/release/app-release.apk CG-VERTEX.apk
           gh release create "app-${{ github.run_number }}" CG-VERTEX.apk \
             --title "CG VERTEX para Android — versão 1.0.${{ github.run_number }}" \
-            --notes "Instalar no telemóvel: abra o ficheiro CG-VERTEX.apk e permita a instalação. As versões novas instalam-se por cima, sem perder dados." \
+            --notes "Instalar no telemóvel: abra o ficheiro CG-VERTEX.apk e permita a instalação. A app abre sempre a versão mais recente da CG VERTEX: não é preciso reinstalar a cada atualização." \
             --latest
