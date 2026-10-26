@@ -281,6 +281,11 @@ select.evst{min-height:40px;border:1px solid var(--line);border-radius:10px;back
 select.evst.ok{border-color:var(--ok);color:var(--ok);font-weight:600}
 .cell.uf{background:var(--cnt);border:1px dashed var(--accent)}
 .infobox{border:1px solid var(--line);border-left:4px solid var(--navy2);background:var(--surface);border-radius:14px;padding:14px 16px;margin-bottom:16px}
+.pin-input{display:block;width:100%;max-width:280px;height:66px;margin:4px auto 8px;border-radius:16px;border:2px solid rgba(255,255,255,.28);background:rgba(255,255,255,.08);color:#fff;font-size:34px;font-weight:700;letter-spacing:.55em;text-indent:.55em;text-align:center;caret-color:#E47A2A}
+.pin-input:focus{outline:none;border-color:#E47A2A;background:rgba(255,255,255,.12)}
+.pin-input::placeholder{color:rgba(255,255,255,.28);letter-spacing:.55em}
+.pin-small{font-size:22px;letter-spacing:.35em}
+.lawres{display:block;width:100%;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;margin-bottom:8px;min-height:56px;color:var(--text)}
 </style>
 </head>
 <body>
@@ -438,7 +443,7 @@ const I={
  sun:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>'};
 const NAV=[['hoje','Hoje'],['processos','Processos'],['prazos','Prazos'],['agenda','Agenda'],['tarefas','Tarefas'],['clientes','Clientes'],['minutas','Minutas'],['honorarios','Honorários']];
 const NAV_MOB=[['hoje','Hoje'],['processos','Processos'],['prazos','Prazos'],['agenda','Agenda'],['tarefas','Tarefas'],['clientes','Clientes'],['mais','Mais']];
-const MAIS_V=['mais','minutas','honorarios','direto','perfil','juros'];
+const MAIS_V=['mais','minutas','honorarios','direto','perfil','juros','conflitos'];
 
 /* ---------- Primeira utilização e PIN ---------- */
 function onboarding(){
@@ -452,35 +457,39 @@ function onboarding(){
  <div class="f"><label for="o-name">Nome</label><input id="o-name" value="Mitchell Rocha" autocomplete="name"></div>
  <div class="f"><label for="o-addr">Domicílio profissional</label><input id="o-addr" placeholder="Rua, n.º, código postal e localidade"></div>
  <div class="f"><label for="o-email">Email (opcional)</label><input id="o-email" type="email" autocomplete="email"></div>
- <div class="f2"><div class="f"><label for="o-pin">PIN de 4 algarismos</label><input id="o-pin" inputmode="numeric" maxlength="4" type="password" autocomplete="new-password"></div>
- <div class="f"><label for="o-pin2">Repetir o PIN</label><input id="o-pin2" inputmode="numeric" maxlength="4" type="password" autocomplete="new-password"></div></div>
+ <div class="f2"><div class="f"><label for="o-pin">PIN (4 a 6 algarismos)</label><input id="o-pin" class="pin-small" data-pinin type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password" placeholder="••••"></div>
+ <div class="f"><label for="o-pin2">Repetir o PIN</label><input id="o-pin2" class="pin-small" data-pinin type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password" placeholder="••••"></div></div>
  <p class="pin-msg" id="o-msg" style="text-align:left">Os dados ficam guardados apenas neste dispositivo.</p>
  <button class="btn pri" style="width:100%;min-height:56px" data-act="onb-save">Começar</button></div></div></div>`;
 }
 async function onbSave(){const name=val('o-name'),pin=val('o-pin'),pin2=val('o-pin2'),m=$('o-msg');
  const bad=t=>{m.textContent=t;m.classList.add('err')};
  if(!name)return bad('Indique o seu nome.');
- if(!/^\d{4}$/.test(pin))return bad('O PIN tem de ter 4 algarismos.');
+ if(!/^\d{4,6}$/.test(pin))return bad('O PIN tem de ter 4 a 6 algarismos.');
  if(pin!==pin2)return bad('Os dois PIN não são iguais.');
- DB.profile={title:val('o-title')||'Dr.',name,cedula:val('o-ced'),addr:val('o-addr'),email:val('o-email'),pin:await hashPin(pin)};save();S.logged=true;shell()}
-function login(msg,err){
- const dots=[0,1,2,3].map(i=>`<i class="${i<S.pin.length?'on':''}"></i>`).join('');
+ DB.profile={title:val('o-title')||'Dr.',name,cedula:val('o-ced'),addr:val('o-addr'),email:val('o-email'),pin:await hashPin(pin),pinLen:pin.length};save();S.logged=true;shell()}
+const pinLen=()=>(DB.profile&&DB.profile.pinLen)||4;
+function login(msg,err){const len=pinLen();S.pin='';
  $('root').innerHTML=`<div class="login"><div class="login-box" id="lb">
   <div class="brand">LEX<span>VORTEX</span></div>
   <p class="slogan">Automação, gestão de prazos e eficiência para o exercício da advocacia.</p>
-  <div class="who"><b>${esc(LNAME())}</b>Introduza o seu PIN</div>
-  <div class="pin-dots" aria-label="${S.pin.length} de 4 algarismos">${dots}</div>
-  <div class="pin-msg ${err?'err':''}" id="pm">${esc(msg||'')}</div>
-  <div class="pad">${[1,2,3,4,5,6,7,8,9].map(n=>`<button data-pin="${n}">${n}</button>`).join('')}<button class="ghost" data-pin="c">Limpar</button><button data-pin="0">0</button><button class="ghost" data-pin="b">Apagar</button></div>
+  <div class="who"><b>${esc(LNAME())}</b>Introduza o seu PIN de ${len} algarismos</div>
+  <label class="sr" for="pin-input">PIN</label>
+  <input id="pin-input" class="pin-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="${len}" autocomplete="current-password" enterkeyhint="go" placeholder="${'•'.repeat(len)}" aria-describedby="pm">
+  <div class="pin-msg ${err?'err':''}" id="pm" aria-live="polite">${esc(msg||'')}</div>
+  <div class="pad">${[1,2,3,4,5,6,7,8,9].map(n=>`<button data-pin="${n}" aria-label="${n}">${n}</button>`).join('')}<button class="ghost" data-pin="c">Limpar</button><button data-pin="0" aria-label="0">0</button><button class="ghost" data-pin="b" aria-label="Apagar o último algarismo">Apagar</button></div>
   <button class="ghost-link" data-act="forgot">${S.forgot?'Toque outra vez para apagar todos os dados deste dispositivo e recomeçar':'Esqueci-me do PIN'}</button>
  </div></div>`;
+ if(!matchMedia('(pointer:coarse)').matches){const i=$('pin-input');if(i)i.focus()}
 }
-async function pinPress(v){
- if(v==='c')S.pin='';else if(v==='b')S.pin=S.pin.slice(0,-1);else if(S.pin.length<4)S.pin+=v;
- if(S.pin.length===4){const h=await hashPin(S.pin);S.pin='';if(h===DB.profile.pin){S.logged=true;S.forgot=false;shell();return}
-  login('PIN incorreto. Tente de novo.',true);$('lb').classList.add('shake');return}
- login();
-}
+function pinShow(){const i=$('pin-input');if(i&&i.value!==S.pin)i.value=S.pin;const pm=$('pm');if(pm&&pm.classList.contains('err')&&S.pin){pm.textContent='';pm.classList.remove('err')}}
+async function pinPress(v){if(S.pinBusy)return;const len=pinLen();
+ if(v==='c')S.pin='';else if(v==='b')S.pin=S.pin.slice(0,-1);else if(/^\d$/.test(v)&&S.pin.length<len)S.pin+=v;
+ pinShow();if(S.pin.length===len)await pinCheck()}
+async function pinCheck(){S.pinBusy=true;const h=await hashPin(S.pin);S.pinBusy=false;
+ if(h===DB.profile.pin){S.pin='';S.logged=true;S.forgot=false;shell();return}
+ S.pin='';pinShow();const pm=$('pm');if(pm){pm.textContent='PIN incorreto. Tente de novo.';pm.classList.add('err')}
+ const lb=$('lb');if(lb){lb.classList.remove('shake');void lb.offsetWidth;lb.classList.add('shake')}if(navigator.vibrate)try{navigator.vibrate(120)}catch(_){}}
 function resetAll(){try{localStorage.removeItem(DB_KEY)}catch(_){}try{indexedDB.deleteDatabase('lexvortex-audio')}catch(_){}DB=fresh();S.forgot=false;S.logged=false;idbOpen();onboarding()}
 
 /* ---------- Estrutura ---------- */
@@ -491,7 +500,7 @@ function shell(){
   <div class="foot">${esc(LNAME())}${P().cedula?'<br>Cédula '+esc(P().cedula):''}</div></aside>
  <div class="main">
   <header class="top"><div class="brand">LEX<span style="color:var(--accent)">VORTEX</span></div>
-   <div class="top-right"><button class="iconbtn" data-act="theme" aria-label="Mudar tema">${I.sun}</button><button class="avatar" data-go="perfil" aria-label="Perfil">${esc(initials())}</button></div></header>
+   <div class="top-right"><button class="iconbtn" data-go="conflitos" aria-label="Verificar conflito de interesses" title="Verificar conflito de interesses"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></button><button class="iconbtn" data-act="theme" aria-label="Mudar tema">${I.sun}</button><button class="avatar" data-go="perfil" aria-label="Perfil">${esc(initials())}</button></div></header>
   <div class="view" id="view"></div>
  </div>
  <nav class="nav">${NAV_MOB.map(([k,l])=>`<button data-go="${k}" data-nav="${k}">${I[k]}<span>${l}</span></button>`).join('')}</nav>
@@ -1002,10 +1011,12 @@ function commSection(c){const cl=clientById(c.clientId)||{};const m=S.mail&&S.ma
  <label class="check"><input type="checkbox" id="m-tx" ${m?.tx?'checked':''}>Incluir a última transcrição deste processo</label>
  <div class="f"><label for="m-tone">Tom</label><select id="m-tone">${opts([['formal','Formal'],['proximo','Próximo e direto']],m?.tone||'formal')}</select></div>
  <button class="btn pri" data-act="mail-gen" data-id="${c.id}" ${m?.busy?'disabled':''}>${m?.busy?'A escrever o e-mail…':'Gerar e-mail ao cliente'}</button>
+ <button class="btn" style="border-color:#25D366" data-act="wa-gen" data-id="${c.id}" ${S.wa&&S.wa.busy?'disabled':''}>${S.wa&&S.wa.busy&&S.wa.caseId===c.id?'A escrever a mensagem…':'Gerar mensagem de WhatsApp'}</button>
  <p class="muted" style="font-size:12.5px;margin:0">O texto é escrito por IA a partir dos dados do processo, sem NIF, IBAN nem moradas. Reveja sempre antes de enviar.</p></div>`;
  const ed=m&&m.out?`<div class="form"><div class="f"><label for="m-subj">Assunto</label><input id="m-subj" value="${esc(m.out.assunto)}"></div><div class="f"><label for="m-body">Texto</label><textarea id="m-body" style="min-height:320px;line-height:1.6">${esc(m.out.corpo)}</textarea></div>
  <div class="row-acts"><button class="btn pri" data-act="mail-open" data-id="${c.id}">Abrir no e-mail${cl.email?'':' (sem email do cliente)'}</button><button class="btn" data-act="mail-copy">Copiar</button><button class="btn" data-act="mail-redo" data-id="${c.id}">Fazer outro</button></div></div>`:'';
- return `<section class="card pad-card" style="margin-bottom:18px"><h2 class="sec-t">Comunicar com o cliente</h2>${ed||form}</section>`}
+ const wa=S.wa&&S.wa.caseId===c.id&&S.wa.text?`<div class="recbox" style="border-color:#25D366;margin-bottom:12px"><b>Mensagem de WhatsApp</b><div class="f" style="margin-top:8px"><label for="wa-text" class="sr">Mensagem</label><textarea id="wa-text" style="min-height:150px;line-height:1.55">${esc(S.wa.text)}</textarea></div><div class="row-acts"><button class="btn pri" data-act="wa-open" data-id="${c.id}">Abrir no WhatsApp${cl.phone?'':' (escolher contacto)'}</button><button class="btn" data-act="wa-copy">Copiar</button><button class="btn" data-act="wa-close">Fechar</button></div><p class="muted" style="font-size:12.5px;margin:6px 0 0">Reveja antes de enviar.${cl.phone?'':' A ficha do cliente não tem telefone: o WhatsApp abre para escolher o contacto.'}</p></div>`:'';
+ return `<section class="card pad-card" style="margin-bottom:18px"><h2 class="sec-t">Comunicar com o cliente</h2>${wa}${ed||form}</section>`}
 async function genMail(c){const cl=clientById(c.clientId)||{};const m=S.mail={caseId:c.id,notes:val('m-notes'),dl:chk('m-dl'),tx:chk('m-tx'),tone:val('m-tone')||'formal',busy:true};render();
  const od=openDl().filter(x=>x.d.caseId===c.id).slice(0,5).map(x=>({ato:x.d.title,termo:fd(x.r.termo)}));
  const done=DB.deadlines.filter(d=>d.caseId===c.id&&d.done).slice(-3).map(d=>({ato:d.title,entregue:d.doneAt?fd(parse(d.doneAt)):''}));
@@ -1123,7 +1134,7 @@ function conflicts(name,asClient,exceptCase){const n=normName(name).trim();if(n.
  return hits}
 
 /* ====================== Mais ====================== */
-VIEWS.mais=()=>`<div class="h-row"><div><h1>Mais</h1></div></div><div class="tiles">${[['minutas','Minutas','Procurações, cartas, requerimentos e modelos próprios'],['honorarios','Honorários','Notas de honorários, despesas e calculadora'],['direto','Transcrever em direto','Gravar e transcrever uma reunião ou diligência'],['juros','Calculadoras','Juros de mora civis, comerciais e compulsórios; taxa de justiça'],['perfil','Perfil e equipa','Dados do advogado, equipa, PIN e cópia de segurança']].map(([k,t,s])=>`<button class="tile" data-go="${k}"><b>${t}</b><span>${s}</span></button>`).join('')}</div>`;
+VIEWS.mais=()=>`<div class="h-row"><div><h1>Mais</h1></div></div><div class="tiles">${[['minutas','Minutas','Procurações, cartas, requerimentos e modelos próprios'],['honorarios','Honorários','Notas de honorários, despesas e calculadora'],['direto','Transcrever em direto','Gravar e transcrever uma reunião ou diligência'],['conflitos','Verificar conflito','Pesquisa instantânea de um nome em clientes, partes contrárias e testemunhas'],['juros','Calculadoras','Juros de mora civis, comerciais e compulsórios; taxa de justiça'],['perfil','Perfil e equipa','Dados do advogado, equipa, PIN e cópia de segurança']].map(([k,t,s])=>`<button class="tile" data-go="${k}"><b>${t}</b><span>${s}</span></button>`).join('')}</div>`;
 
 /* ====================== Prescrição e caducidade ====================== */
 const LIMCAT={
@@ -1321,10 +1332,13 @@ function reportSection(c){const from=S.rpFrom||c.created||key(add(TODAY,-90));co
  return `<section class="card pad-card" style="margin-bottom:18px"><h2 class="sec-t">Relatório de diligências para o cliente</h2><p class="muted" style="font-size:13.5px;margin-top:0">Junta o tempo registado, reuniões, diligências, peças entregues, documentos e gravações do período. Para descrever estudos ou deslocações, use o «Registo manual» de tempo e escolha o tipo.</p><div class="form">
  <div class="f2"><div class="f"><label for="rp-from">De</label><input id="rp-from" type="date" data-rp="from" value="${from}"></div><div class="f"><label for="rp-to">Até</label><input id="rp-to" type="date" data-rp="to" value="${to}"></div></div>
  <label class="check"><input type="checkbox" id="rp-time" checked>Mostrar o tempo gasto em cada diligência</label><label class="check"><input type="checkbox" id="rp-exp">Incluir as despesas</label>
+ <label class="check"><input type="checkbox" id="rp-aj">Relatório para o Apoio Judiciário (nomeação oficiosa)</label>
+ <div class="f"><label for="rp-ajref">N.º do pedido ou da nomeação (opcional)</label><input id="rp-ajref" placeholder="Ex.: nomeação n.º …"></div>
+ <div class="row-acts"><button class="btn" data-act="tm-add" data-id="${c.id}">Registar diligência</button></div>
  <button class="btn pri" data-act="rp-pdf" data-id="${c.id}">Exportar relatório em PDF (${n} registo${n===1?'':'s'})</button></div></section>`}
-function buildReportPdf(c,items,from,to,showT,J){const doc=new J({unit:'mm',format:'a4'});const ML=18,R=192,H=297;let y=22;const cl=clientById(c.clientId)||{};const T=(t,x,yy,o)=>doc.text(String(t),x,yy,o);
- doc.setFont('helvetica','bold');doc.setFontSize(15);T('RELATÓRIO DE DILIGÊNCIAS',ML,y);y+=8;doc.setFontSize(10);doc.setFont('helvetica','normal');
- [['Processo',(c.num||'')+(c.title?' — '+c.title:'')],['Tribunal',c.courtName||'—'],['Cliente',cl.name||'—'],['Período',fd(parse(from))+' a '+fd(parse(to))],['Elaborado por',LNAME()+(P().cedula?', cédula profissional n.º '+P().cedula:'')]].forEach(([k,v])=>{doc.setFont('helvetica','bold');T(k,ML,y);doc.setFont('helvetica','normal');const ls=doc.splitTextToSize(v,140);T(ls,ML+32,y);y+=ls.length*5});
+function buildReportPdf(c,items,from,to,showT,J,opt){opt=opt||{};const doc=new J({unit:'mm',format:'a4'});const ML=18,R=192,H=297;let y=22;const cl=clientById(c.clientId)||{};const T=(t,x,yy,o)=>doc.text(String(t),x,yy,o);
+ doc.setFont('helvetica','bold');doc.setFontSize(opt.aj?13:15);T(opt.aj?'RELATÓRIO DE DILIGÊNCIAS — APOIO JUDICIÁRIO':'RELATÓRIO DE DILIGÊNCIAS',ML,y);y+=8;doc.setFontSize(10);doc.setFont('helvetica','normal');
+ [['Processo',(c.num||'')+(c.title?' — '+c.title:'')],['Tribunal',c.courtName||'—'],['Cliente',cl.name||'—'],['Período',fd(parse(from))+' a '+fd(parse(to))],['Elaborado por',LNAME()+(P().cedula?', cédula profissional n.º '+P().cedula:'')]].concat(opt.aj?[['Apoio judiciário',opt.ajRef||'Nomeação oficiosa']]:[]).forEach(([k,v])=>{doc.setFont('helvetica','bold');T(k,ML,y);doc.setFont('helvetica','normal');const ls=doc.splitTextToSize(v,140);T(ls,ML+32,y);y+=ls.length*5});
  y+=4;doc.setFillColor(240,242,246);doc.rect(ML,y-5,R-ML,8,'F');doc.setFont('helvetica','bold');T('Data',ML+1,y);T('Diligência',ML+22,y);if(showT)T('Tempo',R-1,y,{align:'right'});y+=7;doc.setFont('helvetica','normal');
  let tot=0;items.forEach(it=>{const w=showT?128:150;const ls=doc.splitTextToSize(it.k+(it.x?': '+it.x:''),w);if(y+ls.length*5>H-22){doc.addPage();y=22}T(fds(parse(it.d)),ML+1,y);T(ls,ML+22,y);if(showT&&it.m){T(fmtMin(it.m),R-1,y,{align:'right'});tot+=it.m}y+=ls.length*5+2.5});
  if(!items.length){T('Sem registos no período.',ML+1,y);y+=6}
@@ -1332,7 +1346,7 @@ function buildReportPdf(c,items,from,to,showT,J){const doc=new J({unit:'mm',form
  doc.setFont('helvetica','italic');doc.setFontSize(8.5);doc.setTextColor(90);if(y>H-30){doc.addPage();y=22}y+=4;T(doc.splitTextToSize('Relatório elaborado a partir dos registos do escritório no LEXVORTEX. Para esclarecimentos, contacte o seu advogado.',R-ML),ML,y);
  const n=doc.getNumberOfPages();for(let i=1;i<=n;i++){doc.setPage(i);doc.setFontSize(8.5);doc.setTextColor(120);doc.text('Página '+i+' de '+n,R,H-10,{align:'right'})}return doc.output('blob')}
 async function exportReport(c){const from=val('rp-from'),to=val('rp-to');if(!from||!to||to<from)return toast('Verifique as datas do período.');const items=reportItems(c,from,to,{exp:chk('rp-exp')});
- try{await loadScript(LIB_PDF);if(await saveBlob(buildReportPdf(c,items,from,to,chk('rp-time'),window.jspdf.jsPDF),'Relatorio-diligencias-'+(c.num||'processo').replace(/[\/\s]+/g,'-')+'.pdf'))toast('Relatório em PDF guardado.')}catch(_){toast('Não foi possível criar o PDF. Verifique a ligação à internet.')}}
+ try{await loadScript(LIB_PDF);if(await saveBlob(buildReportPdf(c,items,from,to,chk('rp-time'),window.jspdf.jsPDF,{aj:chk('rp-aj'),ajRef:val('rp-ajref')}),'Relatorio-diligencias-'+(c.num||'processo').replace(/[\/\s]+/g,'-')+'.pdf'))toast('Relatório em PDF guardado.')}catch(_){toast('Não foi possível criar o PDF. Verifique a ligação à internet.')}}
 
 /* ====================== Obrigações profissionais ====================== */
 const OBLK=[['quota','Quotas da Ordem (OA ou OSAE)'],['seguro','Seguro de responsabilidade civil profissional'],['previdencia','Contribuições de previdência'],['formacao','Formação contínua'],['outro','Outra obrigação']];
@@ -1419,6 +1433,44 @@ function scheduleAlerts(){if(!NATIVE||!DB.profile||!DB.profile.notify)return;cle
  list.sort((a,b)=>a.w-b.w);const sel=list.slice(0,60);
  if(sel.length)await LN.schedule({notifications:sel.map((n,i)=>({id:1000+i,title:n.title,body:n.body,schedule:{at:n.w,allowWhileIdle:true}}))});
  S.alertsScheduled=sel.length}catch(e){console.error(e)}},1500)}
+
+/* ====================== Mensagem de WhatsApp ao cliente ====================== */
+function caseCtx(c,o){const cl=clientById(c.clientId)||{};
+ const od=openDl().filter(x=>x.d.caseId===c.id).slice(0,5).map(x=>({ato:x.d.title,termo:fd(x.r.termo)}));
+ const done=DB.deadlines.filter(d=>d.caseId===c.id&&d.done).slice(-3).map(d=>({ato:d.title,entregue:d.doneAt?fd(parse(d.doneAt)):''}));
+ const evs=DB.events.filter(e=>e.caseId===c.id&&diff(TODAY,parse(e.date))>=0).slice(0,5).map(e=>({tipo:(EVK[e.kind]||EVK.other)[0],descricao:e.title,data:fd(parse(e.date)),hora:e.time||''}));
+ const lastRec=DB.recs.filter(r=>r.caseId===c.id&&r.segs.length).sort((a,b)=>(b.created||0)-(a.created||0))[0];
+ return {data_de_hoje:fd(TODAY),advogado:{nome:LNAME(),feminino:fem()},cliente:{nome:cl.name||'',tipo:cl.kind==='company'?'empresa':'pessoa singular'},processo:{assunto:c.title||'',tribunal:c.courtName||'',fase:c.phase},
+  mensagem_do_advogado:scrub(o.notes||''),prazos_em_curso:od,atos_ja_entregues:done,diligencias_marcadas:evs,
+  excerto_da_ultima_transcricao:o.tx&&lastRec?scrub(lastRec.segs.map(s=>s[1]+': '+s[2]).join('\n')).slice(0,2000):''}}
+const waPhone=p=>{let d=String(p||'').replace(/\D/g,'');if(d.startsWith('00'))d=d.slice(2);if(d.length===9&&/^[29]/.test(d))d='351'+d;return d};
+async function genWa(c){S.wa={caseId:c.id,busy:true};render();
+ try{const r=await fetch(AS_URL,{method:'POST',headers:{Authorization:'Bearer '+TX_KEY,apikey:TX_KEY,'Content-Type':'application/json'},body:JSON.stringify({task:'client_whatsapp',context:caseCtx(c,{notes:val('m-notes')||(S.mail&&S.mail.notes)||'',tx:chk('m-tx')})})});
+  const j=await r.json().catch(()=>({}));if(!r.ok||!j.mensagem)throw Object.assign(new Error('x'),{code:j.error||'http'});S.wa.text=j.mensagem}
+ catch(e){toast(e.code==='rate_limited'?'Limite de pedidos atingido. Tente daqui a um minuto.':'Não foi possível gerar a mensagem. Verifique a ligação e tente de novo.')}
+ S.wa.busy=false;render()}
+
+/* ====================== Verificação relâmpago de conflitos ====================== */
+function ccIndex(){const out=[];
+ DB.clients.forEach(c=>out.push({n:c.name,role:cstatus(c)==='lead'?'Lead':cstatus(c)==='lost'?'Lead que não avançou':'Cliente',kind:'cliente',ref:c.nif?'NIF '+c.nif:'',go:['client',c.id]}));
+ DB.cases.forEach(c=>{if(c.adv)out.push({n:c.adv,role:'Parte contrária',kind:'adversa',ref:(c.num||c.title)+(c.status==='archived'?' (arquivado)':''),go:['case',c.id]})});
+ DB.evidence.filter(e=>e.kind==='testemunha').forEach(e=>{const c=caseById(e.caseId);out.push({n:e.name,role:'Testemunha',kind:'outro',ref:c?(c.num||c.title):'',go:c?['case',c.id]:null})});
+ DB.mandates.forEach(m=>{const c=caseById(m.caseId);if(m.grantor)out.push({n:m.grantor,role:'Mandante',kind:'cliente',ref:c?(c.num||c.title):'',go:c?['case',c.id]:null})});
+ DB.contacts.forEach(t=>out.push({n:t.name,role:'Contacto · '+kindName(t.kind),kind:'outro',ref:t.org||'',go:null}));
+ return out}
+function ccResults(q){const nq=normName(q).trim();if(nq.length<3)return '<p class="muted" style="margin:0">Escreva pelo menos 3 letras do nome da pessoa ou da empresa.</p>';
+ const toks=nq.split(' ').filter(Boolean);const hits=ccIndex().filter(x=>{const n=normName(x.n);return toks.every(t=>n.includes(t))});
+ const adv=hits.filter(h=>h.kind==='adversa'),cli=hits.filter(h=>h.kind==='cliente');
+ const alert=adv.length?`<div class="warnbox" style="border-color:var(--crit);background:var(--crit-soft)"><b class="neg">Possível conflito de interesses</b><br><span style="font-size:14px">Há ${adv.length} correspondência(s) como <b>parte contrária</b>${cli.length?' e '+cli.length+' como cliente':''}. Confirme antes de aceitar o mandato (art. 99.º do Estatuto da Ordem dos Advogados).</span></div>`
+  :cli.length?`<div class="infobox"><b>Já existe no escritório como cliente ou lead</b><br><span style="font-size:14px">Sem correspondências como parte contrária.</span></div>`
+  :hits.length?`<div class="infobox"><b>Sem correspondências como cliente nem como parte contrária</b></div>`
+  :`<div class="infobox" style="border-left-color:var(--ok)"><b class="pos">Sem correspondências</b><br><span style="font-size:14px">O nome não aparece em clientes, leads, partes contrárias, testemunhas, mandantes nem contactos guardados neste dispositivo.</span></div>`;
+ const order={adversa:0,cliente:1,outro:2};
+ return alert+hits.sort((a,b)=>order[a.kind]-order[b.kind]).slice(0,40).map(h=>`<button class="lawres" ${h.go?`data-act="cc-go" data-t="${h.go[0]}" data-id="${h.go[1]}"`:''}><span class="chip ${h.kind==='adversa'?'l-crit':h.kind==='cliente'?'l-ok':'l-norm'}">${esc(h.role)}</span> <b>${esc(h.n)}</b>${normName(h.n).trim()===nq?' <span class="chip l-att">nome igual</span>':''}<span class="muted" style="display:block;font-size:13px;margin-top:3px">${esc(h.ref||'')}</span></button>`).join('')}
+VIEWS.conflitos=()=>`<div class="h-row"><div><h1>Verificar conflito de interesses</h1><p>Pesquisa instantânea em clientes, leads, partes contrárias, testemunhas, mandantes e contactos.</p></div></div>
+ <input class="search" style="width:100%;font-size:17px;min-height:56px" id="ccq" data-ccq placeholder="Nome da pessoa ou da empresa" value="${esc(S.ccQ||'')}" autocomplete="off" aria-label="Nome a verificar">
+ <div id="cc-res" style="margin-top:14px">${ccResults(S.ccQ||'')}</div>
+ <p class="muted" style="font-size:12.5px">Compara nomes sem acentos e sem «Lda», «S.A.» e semelhantes. Uma ausência de resultados não dispensa a verificação pelo advogado.</p>`;
 
 async function summarize(id){const r=DB.recs.find(x=>x.id===id),el=$('sum-'+id);if(!el||!r)return;el.style.display='';el.textContent='A preparar o resumo…';
  let sample=null;try{sample=AI()?await window.claude.use('sample'):null}catch(_){}
@@ -1571,7 +1623,7 @@ VIEWS.perfil=()=>{const p=P();
  <div class="f2"><div class="f"><label for="pf-email">Email</label><input id="pf-email" type="email" value="${esc(p.email||'')}"></div><div class="f"><label for="pf-rate">Valor por hora (€, sem IVA)</label><input id="pf-rate" type="number" inputmode="decimal" min="0" step="5" value="${p.rate??''}"></div></div>
  <div class="f"><label for="pf-uc">Valor da unidade de conta, UC (€)</label><input id="pf-uc" type="number" inputmode="decimal" min="0" step="0.01" value="${p.uc??102}"></div>
  <button class="btn pri" data-act="pf-save">Guardar perfil</button></div></section>
- <section class="card pad-card" style="max-width:640px;margin-bottom:18px"><h2 class="sec-t">Mudar o PIN</h2><div class="form"><div class="f2"><div class="f"><label for="pf-pin">Novo PIN</label><input id="pf-pin" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password"></div><div class="f"><label for="pf-pin2">Repetir</label><input id="pf-pin2" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password"></div></div><button class="btn" data-act="pin-save">Mudar o PIN</button></div></section>
+ <section class="card pad-card" style="max-width:640px;margin-bottom:18px"><h2 class="sec-t">Mudar o PIN</h2><div class="form"><div class="f2"><div class="f"><label for="pf-pin">Novo PIN</label><input id="pf-pin" class="pin-small" data-pinin type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password" placeholder="4 a 6 algarismos"></div><div class="f"><label for="pf-pin2">Repetir</label><input id="pf-pin2" class="pin-small" data-pinin type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password"></div></div><button class="btn" data-act="pin-save">Mudar o PIN</button></div></section>
  <section class="card pad-card" style="max-width:640px;margin-bottom:18px"><h2 class="sec-t">Tolerâncias de ponto e encerramentos dos tribunais</h2><p class="muted" style="margin-top:0;font-size:13.5px">Dias em que os tribunais estão encerrados por tolerância de ponto ou outro motivo (ex.: Carnaval, 24 e 31 de dezembro, quando concedidas). O termo de um prazo que caia nesses dias passa para o dia útil seguinte (art. 138.º, n.ºs 2 e 3 CPC). Os feriados nacionais e os municipais da lista já estão incluídos.</p>
  ${(DB.closures||[]).slice().sort((a,b)=>a.date.localeCompare(b.date)).map(x=>`<div class="ev" style="border-bottom:1px solid var(--line)"><div class="tt" style="flex:1"><b>${fdl(parse(x.date))}</b><small>${esc(x.label||'Tribunais encerrados')}${x.muni?' · só '+esc((MUNIS[x.muni]||[])[0]||''):' · todo o país'}</small></div>${confirmBtn('cl-del',x.date+'|'+(x.muni||''),'Apagar','Confirmar')}</div>`).join('')}
  <div class="form" style="margin-top:10px"><div class="f3"><div class="f"><label for="cl-date">Data</label><input id="cl-date" type="date"></div><div class="f"><label for="cl-label">Motivo</label><input id="cl-label" placeholder="Ex.: Tolerância de ponto — Carnaval"></div><div class="f"><label for="cl-muni">Âmbito</label><select id="cl-muni"><option value="">Todo o país</option>${Object.entries(MUNIS).filter(([k])=>k!=='outro').map(([k,m])=>`<option value="${k}">Só ${m[0]}</option>`).join('')}</select></div></div><button class="btn" data-act="cl-add">Acrescentar encerramento</button></div></section>
@@ -1602,7 +1654,7 @@ document.addEventListener('click',e=>{
   case 'logout':S.logged=false;S.pin='';login();break;
   case 'reset':if(askConfirm('resetall'))resetAll();break;
   case 'pf-save':{const name=val('pf-name');if(!name){toast('Indique o nome.');break}Object.assign(DB.profile,{title:val('pf-title'),name,cedula:val('pf-ced'),addr:val('pf-addr'),email:val('pf-email'),rate:+val('pf-rate')||0,uc:+val('pf-uc')||102});save();S.doc.ready=false;shell();toast('Perfil guardado.');break}
-  case 'pin-save':{const a1=val('pf-pin'),a2=val('pf-pin2');if(!/^\d{4}$/.test(a1)){toast('O PIN tem de ter 4 algarismos.');break}if(a1!==a2){toast('Os dois PIN não são iguais.');break}hashPin(a1).then(h=>{DB.profile.pin=h;save();toast('PIN alterado.');render()});break}
+  case 'pin-save':{const a1=val('pf-pin'),a2=val('pf-pin2');if(!/^\d{4,6}$/.test(a1)){toast('O PIN tem de ter 4 a 6 algarismos.');break}if(a1!==a2){toast('Os dois PIN não são iguais.');break}hashPin(a1).then(h=>{DB.profile.pin=h;DB.profile.pinLen=a1.length;save();toast('PIN alterado.');render()});break}
   case 'new-proc':S.editCase=null;S.newProcClient=null;go('novo-proc');break;
   case 'edit-case':S.editCase=id;go('novo-proc');break;
   case 'save-proc':saveProc();break;
@@ -1756,6 +1808,11 @@ document.addEventListener('click',e=>{
   case 'jt-reset':DB.jurosTab=null;save();render();break;
   case 'cl-add':{const d=val('cl-date');if(!d){toast('Indique a data.');break}const muni=val('cl-muni')||null;if((DB.closures||[]).some(x=>x.date===d&&(x.muni||null)===muni)){toast('Essa data já está na lista.');break}(DB.closures=DB.closures||[]).push({date:d,label:val('cl-label')||'Tolerância de ponto',muni});save();toast('Encerramento acrescentado: os prazos foram recalculados.');render();break}
   case 'cl-del':if(askConfirm('cl-del'+id)){const [d,m]=id.split('|');DB.closures=(DB.closures||[]).filter(x=>!(x.date===d&&(x.muni||'')===m));save();render()}break;
+  case 'wa-gen':{const c=caseById(id);if(c)genWa(c);break}
+  case 'wa-close':S.wa=null;render();break;
+  case 'wa-copy':copyText($('wa-text')?.value||'','Mensagem copiada.');break;
+  case 'wa-open':{const c=caseById(id),k=clientById(c.clientId)||{};const t=$('wa-text')?.value||'';const l=document.createElement('a');l.href='https://wa.me/'+waPhone(k.phone)+'?text='+encodeURIComponent(t);l.target='_blank';l.rel='noopener';document.body.appendChild(l);l.click();l.remove();break}
+  case 'cc-go':{if(a.dataset.t==='case'){S.caseId=id;go('caso')}else{S.clientId=id;go('cliente')}break}
   case 'rec-retry':{const r=DB.recs.find(x=>x.id===id);if(r)retryPending(r);break}
   case 'rec-tx':{const r=DB.recs.find(x=>x.id===id);if(r)txFile(r);break}
   case 'spk':S.spk=a.dataset.spk||null;render();break;
@@ -1766,10 +1823,13 @@ document.addEventListener('click',e=>{
  }
 });
 document.addEventListener('keydown',e=>{
+ if(!S.logged&&DB.profile&&e.key==='Enter'&&e.target&&e.target.id==='pin-input'&&S.pin.length>=4){pinCheck();return}
  if(!S.logged&&DB.profile&&!/INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName||'')){if(/^[0-9]$/.test(e.key)){pinPress(e.key);return}if(e.key==='Backspace'){pinPress('b');return}}
  if(e.key==='Enter'){const r=e.target.closest&&e.target.closest('tr[data-case]');if(r){S.caseId=r.dataset.case;go('caso')}const k=e.target.closest&&e.target.closest('tr[data-client]');if(k){S.clientId=k.dataset.client;go('cliente')}}
 });
 document.addEventListener('input',e=>{const t=e.target;
+ if(t.id==='pin-input'){const v=t.value.replace(/\D/g,'').slice(0,pinLen());if(t.value!==v)t.value=v;S.pin=v;pinShow();if(v.length===pinLen())pinCheck();return}
+ if(t.dataset&&t.dataset.pinin!==undefined){const v=t.value.replace(/\D/g,'').slice(0,6);if(t.value!==v)t.value=v;return}
  if(t.id==='q'){S.q=t.value;$('ctable').innerHTML=caseTable();return}
  if(t.dataset.pclient!==undefined){$('newclient').style.display=t.value==='__new'?'grid':'none';return}
  if(t.dataset.urgtype!==undefined){const b=$('p-urgbasis');if(b)b.value=t.value?urgBasis(t.value):'';return}
@@ -1781,6 +1841,7 @@ document.addEventListener('input',e=>{const t=e.target;
  if(t.dataset.rp!==undefined){if(t.dataset.rp==='from')S.rpFrom=t.value;else S.rpTo=t.value;return}
  if(t.dataset.ptnote!==undefined){S.ptNote=t.value;return}
  if(t.dataset.mdst!==undefined){mandStatus(t.dataset.mdst,t.value);return}
+ if(t.dataset.ccq!==undefined){S.ccQ=t.value;const el=$('cc-res');if(el)el.innerHTML=ccResults(t.value);return}
  if(t.dataset.cq!==undefined){S.cq=t.value;const el=$('cl-list');if(el)el.innerHTML=clientRows(t.value);return}
  if(t.dataset.ctq!==undefined){S.ctq=t.value;const el=$('ct-list');if(el)el.innerHTML=contactRows(t.value);return}
  if(t.dataset.itype!==undefined){S.itype=t.value;const el=$('i-fields');if(el)el.innerHTML=incFields(t.value);return}
