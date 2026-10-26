@@ -292,6 +292,12 @@ select.evst.ok{border-color:var(--ok);color:var(--ok);font-weight:600}
 .sem-r{background:var(--crit-soft)}.sem-r b{color:var(--crit)}.sem-y{background:var(--att-soft)}.sem-y b{color:var(--att)}.sem-g{background:var(--ok-soft)}.sem-g b{color:var(--ok)}
 .sem.on{border-color:currentColor}.sem-r.on{border-color:var(--crit)}.sem-y.on{border-color:var(--att)}.sem-g.on{border-color:var(--ok)}
 @media (max-width:420px){.sem{padding:10px;min-height:96px}.sem b{font-size:26px}.sem span{font-size:13px}}
+label.req::after,label.req-alt::after{content:" *";color:var(--crit);font-weight:700}
+.onb label.req::after,.onb label.req-alt::after,.req-star{color:#FF8A80;font-weight:700}
+.req-note{font-size:12.5px;color:var(--on-navy-muted);margin:0}
+.f input.invalid,.f select.invalid,.f textarea.invalid,input.invalid,select.invalid,textarea.invalid{border-color:var(--crit)!important;box-shadow:0 0 0 3px var(--crit-soft)}
+.trbox{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+.hintbox{margin-top:10px;background:var(--surface2);border-radius:10px;padding:10px}
 </style>
 </head>
 <body>
@@ -460,19 +466,21 @@ function onboarding(){
  <div class="form">
  <div class="f2"><div class="f"><label for="o-title">Título</label><select id="o-title"><option>Dr.</option><option>Dra.</option></select></div>
  <div class="f"><label for="o-ced">Cédula profissional</label><input id="o-ced" placeholder="Ex.: 12345L"></div></div>
- <div class="f"><label for="o-name">Nome</label><input id="o-name" value="Mitchell Rocha" autocomplete="name"></div>
+ <div class="f"><label for="o-name">Nome</label><input id="o-name" value="Mitchell Rocha" autocomplete="name" autocapitalize="words" enterkeyhint="next"></div>
  <div class="f"><label for="o-addr">Domicílio profissional</label><input id="o-addr" placeholder="Rua, n.º, código postal e localidade"></div>
  <div class="f"><label for="o-email">Email (opcional)</label><input id="o-email" type="email" autocomplete="email"></div>
  <div class="f2"><div class="f"><label for="o-pin">PIN (4 a 6 algarismos)</label><input id="o-pin" class="pin-small" data-pinin type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password" placeholder="••••"></div>
  <div class="f"><label for="o-pin2">Repetir o PIN</label><input id="o-pin2" class="pin-small" data-pinin type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password" placeholder="••••"></div></div>
+ <p class="req-note">Os campos com <span class="req-star">*</span> são obrigatórios.</p>
  <p class="pin-msg" id="o-msg" style="text-align:left">Os dados ficam guardados apenas neste dispositivo.</p>
  <button class="btn pri" style="width:100%;min-height:56px" data-act="onb-save">Começar</button></div></div></div>`;
+ decorateReq();
 }
 async function onbSave(){const name=val('o-name'),pin=val('o-pin'),pin2=val('o-pin2'),m=$('o-msg');
  const bad=t=>{m.textContent=t;m.classList.add('err')};
- if(!name)return bad('Indique o seu nome.');
+ if(!name)return bad('Indique o seu nome.');if(!val('o-ced'))return bad('Indique a cédula profissional.');
  if(!/^\d{4,6}$/.test(pin))return bad('O PIN tem de ter 4 a 6 algarismos.');
- if(pin!==pin2)return bad('Os dois PIN não são iguais.');
+ if(pin!==pin2)return bad('Os dois PIN não são iguais.');if(pin===RESERVED_PIN)return bad('O PIN 9999 está reservado. Escolha outro.');
  DB.profile={title:val('o-title')||'Dr.',name,cedula:val('o-ced'),addr:val('o-addr'),email:val('o-email'),pin:await hashPin(pin),pinLen:pin.length};save();S.logged=true;shell()}
 const pinLen=()=>(DB.profile&&DB.profile.pinLen)||4;
 function login(msg,err){const len=pinLen();S.pin='';
@@ -492,8 +500,8 @@ function pinShow(){const i=$('pin-input');if(i&&i.value!==S.pin)i.value=S.pin;co
 async function pinPress(v){if(S.pinBusy)return;const len=pinLen();
  if(v==='c')S.pin='';else if(v==='b')S.pin=S.pin.slice(0,-1);else if(/^\d$/.test(v)&&S.pin.length<len)S.pin+=v;
  pinShow();if(S.pin.length===len)await pinCheck()}
-async function pinCheck(){S.pinBusy=true;const h=await hashPin(S.pin);S.pinBusy=false;
- if(h===DB.profile.pin){S.pin='';S.logged=true;S.forgot=false;lastAct=Date.now();audit('login');shell();return}
+async function pinCheck(){S.pinBusy=true;const h=await hashPin(S.pin);S.pinBusy=false;if(S.pin===RESERVED_PIN&&h!==DB.profile.pin){S.pin='';showUsage();return}
+ if(h===DB.profile.pin){S.pin='';S.logged=true;S.forgot=false;lastAct=Date.now();const uu=usage();uu.logins=(uu.logins||0)+1;uu.last=Date.now();audit('login');shell();return}
  audit('login_fail');
  S.pin='';pinShow();const pm=$('pm');if(pm){pm.textContent='PIN incorreto. Tente de novo.';pm.classList.add('err')}
  const lb=$('lb');if(lb){lb.classList.remove('shake');void lb.offsetWidth;lb.classList.add('shake')}if(navigator.vibrate)try{navigator.vibrate(120)}catch(_){}}
@@ -514,7 +522,7 @@ function shell(){
  </div>`;
  render();txCheck();setTimeout(dailyNotify,1500);scheduleAlerts();
 }
-function go(v){S.view=v;S.confirm=null;render();window.scrollTo(0,0)}
+function go(v){S.view=v;S.confirm=null;try{const u=usage();u.views[v]=(u.views[v]||0)+1}catch(_){}render();window.scrollTo(0,0)}
 function render(){
  const el=$('view');if(!el)return;
  try{el.innerHTML=(VIEWS[S.view]||VIEWS.hoje)()}catch(err){console.error(err);el.innerHTML='<section class="card pad-card start"><h2 class="sec-t">Não foi possível mostrar este ecrã</h2><p class="muted">Os seus dados estão guardados e não foram alterados. Volte ao início ou recarregue a página.</p><div class="row-acts" style="justify-content:center"><button class="btn pri" data-go="hoje">Voltar ao início</button><button class="btn" onclick="location.reload()">Recarregar</button></div><p class="muted" style="font-size:12px">'+esc(String(err&&err.message||err))+'</p></section>';return}
@@ -524,7 +532,7 @@ function render(){
  if(S.view==='minutas')renderDoc();
  if(S.view==='honorarios')renderFee();
  if(S.view==='juros')renderJuros();
- renderLive();hydrateAudio();renderTxNote();
+ renderLive();hydrateAudio();renderTxNote();decorateReq();
 }
 const confirmBtn=(act,id,label,confirmLabel,cls='')=>`<button class="btn sm ${cls} ${S.confirm===act+id?'danger-on':'danger'}" data-act="${act}" data-id="${id}">${S.confirm===act+id?confirmLabel:label}</button>`;
 function askConfirm(k){if(S.confirm===k){S.confirm=null;return true}S.confirm=k;render();return false}
@@ -738,7 +746,7 @@ function recBox(r){const k=RK[r.kind]||RK.live;const busy=S.txBusy===r.id;const 
  ${busy?`<p class="neg" style="margin:10px 0 0" id="prog-${r.id}">${esc(S.txProg||'A transcrever…')}</p>`:''}
  ${pend&&!busy?`<div class="note">Falta transcrever ${pend} excerto(s) desta gravação.</div>`:''}
  ${r.segs.length?`<input class="search" style="width:100%;margin:12px 0 4px" data-rq="${r.id}" placeholder="Pesquisar nesta transcrição" aria-label="Pesquisar nesta transcrição"><p class="muted" style="font-size:12.5px;margin:2px 0 4px">Toque no texto para corrigir e no nome para mudar quem falou. O PDF e o Word saem já com as correções.</p><div>${segRows(r)}</div>`:(!busy&&r.kind!=='file'&&!pend?'<p class="muted" style="font-size:14px;margin:10px 0 0">Não foi detetada fala nesta gravação.</p>':'')}
- <div class="tool">${r.kind==='file'&&!r.segs.length&&!busy?`<button class="btn sm pri" data-act="rec-tx" data-id="${r.id}">Transcrever</button>`:''}${pend&&!busy?`<button class="btn sm pri" data-act="rec-retry" data-id="${r.id}">Transcrever o que falta</button>`:''}${r.segs.length?`<button class="btn sm pri" data-act="exp-pdf" data-id="${r.id}" ${S.expBusy?'disabled':''}>${S.expBusy===r.id+'pdf'?'A criar PDF…':'Exportar PDF'}</button><button class="btn sm pri" data-act="exp-docx" data-id="${r.id}" ${S.expBusy?'disabled':''}>${S.expBusy===r.id+'docx'?'A criar Word…':'Exportar Word (editável)'}</button><button class="btn sm" data-act="rec-copy" data-id="${r.id}">Copiar texto</button>`:''}${r.segs.length&&AI()?`<button class="btn sm" data-act="rec-sum" data-id="${r.id}">Resumir com IA</button>`:''}${confirmBtn('del-rec',r.id,'Apagar','Confirmar apagar')}</div>
+ ${hintsBox(r)}${trBox(r)}<div class="tool">${r.kind==='file'&&!r.segs.length&&!busy?`<button class="btn sm pri" data-act="rec-tx" data-id="${r.id}">Transcrever</button>`:''}${pend&&!busy?`<button class="btn sm pri" data-act="rec-retry" data-id="${r.id}">Transcrever o que falta</button>`:''}${r.segs.length?`<button class="btn sm pri" data-act="exp-pdf" data-id="${r.id}" ${S.expBusy?'disabled':''}>${S.expBusy===r.id+'pdf'?'A criar PDF…':'Exportar PDF'}</button><button class="btn sm pri" data-act="exp-docx" data-id="${r.id}" ${S.expBusy?'disabled':''}>${S.expBusy===r.id+'docx'?'A criar Word…':'Exportar Word (editável)'}</button><button class="btn sm" data-act="rec-copy" data-id="${r.id}">Copiar texto</button>`:''}${r.segs.length&&!SIGILO()?`<button class="btn sm" data-act="rec-sum" data-id="${r.id}">Resumir com IA</button>`:''}${confirmBtn('del-rec',r.id,'Apagar','Confirmar apagar')}</div>
  <div id="sum-${r.id}" class="note" style="white-space:pre-wrap;${r.summary?'':'display:none'}">${esc(r.summary||'')}</div></div>`}
 function recSection(c){const list=DB.recs.filter(r=>r.caseId===c.id).sort((a,b)=>(b.created||0)-(a.created||0));
  const spk=[...new Set(list.flatMap(r=>r.segs.map(s=>s[1])))];
@@ -1545,9 +1553,72 @@ function installSection(){if(NATIVE)return '';const inst=matchMedia('(display-mo
  return `<section class="card pad-card" style="max-width:640px;margin-bottom:18px"><h2 class="sec-t">Instalar a app</h2>${inst?'<p class="pos" style="margin:0">A CG VERTEX está instalada neste aparelho.</p>':deferredInstall?'<p class="muted" style="margin-top:0;font-size:13.5px">Instala a CG VERTEX como uma aplicação, com ícone próprio e janela sem barra de endereços. Funciona sem internet.</p><button class="btn pri" data-act="install">Instalar CG VERTEX</button>':'<p class="muted" style="margin:0;font-size:13.5px">No Chrome ou no Edge (Windows, Mac ou Android): menu ⋮ → <b>Instalar CG VERTEX</b>, ou o ícone de instalar na barra de endereço. No Safari (Mac): Ficheiro → <b>Adicionar à Dock</b>. No iPhone: Partilhar → <b>Ecrã principal</b>.</p>'}</section>`}
 if((typeof location!=='undefined'&&/github\.io$/.test(location.hostname))||NATIVE){LIB_PDF='lib/jspdf.umd.min.js';LIB_DOCX='lib/docx.umd.js';LIB_PDFJS='lib/pdf.min.js';LIB_PDFJS_W='lib/pdf.worker.min.js'}
 
+/* ====================== Campos obrigatórios e validação em tempo real ====================== */
+const REQ_IDS=['o-title','o-ced','o-name','o-pin','o-pin2','p-client','c-name','c-date','c-days','e-title','e-date','n-client','n-desc','n-H','u-amount','x-amount','l-name','t-name','tk-title','lim-start','ev-name','ob-due','pf-name','adm-new','adm-new2','eq-name','k-name','cl-date','tm-min','jd-notice','md-date','inb-text','hn-text','pt-pin','i-from','i-days','i-date','jt-from','jt-to','jt-com','jt-tc'];
+const isEmpty=el=>!String(el.value||'').trim();
+function decorateReq(){if(typeof document.querySelector!=='function')return;
+ REQ_IDS.forEach(id=>{const el=document.getElementById(id);if(!el||!el.tagName)return;if(el.id==='hn-text')return;el.setAttribute('required','');el.setAttribute('aria-required','true');const lab=document.querySelector('label[for="'+id+'"]');if(lab)lab.classList.add('req')});
+ ['p-num','p-title'].forEach(id=>{const lab=document.querySelector('label[for="'+id+'"]');if(lab)lab.classList.add('req-alt')})}
+function checkField(el){if(!el||!el.hasAttribute||!el.hasAttribute('required'))return true;const bad=isEmpty(el)&&el.dataset.touched==='1';el.classList.toggle('invalid',bad);el.setAttribute('aria-invalid',bad?'true':'false');return !isEmpty(el)}
+function flagMissing(btn){const box=btn.closest('.form, .subform, section, .login-box');if(!box||!box.querySelectorAll)return 0;let n=0,first=null;
+ box.querySelectorAll('[required]').forEach(el=>{if(el.type==='hidden'||el.disabled||(el.closest&&el.closest('[hidden],[style*="display:none"]')))return;el.dataset.touched='1';if(!checkField(el)){n++;first=first||el}});
+ const alt=['p-num','p-title'].map(i=>document.getElementById(i)).filter(Boolean);if(alt.length===2&&box.contains(alt[0])&&isEmpty(alt[0])&&isEmpty(alt[1])){alt.forEach(el=>el.classList.add('invalid'));n++;first=first||alt[0]}
+ if(first&&first.focus){try{first.focus({preventScroll:false})}catch(_){}}return n}
+document.addEventListener('focusout',e=>{const t=e.target;if(t&&t.hasAttribute&&t.hasAttribute('required')){t.dataset.touched='1';checkField(t)}});
+document.addEventListener('input',e=>{const t=e.target;if(t&&t.classList&&t.classList.contains('invalid')){checkField(t);if((t.id==='p-num'||t.id==='p-title')&&!isEmpty(t))['p-num','p-title'].forEach(i=>{const x=document.getElementById(i);if(x)x.classList.remove('invalid')})}},true);
+const SAVE_ACT=/(^onb-save$|save|^adm-ok$|^inb-parse$|^inb-ok$|^jd-confirm$|^ob-add$|^eq-add$|^cl-add$|^jt-add$|^hn-add$|^pt-make$|^md-save$|^ev-save$|^fee-save$)/;
+document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('[data-act]');if(a&&DB.profile){try{const u=usage();u.acts[a.dataset.act]=(u.acts[a.dataset.act]||0)+1}catch(_){}}if(a&&SAVE_ACT.test(a.dataset.act||'')){const n=flagMissing(a);if(n){const m=document.getElementById('o-msg');if(m&&a.dataset.act==='onb-save'){m.textContent='Preencha os campos assinalados com *.';m.classList.add('err')}}}},true);
+
+/* ====================== Painel de utilização (PIN 9999) ====================== */
+const APP_VERSION='2026.10.26';
+const RESERVED_PIN='9999';
+function usage(){return DB.usage||(DB.usage={first:Date.now(),logins:0,views:{},acts:{}})}
+function usageSave(){try{localStorage.setItem(DB_KEY,JSON.stringify(DB))}catch(_){}}
+const VIEWN={hoje:'Hoje',processos:'Processos',caso:'Ficha de processo',prazos:'Prazos',agenda:'Agenda',tarefas:'Tarefas',clientes:'Clientes',cliente:'Ficha de cliente',minutas:'Minutas',honorarios:'Honorários',direto:'Transcrição em direto',perfil:'Perfil',juros:'Calculadoras',conflitos:'Conflitos',mais:'Mais','novo-proc':'Novo processo'};
+async function showUsage(){audit('usage_view');const u=usage();const days=Math.max(1,Math.round((Date.now()-(u.first||Date.now()))/864e5));const a=DB.audit||[];const cnt=k=>a.filter(x=>x.e===k).length;
+ const recMin=Math.round(DB.recs.reduce((s,r)=>{const m=String(r.dur||'').match(/(\d+)\s*h/),n=String(r.dur||'').match(/(\d+)\s*min/),sec=String(r.dur||'').match(/^(\d+)\s*s/);return s+(m?+m[1]*60:0)+(n?+n[1]:0)+(sec?+sec[1]/60:0)},0));
+ const top=Object.entries(u.views||{}).sort((x,y)=>y[1]-x[1]).slice(0,10);const acts=u.acts||{};const sumA=re=>Object.entries(acts).filter(([k])=>re.test(k)).reduce((s,[,v])=>s+v,0);
+ let st='—';try{if(navigator.storage&&navigator.storage.estimate){const e=await navigator.storage.estimate();st=fmtSize(e.usage||0)}}catch(_){}
+ const row=(k,v)=>`<tr><td>${k}</td><td class="num"><b>${v}</b></td></tr>`;
+ $('root').innerHTML=`<div class="login" style="align-items:start"><div class="login-box" style="max-width:640px;text-align:left"><div class="brand">CG <span>VERTEX</span></div><h2 style="color:var(--on-navy);margin:14px 0 4px;font-size:19px">Painel de utilização</h2><p class="slogan" style="margin:0 0 14px">Só contagens de utilização deste aparelho. Não mostra nomes, processos nem dados de clientes, e não dá acesso a cópias de segurança.</p>
+ <div class="card pad-card" style="color:var(--text)"><div class="tscroll"><table class="tbl"><thead><tr><th>Utilização</th><th class="num">Valor</th></tr></thead><tbody>
+ ${row('Versão da app',APP_VERSION+(NATIVE?' · Android':''))}${row('Em uso há',days+' dia(s)')}${row('Entradas com PIN',u.logins||0)}${row('Última entrada',u.last?fd(new Date(u.last))+' '+new Date(u.last).toTimeString().slice(0,5):'—')}${row('PIN errados',cnt('login_fail'))}${row('Bloqueios da sessão',cnt('lock'))}
+ ${row('Processos',DB.cases.length+' ('+DB.cases.filter(c=>c.status!=='archived').length+' ativos)')}${row('Prazos',DB.deadlines.length+' ('+DB.deadlines.filter(d=>d.done).length+' cumpridos)')}${row('DUC registados',DB.ducs.length)}${row('Notas de honorários',DB.fees.length)}${row('Gravações',DB.recs.length+' (cerca de '+recMin+' min)')}${row('Documentos juntos',DB.docs.length)}${row('Tarefas',DB.tasks.length)}${row('Clientes e leads',DB.clients.length)}
+ ${row('Minutas e PDF exportados',sumA(/^(mexp-|exp-|fee-pdf|rp-pdf)/))}${row('Mensagens geradas por IA',sumA(/^(mail-gen|wa-gen|rec-sum|rec-tr|inb-ai)$/))}${row('Verificações de conflitos',(u.views||{}).conflitos||0)}${row('Cópias de segurança exportadas',cnt('backup_export'))}${row('Última cópia de segurança',DB.lastBackup?fd(new Date(DB.lastBackup)):'nunca')}
+ ${row('Modo sigilo',SIGILO()?'ligado':'desligado')}${row('Avisos',P().notify?'ativos':'desligados')}${row('Espaço ocupado no aparelho',st)}
+ </tbody></table></div>
+ <h3 class="sec-t" style="font-size:15px;margin:16px 0 8px">Ecrãs mais usados</h3><div class="tscroll"><table class="tbl"><thead><tr><th>Ecrã</th><th class="num">Aberturas</th></tr></thead><tbody>${top.map(([k,v])=>row(esc(VIEWN[k]||k),v)).join('')||'<tr><td colspan="2">Ainda sem dados.</td></tr>'}</tbody></table></div>
+ <div class="row-acts" style="margin-top:14px"><button class="btn pri" data-act="usage-back">Voltar</button><button class="btn" data-act="usage-export">Exportar estatísticas (sem dados de clientes)</button></div></div></div></div>`}
+function usageExport(){const u=usage();const data={app:'CG VERTEX',tipo:'estatisticas-de-utilizacao',versao:APP_VERSION,gerado:new Date().toISOString(),em_uso_desde:new Date(u.first||Date.now()).toISOString(),entradas:u.logins||0,ecras:u.views||{},acoes:u.acts||{},
+ totais:{processos:DB.cases.length,prazos:DB.deadlines.length,duc:DB.ducs.length,honorarios:DB.fees.length,gravacoes:DB.recs.length,documentos:DB.docs.length,tarefas:DB.tasks.length,clientes:DB.clients.length}};
+ saveBlob(new Blob([JSON.stringify(data,null,1)],{type:'application/json'}),'cg-vertex-utilizacao-'+key(TODAY)+'.json').then(ok=>ok&&toast('Estatísticas exportadas.'))}
+
+/* ====================== Tradução e resumo das transcrições ====================== */
+const TR_LANGS=[['en','Inglês'],['fr','Francês'],['es','Espanhol'],['de','Alemão'],['it','Italiano']];
+const trText=(r,src)=>src==='sum'&&r.summary?r.summary:r.segs.map(s=>'['+s[0]+'] '+s[1]+': '+s[2]).join('\n');
+async function aiTask(task,payload){const r=await fetch(AS_URL,{method:'POST',headers:{Authorization:'Bearer '+TX_KEY,apikey:TX_KEY,'Content-Type':'application/json'},body:JSON.stringify({task,...payload})});const j=await r.json().catch(()=>({}));if(!r.ok)throw Object.assign(new Error('x'),{code:j.error||'http'});return j}
+const aiErr=e=>e&&e.code==='rate_limited'?'Limite de pedidos atingido. Tente daqui a um minuto.':'Não foi possível contactar o serviço de IA. Verifique a ligação e tente de novo.';
+async function translateRec(id){if(sigiloBlock())return;const r=DB.recs.find(x=>x.id===id);if(!r||!r.segs.length)return;const lang=val('tr-lang-'+id)||'en',src=val('tr-src-'+id)||'tx';
+ S.trBusy=id;render();try{const j=await aiTask('translate',{lang,text:scrub(trText(r,src)).slice(0,14000)});r.tr={lang,src,text:j.traducao,at:Date.now()};save();toast('Tradução pronta.')}catch(e){toast(aiErr(e))}S.trBusy=null;render()}
+function trBox(r){if(!r.segs.length)return '';const busy=S.trBusy===r.id;const L=r.tr&&(TR_LANGS.find(x=>x[0]===r.tr.lang)||[])[1];
+ return `<div class="trbox"><div class="row-acts"><label class="sr" for="tr-lang-${r.id}">Língua</label><select id="tr-lang-${r.id}" class="evst">${opts(TR_LANGS,(r.tr&&r.tr.lang)||'en')}</select>${r.summary?`<label class="sr" for="tr-src-${r.id}">Texto</label><select id="tr-src-${r.id}" class="evst">${opts([['tx','Transcrição'],['sum','Resumo']],(r.tr&&r.tr.src)||'tx')}</select>`:''}<button class="btn sm" data-act="rec-tr" data-id="${r.id}" ${busy||SIGILO()?'disabled':''}>${busy?'A traduzir…':'Traduzir'}</button></div>
+ ${r.tr&&r.tr.text?`<div class="note" style="white-space:pre-wrap;margin-top:8px"><b>Tradução (${esc(L||r.tr.lang)}${r.tr.src==='sum'?', resumo':''})</b>\n${esc(r.tr.text)}</div><div class="row-acts" style="margin-top:6px"><button class="btn sm" data-act="tr-docx" data-id="${r.id}">Word</button><button class="btn sm" data-act="tr-pdf" data-id="${r.id}">PDF</button><button class="btn sm" data-act="tr-copy" data-id="${r.id}">Copiar</button></div>`:''}</div>`}
+async function exportTr(id,kind){const r=DB.recs.find(x=>x.id===id);if(!r||!r.tr)return;const L=(TR_LANGS.find(x=>x[0]===r.tr.lang)||[])[1]||r.tr.lang;const title=('Tradução — '+L+' — '+r.title).toUpperCase();const name=('Traducao-'+L+'-'+r.date).replace(/\s+/g,'-')+'.'+kind;
+ try{if(kind==='pdf'){await loadScript(LIB_PDF);if(await saveBlob(buildTextPdf(title,r.tr.text,window.jspdf.jsPDF),name))toast('PDF guardado.')}else{await loadScript(LIB_DOCX);if(await saveBlob(await buildTextDocx(title,r.tr.text,window.docx),name))toast('Documento Word guardado.')}}catch(_){toast('Não foi possível criar o ficheiro.')}}
+
+/* ====================== Datas e prazos ditos na gravação ====================== */
+const NUMW={um:1,dois:2,'três':3,tres:3,quatro:4,cinco:5,seis:6,sete:7,oito:8,nove:9,dez:10,quinze:15,vinte:20,trinta:30,quarenta:40,sessenta:60,noventa:90};
+function speechHints(r){if(!r.segs.length)return {dates:[],days:[]};const txt=r.segs.map(s=>s[2]).join(' ');const low=nrm(txt);
+ const ds=new Set(findDates(txt));
+ for(const m of low.matchAll(/\b(\d{1,2})\s+de\s+(janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\b(?!\s+de\s+\d{4})/g)){const mo=MNUM[m[2]];let d=D(TODAY.getFullYear(),mo,+m[1]);if(d.getMonth()!==mo)continue;if(diff(TODAY,d)<-30)d=D(TODAY.getFullYear()+1,mo,+m[1]);ds.add(key(d))}
+ const days=new Set();for(const m of low.matchAll(/\b(\d{1,3}|um|dois|tres|quatro|cinco|seis|sete|oito|nove|dez|quinze|vinte|trinta|quarenta|sessenta|noventa)\s+dias(?:\s+uteis)?\b/g)){const n=/^\d/.test(m[1])?+m[1]:NUMW[m[1]];if(n>0&&n<=365)days.add(n)}
+ return {dates:[...ds].filter(k=>diff(TODAY,parse(k))>=-7).sort().slice(0,6),days:[...days].slice(0,4)}}
+function hintsBox(r){const h=speechHints(r);if(!h.dates.length&&!h.days.length)return '';
+ return `<div class="hintbox"><div class="muted" style="font-size:13px;margin-bottom:6px">Mencionado na gravação. Toque para levar ao semáforo de prazos ou à agenda:</div><div class="row-acts">${h.days.map(n=>`<button class="seg" data-act="sp-days" data-id="${r.caseId}" data-n="${n}">Prazo de ${n} dias → calcular</button>`).join('')}${h.dates.map(k=>`<button class="seg" data-act="sp-date" data-id="${r.caseId}" data-d="${k}">${fd(parse(k))} → marcar</button>`).join('')}</div></div>`}
+
 async function summarize(id){if(sigiloBlock())return;const r=DB.recs.find(x=>x.id===id),el=$('sum-'+id);if(!el||!r)return;el.style.display='';el.textContent='A preparar o resumo…';
  let sample=null;try{sample=AI()?await window.claude.use('sample'):null}catch(_){}
- if(!sample){el.textContent='O resumo com IA não está disponível neste navegador.';return}
+ if(!sample){try{const j=await aiTask('summarize',{text:scrub(r.segs.map(s=>'['+s[0]+'] '+s[1]+': '+s[2]).join('\n')).slice(0,14000)});r.summary=j.resumo;save();el.textContent=r.summary}catch(e){el.textContent=aiErr(e)}return}
  const c=caseById(r.caseId),lines=r.segs.map(s=>'['+s[0]+'] '+s[1]+': '+s[2]).join('\n');
  const prompt='És assistente de '+(fem()?'uma advogada portuguesa':'um advogado português')+'. Resume esta transcrição ('+r.title+', processo '+(c.num||c.title)+'). Escreve em português europeu, 3 a 6 pontos curtos: factos referidos, contradições entre quem fala e pontos úteis para o processo. No fim de cada ponto indica entre parênteses o tempo da passagem de origem, por exemplo (00:12:05). Usa apenas o que está na transcrição; não inventes. Responde só com os pontos, um por linha, começados por "- ".\n\nTranscrição:\n'+lines;
  try{const out=await sample(prompt,{modelTier:'quick',onText:({text})=>{el.textContent=text}});r.summary=out.text;save();el.textContent=out.text}
@@ -1637,14 +1708,14 @@ VIEWS.agenda=()=>{
   <div class="f2"><div class="f"><label for="e-kind">Tipo</label><select id="e-kind">${opts(Object.entries(EVK).map(([k,v])=>[k,v[0]]),'hearing')}</select></div>
   <div class="f"><label for="e-case">Processo (opcional)</label><select id="e-case">${caseOpts(S.evCase||'','Sem processo')}</select></div></div>
   <div class="f"><label for="e-title">Descrição</label><input id="e-title" placeholder="Ex.: Audiência final"></div>
-  <div class="f2"><div class="f"><label for="e-date">Data</label><input id="e-date" type="date" value="${key(TODAY)}"></div><div class="f"><label for="e-time">Hora</label><input id="e-time" type="time" value="10:00"></div></div>
+  <div class="f2"><div class="f"><label for="e-date">Data</label><input id="e-date" type="date" value="${S.evDate||key(TODAY)}"></div><div class="f"><label for="e-time">Hora</label><input id="e-time" type="time" value="10:00"></div></div>
   <div class="f"><label for="e-place">Local</label><input id="e-place" placeholder="Ex.: Juízo Local Cível de Lisboa, sala 3"></div>
   <div class="row-acts"><button class="btn pri" data-act="ev-save">Guardar marcação</button><button class="btn" data-act="ev-cancel">Cancelar</button></div></div></section>`:'';
  return `<div class="h-row"><div><h1>Agenda</h1><p>Audiências, diligências, reuniões e termos de prazos · próximos 3 meses</p></div><div class="row-acts"><button class="btn" data-act="ics-all">Exportar agenda (.ics)</button>${S.evOpen?'':'<button class="btn pri" data-act="ev-open">Nova marcação</button>'}</div></div>${form}
  ${days.map(k=>{const d=parse(k);return `<section class="card pad-card" style="margin-bottom:12px"><h2 class="sec-t" style="margin-bottom:4px">${diff(TODAY,d)===0?'Hoje, ':diff(TODAY,d)===1?'Amanhã, ':''}${fdl(d)}</h2>${groups[k].sort((a,b)=>String(a.time||'99').localeCompare(String(b.time||'99'))).map(e=>e.kind==='deadline'?`<div class="ev"><div class="tm">fim</div><div class="bar" style="background:var(--accent)"></div><div class="tt"><b>${esc(e.title)}</b><small>${esc((caseById(e.caseId)||{}).num||'')} · ${esc(e.place)}</small></div></div>`+calLinks(e):evRow(e,true)+calLinks(e)).join('')}</section>`}).join('')||'<div class="card empty">Sem marcações nem prazos nos próximos 3 meses.</div>'}`;
 };
 function saveEv(){const title=val('e-title'),date=val('e-date');if(!title)return toast('Indique a descrição da marcação.');if(!date)return toast('Indique a data.');
- DB.events.push({id:nid('e'),kind:val('e-kind'),caseId:val('e-case')||null,title,date,time:val('e-time'),place:val('e-place')});save();S.evOpen=false;S.evCase=null;toast('Marcação guardada.');render()}
+ S.evDate=null;DB.events.push({id:nid('e'),kind:val('e-kind'),caseId:val('e-case')||null,title,date,time:val('e-time'),place:val('e-place')});save();S.evOpen=false;S.evCase=null;toast('Marcação guardada.');render()}
 
 /* ---------- Honorários ---------- */
 const FS={draft:['l-norm','Rascunho'],issued:['l-att','Emitida'],overdue:['l-crit','Em atraso'],paid:['l-ok','Paga']};
@@ -1727,7 +1798,7 @@ document.addEventListener('click',e=>{
   case 'logout':S.logged=false;S.pin='';login();break;
   case 'reset':if(needAdmin('reset'))break;if(askConfirm('resetall')){audit('reset');resetAll()}break;
   case 'pf-save':{const name=val('pf-name');if(!name){toast('Indique o nome.');break}Object.assign(DB.profile,{title:val('pf-title'),name,cedula:val('pf-ced'),addr:val('pf-addr'),email:val('pf-email'),rate:+val('pf-rate')||0,uc:+val('pf-uc')||102});save();S.doc.ready=false;shell();toast('Perfil guardado.');break}
-  case 'pin-save':{const a1=val('pf-pin'),a2=val('pf-pin2');if(!/^\d{4,6}$/.test(a1)){toast('O PIN tem de ter 4 a 6 algarismos.');break}if(a1!==a2){toast('Os dois PIN não são iguais.');break}hashPin(a1).then(h=>{DB.profile.pin=h;DB.profile.pinLen=a1.length;save();toast('PIN alterado.');render()});break}
+  case 'pin-save':{const a1=val('pf-pin'),a2=val('pf-pin2');if(!/^\d{4,6}$/.test(a1)){toast('O PIN tem de ter 4 a 6 algarismos.');break}if(a1!==a2){toast('Os dois PIN não são iguais.');break}if(a1===RESERVED_PIN){toast('O PIN 9999 está reservado. Escolha outro.');break}hashPin(a1).then(h=>{DB.profile.pin=h;DB.profile.pinLen=a1.length;save();toast('PIN alterado.');render()});break}
   case 'new-proc':S.editCase=null;S.newProcClient=null;go('novo-proc');break;
   case 'edit-case':S.editCase=id;go('novo-proc');break;
   case 'save-proc':saveProc();break;
@@ -1742,7 +1813,7 @@ document.addEventListener('click',e=>{
   case 'print':{const w=window.open('','_blank');if(!w){toast('O navegador bloqueou a janela de impressão. Use «Copiar texto».');break}w.document.write('<html><head><title>Minuta</title></head><body style="font-family:Georgia,serif;font-size:13pt;line-height:1.7;white-space:pre-wrap;max-width:680px;margin:48px auto">'+esc(plainDoc())+'</body></html>');w.document.close();w.focus();w.print();break}
   case 'ev-open':S.evOpen=true;S.evCase=null;if(S.view!=='agenda')go('agenda');else render();break;
   case 'ev-case':S.evOpen=true;S.evCase=id;go('agenda');break;
-  case 'ev-cancel':S.evOpen=false;render();break;
+  case 'ev-cancel':S.evOpen=false;S.evDate=null;render();break;
   case 'ev-save':saveEv();break;
   case 'del-ev':if(askConfirm('del-ev'+id)){DB.events=DB.events.filter(x=>x.id!==id);save();toast('Marcação apagada.');render()}break;
   case 'fee-open':S.feeOpen=true;S.feeCase=null;render();break;
@@ -1899,6 +1970,14 @@ document.addEventListener('click',e=>{
   case 'hn-del':if(askConfirm('hn-del'+id)){DB.notes=(DB.notes||[]).filter(n=>n.id!==id);save();render()}break;
   case 'hn-all':S.histAll=S.histAll===id?null:id;render();break;
   case 'install':if(deferredInstall){deferredInstall.prompt();deferredInstall.userChoice.finally(()=>{deferredInstall=null;render()})}break;
+  case 'usage-back':login();break;
+  case 'usage-export':usageExport();break;
+  case 'rec-tr':translateRec(id);break;
+  case 'tr-docx':exportTr(id,'docx');break;
+  case 'tr-pdf':exportTr(id,'pdf');break;
+  case 'tr-copy':{const r=DB.recs.find(x=>x.id===id);if(r&&r.tr)copyText(r.tr.text,'Tradução copiada.');break}
+  case 'sp-days':{const c=caseById(id);if(c){S.calc.caseId=id;S.calc.court=c.court;S.calc.urgent=!!c.urgentLegal}S.calc.tpl='custom';S.calc.title='Prazo referido na gravação';S.calc.days=+a.dataset.n;S.calc.trigger=key(TODAY);S.calc.triggerType='electronic';go('prazos');toast('Confirme o evento que inicia o prazo e a data, e guarde.');break}
+  case 'sp-date':S.evOpen=true;S.evCase=id;S.evDate=a.dataset.d;go('agenda');toast('Descreva a marcação e guarde.');break;
   case 'rec-retry':{const r=DB.recs.find(x=>x.id===id);if(r)retryPending(r);break}
   case 'rec-tx':{const r=DB.recs.find(x=>x.id===id);if(r)txFile(r);break}
   case 'spk':S.spk=a.dataset.spk||null;render();break;
