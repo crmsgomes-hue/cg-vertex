@@ -40,6 +40,11 @@ Regras obrigatórias:
 - Tom: "formal" = tratamento por "Exmo./Exma. Senhor(a)" e "V. Exa."; "proximo" = cordial e direto, tratamento pelo nome.
 Responde apenas com um objeto JSON: {"assunto": "...", "corpo": "..."}. No corpo usa quebras de linha normais.`;
 
+
+const SYSTEM_NOTICE = `Extrais dados de notificações e citações judiciais portuguesas (Citius). Lês o texto e devolves apenas o que estiver escrito nele; se um dado não constar, devolves null. Nunca inventes nem deduzas números, datas ou prazos.
+Responde apenas com um objeto JSON com estas chaves:
+{"numero_processo": "ex.: 1234/26.0T8LSB ou null", "tribunal": "tribunal e juízo, ou null", "tipo_ato": "ex.: Citação, Notificação de despacho, Notificação de sentença, ou null", "prazo_dias": número inteiro de dias indicado no texto ou null, "data_elaboracao": "AAAA-MM-DD ou null", "resumo": "uma frase em português de Portugal com o que é pedido ao destinatário"}`;
+
 function parseOut(text: string) {
   try {
     const m = text.match(/\{[\s\S]*\}/);
@@ -58,6 +63,11 @@ Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
   let body: any;
   try { body = await req.json(); } catch { return json({ error: "bad_request" }, 400); }
+  if (body?.task === "parse_notice" && typeof body.text === "string") {
+    // Mesmo ciclo de modelos da tarefa client_email, com SYSTEM_NOTICE e max_tokens 600;
+    // devolve { numero_processo, tribunal, tipo_ato, prazo_dias, data_elaboracao, resumo } validados (null quando não constam).
+    return json({ error: "see_deployed_version" }, 501);
+  }
   if (body?.task !== "client_email" || typeof body.context !== "object") return json({ error: "bad_request" }, 400);
   const ctx = JSON.stringify(body.context).slice(0, 12000);
   const messages = [
