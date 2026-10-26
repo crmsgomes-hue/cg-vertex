@@ -1,4 +1,4 @@
-// LEXVORTEX — testes do motor de prazos. Correr: node tests/prazos.test.js [caminho/index.html]
+// CG VERTEX — testes do motor de prazos. Correr: node tests/prazos.test.js [caminho/index.html]
 // Cada resultado esperado foi calculado à mão com o calendário real e as regras indicadas.
 const fs = require('fs'), path = require('path');
 const file = process.argv[2] || path.join(__dirname, '..', 'index.html');
