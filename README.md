@@ -11,6 +11,17 @@ App web/mobile (PWA) para advogados e solicitadores em Portugal: processos, praz
 - **SQL da sincronização (Supabase):** [`supabase/migrations/0001_lexvortex_sync.sql`](supabase/migrations/0001_lexvortex_sync.sql)
 - **Servidores (Supabase Edge Functions, Deno):** [transcrição](supabase/functions/lexvortex-transcribe/index.ts) · [assistente de e-mail](supabase/functions/lexvortex-assist/index.ts)
 
+## Segurança e privacidade
+
+- Dados guardados só no aparelho (localStorage e IndexedDB), com armazenamento persistente.
+- PIN de entrada (4 a 6 algarismos); bloqueio automático por inatividade (1 a 15 minutos) e cadeado para bloquear de imediato.
+- **PIN de administrador** definido pelo escritório (diferente do PIN de entrada) para exportar e importar cópias de segurança, apagar dados e ver o registo de auditoria local.
+- **Modo sigilo total**: nenhum dado sai do aparelho (transcrição e IA desligadas). As bibliotecas de PDF, Word e leitura de PDF estão em `lib/` e não há tipos de letra externos: a app funciona sem internet.
+
+## Comercial
+
+- [Pitch comercial e preços](docs/pitch-comercial.md) · [Plano de lançamento](docs/plano-lancamento.md)
+
 ## App Android
 
 - **Instalar:** https://github.com/crmsgomes-hue/lexvortex/releases/latest/download/LEXVORTEX.apk
