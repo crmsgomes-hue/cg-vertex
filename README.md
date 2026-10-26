@@ -1,10 +1,10 @@
-# LEXVORTEX — Secretária Digital Jurídica
+# CG VERTEX — Secretária Digital Jurídica
 
 *Automação, gestão de prazos e eficiência para o exercício da advocacia.*
 
 App web/mobile (PWA) para advogados e solicitadores em Portugal: processos, prazos judiciais com contagem automática, agenda, minutas, honorários, documentos, registo de tempo e gravação com transcrição.
 
-- **App online:** https://crmsgomes-hue.github.io/lexvortex/
+- **App online:** https://crmsgomes-hue.github.io/cg-vertex/
 - **Código da app:** [`index.html`](index.html) — ficheiro único (HTML + CSS + JavaScript, sem build)
 - **Plano de evolução (3 vertentes):** [`docs/plano-evolucao.md`](docs/plano-evolucao.md)
 - **Especificação das fases 2 e 3:** [`docs/especificacao-fase-2-3.md`](docs/especificacao-fase-2-3.md)
@@ -24,7 +24,7 @@ App web/mobile (PWA) para advogados e solicitadores em Portugal: processos, praz
 
 ## App Android
 
-- **Instalar:** https://github.com/crmsgomes-hue/lexvortex/releases/latest/download/LEXVORTEX.apk
+- **Instalar:** https://github.com/crmsgomes-hue/cg-vertex/releases/latest/download/CG-VERTEX.apk
 - Gerada automaticamente com Capacitor 6 a cada alteração de `index.html` ([`.github/workflows/android.yml`](.github/workflows/android.yml)); assinada sempre com a mesma chave (segredo do GitHub), para as versões novas se instalarem por cima sem perder dados.
 - Na app: ficheiros guardados e partilhados pelo menu nativo do Android; **alertas de prazos agendados no próprio telemóvel, mesmo com a app fechada** (7, 3 e 1 dia antes e no dia, às 9h; audiências na véspera; prescrições; obrigações).
 
