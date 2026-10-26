@@ -308,7 +308,7 @@ function natHol(y){if(HC[y])return HC[y];const e=easter(y),h={};
  h[key(add(e,-2))]='Sexta-feira Santa';h[key(e)]='Páscoa';h[key(add(e,60))]='Corpo de Deus';return HC[y]=h}
 const MUNIS={lisboa:['Lisboa',[5,13]],porto:['Porto',[5,24]],braga:['Braga',[5,24]],guimaraes:['Guimarães',[5,24]],coimbra:['Coimbra',[6,4]],aveiro:['Aveiro',[4,12]],viseu:['Viseu',[8,21]],leiria:['Leiria',[4,22]],caldas:['Caldas da Rainha',[4,15]],santarem:['Santarém',[2,19]],sintra:['Sintra',[5,29]],cascais:['Cascais',[5,13]],almada:['Almada',[5,24]],setubal:['Setúbal',[8,15]],evora:['Évora',[5,29]],faro:['Faro',[8,7]],funchal:['Funchal',[7,21]],outro:['Outro município',null]};
 const courtOf=k=>{const m=MUNIS[k]||MUNIS.outro;return {city:m[0],mh:m[1]}};
-function holName(d,c){const n=natHol(d.getFullYear())[key(d)];if(n)return n;if(c&&c.mh&&d.getMonth()===c.mh[0]&&d.getDate()===c.mh[1])return 'Feriado municipal de '+c.city;return null}
+function holName(d,c){const n=natHol(d.getFullYear())[key(d)];if(n)return n;const cl=(typeof DB!=='undefined'&&DB.closures||[]).find(x=>x.date===key(d)&&(!x.muni||(c&&c.city===(MUNIS[x.muni]||[])[0])));if(cl)return cl.label||'Tribunais encerrados';if(c&&c.mh&&d.getMonth()===c.mh[0]&&d.getDate()===c.mh[1])return 'Feriado municipal de '+c.city;return null}
 const weekend=d=>d.getDay()===0||d.getDay()===6;
 const closed=(d,c)=>weekend(d)||!!holName(d,c);
 function judHol(d){const m=d.getMonth(),dd=d.getDate();if((m===11&&dd>=22)||(m===0&&dd<=3))return 'Natal';if((m===6&&dd>=16)||m===7)return 'verão';const e=easter(d.getFullYear()),t=d.getTime();if(t>=add(e,-7).getTime()&&t<=add(e,1).getTime())return 'Páscoa';return null}
@@ -376,7 +376,7 @@ const graceLeft=r=>r.cells.filter(c=>c.t==='gr'&&diff(TODAY,c.d)>=0).length;
 
 /* ---------- Armazenamento local ---------- */
 const DB_KEY='lexvortex-v2';
-const fresh=()=>({profile:null,clients:[],cases:[],deadlines:[],events:[],fees:[],recs:[],docs:[],time:[],templates:[],timer:null,expenses:[],feeSeq:{},contacts:[],tasks:[],team:[],inbox:[],ducs:[],limitations:[],evidence:[],obligations:[],mandates:[],jurosTab:null,seq:1});
+const fresh=()=>({profile:null,clients:[],cases:[],deadlines:[],events:[],fees:[],recs:[],docs:[],time:[],templates:[],timer:null,expenses:[],feeSeq:{},contacts:[],tasks:[],team:[],inbox:[],ducs:[],limitations:[],evidence:[],obligations:[],mandates:[],jurosTab:null,closures:[],lastBackup:null,seq:1});
 let DB=fresh();
 function load(){try{const s=localStorage.getItem(DB_KEY);if(s)DB=Object.assign(fresh(),JSON.parse(s))}catch(_){}}
 function save(){try{localStorage.setItem(DB_KEY,JSON.stringify(DB))}catch(_){toast('Não foi possível guardar neste dispositivo.')}}
@@ -501,7 +501,7 @@ function shell(){
 function go(v){S.view=v;S.confirm=null;render();window.scrollTo(0,0)}
 function render(){
  const el=$('view');if(!el)return;
- el.innerHTML=(VIEWS[S.view]||VIEWS.hoje)();
+ try{el.innerHTML=(VIEWS[S.view]||VIEWS.hoje)()}catch(err){console.error(err);el.innerHTML='<section class="card pad-card start"><h2 class="sec-t">Não foi possível mostrar este ecrã</h2><p class="muted">Os seus dados estão guardados e não foram alterados. Volte ao início ou recarregue a página.</p><div class="row-acts" style="justify-content:center"><button class="btn pri" data-go="hoje">Voltar ao início</button><button class="btn" onclick="location.reload()">Recarregar</button></div><p class="muted" style="font-size:12px">'+esc(String(err&&err.message||err))+'</p></section>';return}
  const active={caso:'processos','novo-proc':'processos',direto:'',perfil:'',cliente:'clientes'}[S.view]??S.view;
  document.querySelectorAll('[data-nav]').forEach(b=>b.classList.toggle('on',b.dataset.nav===active||(b.dataset.nav==='mais'&&MAIS_V.includes(S.view))));
  if(S.view==='prazos')renderCalc();
@@ -538,7 +538,7 @@ VIEWS.hoje=()=>{
   banner=`<section class="alert" role="alert"><div><p class="k">${t<0?'Prazo ultrapassado — ainda dentro do período de multa':'Prazo fatal mais próximo'}</p><h2>${esc(crit.d.title)}</h2><p class="meta">${esc(c.num||c.title)} · ${esc((clientById(c.clientId)||{}).name||'')} · termo a ${fdl(crit.r.termo)}</p></div><div class="when">${when}</div>
   <div class="acts"><button class="btn sm" data-act="done" data-id="${crit.d.id}">Marcar como entregue</button><button class="btn sm o" data-case="${c.id}">Abrir processo</button></div></section>`}
  const soon=DB.events.filter(e=>{const x=diff(TODAY,parse(e.date));return x>=0&&x<=1}).sort((a,b)=>a.date.localeCompare(b.date)||String(a.time).localeCompare(String(b.time)));
- return head+feriasInfo()+banner+taxAlerts()+limAlerts()+evidAlerts()+inboxAlert()+oblAlerts()+`<div class="kpis">
+ return head+backupAlert()+feriasInfo()+banner+taxAlerts()+limAlerts()+evidAlerts()+inboxAlert()+oblAlerts()+`<div class="kpis">
   <button class="kpi ${in48+multa?'hot':''}" data-go="agenda"><b>${in48}${multa?` <small style="font-size:14px">+${multa} em multa</small>`:''}</b><span>Prazos fatais nas próximas 48 horas</span></button>
   <button class="kpi" data-go="agenda"><b>${hear}</b><span>Audiências nos próximos 7 dias</span></button>
   <button class="kpi" data-go="honorarios"><b style="font-size:24px">${eur(pend)}</b><span>Honorários por receber</span></button>
@@ -1395,6 +1395,11 @@ function dailyNotify(){try{if(!('Notification' in window)||Notification.permissi
  if(navigator.serviceWorker&&navigator.serviceWorker.ready)navigator.serviceWorker.ready.then(r=>r.showNotification('LEXVORTEX · '+(due.length?due.length+' prazo(s) a terminar':'Obrigações a pagar'),{body,tag:'lv-daily',icon:'icon-192.png'})).catch(show);else show();
  localStorage.setItem(k,'1')}catch(_){}}
 
+function backupAlert(){const n=DB.cases.length+DB.deadlines.length;if(!n)return '';const last=DB.lastBackup;const days=last?Math.floor((Date.now()-last)/864e5):null;if(last&&days<7)return '';
+ return `<section class="warnbox"><b>${last?'A última cópia de segurança tem '+days+' dias':'Ainda não fez nenhuma cópia de segurança'}</b><br><span style="font-size:13.5px">Os dados estão guardados só neste telemóvel. Se o perder ou limpar o navegador, perde os processos e os prazos. Faça uma cópia e guarde-a fora do telemóvel.</span><div class="row-acts" style="margin-top:8px"><button class="btn sm pri" data-act="bk-export">Fazer cópia agora</button></div></section>`}
+window.addEventListener('error',e=>{try{toast('Ocorreu um erro inesperado. Os seus dados estão guardados; se algo não responder, recarregue a página.')}catch(_){}});
+window.addEventListener('unhandledrejection',e=>{try{console.error(e.reason)}catch(_){}});
+
 async function summarize(id){const r=DB.recs.find(x=>x.id===id),el=$('sum-'+id);if(!el||!r)return;el.style.display='';el.textContent='A preparar o resumo…';
  let sample=null;try{sample=AI()?await window.claude.use('sample'):null}catch(_){}
  if(!sample){el.textContent='O resumo com IA não está disponível neste navegador.';return}
@@ -1547,6 +1552,9 @@ VIEWS.perfil=()=>{const p=P();
  <div class="f"><label for="pf-uc">Valor da unidade de conta, UC (€)</label><input id="pf-uc" type="number" inputmode="decimal" min="0" step="0.01" value="${p.uc??102}"></div>
  <button class="btn pri" data-act="pf-save">Guardar perfil</button></div></section>
  <section class="card pad-card" style="max-width:640px;margin-bottom:18px"><h2 class="sec-t">Mudar o PIN</h2><div class="form"><div class="f2"><div class="f"><label for="pf-pin">Novo PIN</label><input id="pf-pin" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password"></div><div class="f"><label for="pf-pin2">Repetir</label><input id="pf-pin2" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password"></div></div><button class="btn" data-act="pin-save">Mudar o PIN</button></div></section>
+ <section class="card pad-card" style="max-width:640px;margin-bottom:18px"><h2 class="sec-t">Tolerâncias de ponto e encerramentos dos tribunais</h2><p class="muted" style="margin-top:0;font-size:13.5px">Dias em que os tribunais estão encerrados por tolerância de ponto ou outro motivo (ex.: Carnaval, 24 e 31 de dezembro, quando concedidas). O termo de um prazo que caia nesses dias passa para o dia útil seguinte (art. 138.º, n.ºs 2 e 3 CPC). Os feriados nacionais e os municipais da lista já estão incluídos.</p>
+ ${(DB.closures||[]).slice().sort((a,b)=>a.date.localeCompare(b.date)).map(x=>`<div class="ev" style="border-bottom:1px solid var(--line)"><div class="tt" style="flex:1"><b>${fdl(parse(x.date))}</b><small>${esc(x.label||'Tribunais encerrados')}${x.muni?' · só '+esc((MUNIS[x.muni]||[])[0]||''):' · todo o país'}</small></div>${confirmBtn('cl-del',x.date+'|'+(x.muni||''),'Apagar','Confirmar')}</div>`).join('')}
+ <div class="form" style="margin-top:10px"><div class="f3"><div class="f"><label for="cl-date">Data</label><input id="cl-date" type="date"></div><div class="f"><label for="cl-label">Motivo</label><input id="cl-label" placeholder="Ex.: Tolerância de ponto — Carnaval"></div><div class="f"><label for="cl-muni">Âmbito</label><select id="cl-muni"><option value="">Todo o país</option>${Object.entries(MUNIS).filter(([k])=>k!=='outro').map(([k,m])=>`<option value="${k}">Só ${m[0]}</option>`).join('')}</select></div></div><button class="btn" data-act="cl-add">Acrescentar encerramento</button></div></section>
  ${oblSection()}
  <section class="card pad-card" style="max-width:640px;margin-bottom:18px"><h2 class="sec-t">Avisos no telemóvel</h2><p class="muted" style="margin-top:0;font-size:13.5px">Quando abrir a app, mostra uma notificação com os prazos que terminam hoje ou amanhã e as obrigações a pagar. Os avisos com a app fechada precisam do servidor próprio (próxima fase).</p>${P().notify&&'Notification' in window&&Notification.permission==='granted'?'<p class="pos" style="margin:0 0 8px">Avisos ativos.</p><button class="btn" data-act="notify-off">Desativar avisos</button>':'<button class="btn" data-act="notify-on">Ativar avisos</button>'}</section>
  <section class="card pad-card" style="max-width:640px;margin-bottom:18px"><h2 class="sec-t">Taxas de juros comerciais</h2><p class="muted" style="margin-top:0;font-size:13.5px">Taxas supletivas semestrais (Código Comercial, art. 102.º; DL 62/2013), usadas na calculadora. Confirme e acrescente semestres a partir dos avisos publicados no Diário da República.</p>
@@ -1629,7 +1637,7 @@ document.addEventListener('click',e=>{
   case 'tp-del':if(askConfirm('tp-del'+id)){DB.templates=DB.templates.filter(t=>t.id!==id);S.tplEdit=null;S.tplSel=null;save();render()}break;
   case 'mexp-docx':exportMinuta('docx');break;
   case 'mexp-pdf':exportMinuta('pdf');break;
-  case 'bk-export':saveBlob(backupBlob(),'lexvortex-copia-'+key(TODAY)+'.json').then(ok=>ok&&toast('Cópia de segurança guardada.'));break;
+  case 'bk-export':saveBlob(backupBlob(),'lexvortex-copia-'+key(TODAY)+'.json').then(ok=>{if(ok){DB.lastBackup=Date.now();save();toast('Cópia de segurança guardada. Guarde o ficheiro fora do telemóvel (e-mail, Google Drive).');render()}});break;
   case 'bk-import':{const f=$('bk-file');if(f)f.click();break}
   case 'bk-cancel':S.pendingImport=null;render();break;
   case 'bk-apply':{const o=S.pendingImport;if(!o)break;delete o.app;delete o.version;delete o.exported;DB=Object.assign(fresh(),o);save();S.pendingImport=null;toast('Dados importados.');shell();break}
@@ -1726,6 +1734,8 @@ document.addEventListener('click',e=>{
   case 'jt-add':{const from=val('jt-from'),to=val('jt-to'),com=+val('jt-com'),tc=+val('jt-tc');if(!from||!to||to<from||!(com>0)||!(tc>0)){toast('Preencha o período e as duas taxas.');break}const t=jurosTable();t.push({from,to,com,tc,src:val('jt-src')});DB.jurosTab=t;save();toast('Semestre acrescentado.');render();break}
   case 'jt-del':if(askConfirm('jt-del'+id)){const t=jurosTable();t.splice(+id,1);DB.jurosTab=t;save();render()}break;
   case 'jt-reset':DB.jurosTab=null;save();render();break;
+  case 'cl-add':{const d=val('cl-date');if(!d){toast('Indique a data.');break}const muni=val('cl-muni')||null;if((DB.closures||[]).some(x=>x.date===d&&(x.muni||null)===muni)){toast('Essa data já está na lista.');break}(DB.closures=DB.closures||[]).push({date:d,label:val('cl-label')||'Tolerância de ponto',muni});save();toast('Encerramento acrescentado: os prazos foram recalculados.');render();break}
+  case 'cl-del':if(askConfirm('cl-del'+id)){const [d,m]=id.split('|');DB.closures=(DB.closures||[]).filter(x=>!(x.date===d&&(x.muni||'')===m));save();render()}break;
   case 'rec-retry':{const r=DB.recs.find(x=>x.id===id);if(r)retryPending(r);break}
   case 'rec-tx':{const r=DB.recs.find(x=>x.id===id);if(r)txFile(r);break}
   case 'spk':S.spk=a.dataset.spk||null;render();break;
@@ -1780,7 +1790,7 @@ document.addEventListener('visibilitychange',async()=>{if(document.visibilitySta
 window.addEventListener('beforeunload',e=>{if(S.live){e.preventDefault();e.returnValue=''}});
 try{const th=localStorage.getItem('lv-theme');if(th)document.documentElement.dataset.theme=th}catch(_){}
 if('serviceWorker' in navigator&&/github\.io$/.test(location.hostname))navigator.serviceWorker.register('sw.js').catch(()=>{});
-load();idbOpen();
+load();idbOpen();try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(_){}
 if(!DB.profile)onboarding();else login();
 </script>
 </body>
