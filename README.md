@@ -20,12 +20,20 @@ App web/mobile (PWA) para advogados e solicitadores em Portugal: processos, praz
 | Prazos | Motor de contagem CPC / CPT / Código Civil: art. 138.º e 139.º CPC (multa), art. 248.º e 249.º (presunção de notificação), art. 245.º (dilação), férias judiciais (art. 28.º LOSJ), feriados nacionais e municipais, art. 279.º CC; linha temporal e passos explicados |
 | Gravações | Gravação contínua (Web Audio API) em excertos WAV 16 kHz cortados nas pausas, transcritos com Whisper Large v3; quem fala marcado por toque; correção de texto; pesquisa; exportação PDF e Word |
 | Documentos | Juntar PDFs e fotografias ao processo; leitura do texto com pdf.js ou OCR (Tesseract.js) e deteção de datas para calcular prazos |
-| Notificações | Importar notificações do Citius (PDF ou fotografia): reconhece n.º de processo, data e prazo; o advogado confirma e o prazo é criado |
+| Notificações | Colar o texto ou e-mail do Citius, ou importar PDF ou fotografia: reconhece processo, tribunal, ato, referência, data de elaboração e prazo; IA opcional para completar; o advogado confirma e o prazo é criado |
 | Incidentes de prazos | Suspensão, prorrogação, interrupção (apoio judiciário) e termo fixado pelo tribunal, com recálculo e passos explicados |
 | Taxas de justiça (DUC) | Registo de DUC por ato, estimativa pela Tabela I do RCP, alertas e validação antes da entrega, lançamento automático nas despesas |
 | Clientes | Leads, clientes e caderneta de contactos; verificação de conflito de interesses |
 | Tarefas | Por fazer, Em curso, Concluído; atribuição à equipa; tarefas a partir de prazos |
 | E-mail ao cliente | Rascunho em linguagem clara gerado por IA a partir do processo, para rever e enviar |
+| Trânsito em julgado | Estimativa a partir da notificação e do prazo de recurso; ao confirmar cria o prazo da nota de custas de parte (art. 25.º RCP), a prescrição de 20 anos (art. 311.º CC), o fim do cumprimento voluntário e a tarefa de avaliar a execução; juros compulsórios (art. 829.º-A CC) |
+| Mandatos | Procurações e substabelecimentos com e sem reserva; poderes especiais (art. 45.º, n.º 2 CPC); renúncia e revogação com tarefa (art. 47.º CPC) |
+| Relatório de diligências | PDF para o cliente com reuniões, estudos, deslocações, peças entregues, documentos e tempo |
+| Ficha para o cliente | Ficheiro HTML cifrado (AES-256, PBKDF2) que o cliente abre com um PIN |
+| Arquivo físico | Local, armário, prateleira, caixa e pasta; quem retirou o dossier |
+| Obrigações profissionais | Quotas, seguro de responsabilidade civil, previdência; alertas e histórico |
+| Calculadoras | Juros civis (4%), comerciais (taxas supletivas semestrais editáveis), compulsórios (5%); taxa de justiça pela Tabela I do RCP |
+| App instalável | Manifesto e service worker: instala-se no ecrã principal e abre sem internet |
 | Registo de tempo | Cronómetro por processo e registo manual; criação de nota de honorários a partir das horas |
 | Minutas | Procuração forense, carta de interpelação, requerimento de adiamento e modelos próprios com campos `{{cliente}}`, `{{processo}}`…; exportação Word e PDF |
 | Agenda | Marcações e termos de prazos; ligação a Google Calendar, Outlook e ficheiro .ics |
