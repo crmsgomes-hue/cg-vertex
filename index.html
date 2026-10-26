@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>LEXVORTEX — Secretária Digital Jurídica</title>
+<title>CG VERTEX — Secretária Digital Jurídica</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#14213D">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -451,7 +451,7 @@ const MAIS_V=['mais','minutas','honorarios','direto','perfil','juros','conflitos
 /* ---------- Primeira utilização e PIN ---------- */
 function onboarding(){
  $('root').innerHTML=`<div class="login"><div class="login-box onb">
- <div class="brand" style="text-align:center">LEX<span>VORTEX</span></div>
+ <div class="brand" style="text-align:center">CG <span>VERTEX</span></div>
  <p class="slogan" style="text-align:center">Automação, gestão de prazos e eficiência para o exercício da advocacia.</p>
  <h2 style="font-size:19px;margin-bottom:14px">Criar o seu perfil</h2>
  <div class="form">
@@ -474,7 +474,7 @@ async function onbSave(){const name=val('o-name'),pin=val('o-pin'),pin2=val('o-p
 const pinLen=()=>(DB.profile&&DB.profile.pinLen)||4;
 function login(msg,err){const len=pinLen();S.pin='';
  $('root').innerHTML=`<div class="login"><div class="login-box" id="lb">
-  <div class="brand">LEX<span>VORTEX</span></div>
+  <div class="brand">CG <span>VERTEX</span></div>
   <p class="slogan">Automação, gestão de prazos e eficiência para o exercício da advocacia.</p>
   <div class="who"><b>${esc(LNAME())}</b>Introduza o seu PIN de ${len} algarismos</div>
   <label class="sr" for="pin-input">PIN</label>
@@ -499,11 +499,11 @@ function resetAll(){try{localStorage.removeItem(DB_KEY)}catch(_){}try{indexedDB.
 /* ---------- Estrutura ---------- */
 function shell(){
  $('root').innerHTML=`<div class="shell">
- <aside class="side"><div class="brand">LEX<span>VORTEX</span></div><div class="slogan">Secretária digital jurídica</div>
+ <aside class="side"><div class="brand">CG <span>VERTEX</span></div><div class="slogan">Secretária digital jurídica</div>
   ${NAV.map(([k,l])=>`<button data-go="${k}" data-nav="${k}">${I[k]}${l}</button>`).join('')}
   <div class="foot">${esc(LNAME())}${P().cedula?'<br>Cédula '+esc(P().cedula):''}</div></aside>
  <div class="main">
-  <header class="top"><div class="brand">LEX<span style="color:var(--accent)">VORTEX</span></div>
+  <header class="top"><div class="brand">CG <span style="color:var(--accent)">VERTEX</span></div>
    <div class="top-right"><button class="iconbtn" data-go="conflitos" aria-label="Verificar conflito de interesses" title="Verificar conflito de interesses"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></button><button class="iconbtn" data-act="lock-now" aria-label="Bloquear a app" title="Bloquear a app"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></button><button class="iconbtn" data-act="theme" aria-label="Mudar tema">${I.sun}</button><button class="avatar" data-go="perfil" aria-label="Perfil">${esc(initials())}</button></div></header>
   <div class="view" id="view"></div>
  </div>
@@ -832,8 +832,8 @@ function gcal(e){const t=evTimes(e);const dates=t?ymd(t.s).replace(/:/g,'')+'/'+
 function ocal(e){const t=evTimes(e);return 'https://outlook.office.com/calendar/0/deeplink/compose?subject='+encodeURIComponent(e.title)+'&startdt='+encodeURIComponent(t?t.s:e.date)+'&enddt='+encodeURIComponent(t?t.e:key(add(parse(e.date),1)))+'&allday='+(t?'false':'true')+'&location='+encodeURIComponent(e.kind==='deadline'?'':(e.place||''))+'&body='+encodeURIComponent(evDetails(e))}
 const icsEsc=s=>String(s||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');
 function icsEvent(e){const t=evTimes(e);const st=new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d+/,'');
- return ['BEGIN:VEVENT','UID:'+e.id+'@lexvortex','DTSTAMP:'+st,t?'DTSTART;TZID=Europe/Lisbon:'+t.s.replace(/[-:]/g,''):'DTSTART;VALUE=DATE:'+ymd(e.date),t?'DTEND;TZID=Europe/Lisbon:'+t.e.replace(/[-:]/g,''):'DTEND;VALUE=DATE:'+ymd(key(add(parse(e.date),1))),'SUMMARY:'+icsEsc(e.title),e.kind!=='deadline'&&e.place?'LOCATION:'+icsEsc(e.place):'','DESCRIPTION:'+icsEsc(evDetails(e)),e.kind==='deadline'?'BEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:'+icsEsc(e.title)+'\r\nTRIGGER:-P3D\r\nEND:VALARM\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:'+icsEsc(e.title)+'\r\nTRIGGER:-P1D\r\nEND:VALARM':'BEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:'+icsEsc(e.title)+'\r\nTRIGGER:-PT1H\r\nEND:VALARM','END:VEVENT'].filter(Boolean).join('\r\n')}
-function icsFile(evs){return new Blob(['BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//LEXVORTEX//PT\r\nCALSCALE:GREGORIAN\r\n'+evs.map(icsEvent).join('\r\n')+'\r\nEND:VCALENDAR\r\n'],{type:'text/calendar'})}
+ return ['BEGIN:VEVENT','UID:'+e.id+'@cgvertex','DTSTAMP:'+st,t?'DTSTART;TZID=Europe/Lisbon:'+t.s.replace(/[-:]/g,''):'DTSTART;VALUE=DATE:'+ymd(e.date),t?'DTEND;TZID=Europe/Lisbon:'+t.e.replace(/[-:]/g,''):'DTEND;VALUE=DATE:'+ymd(key(add(parse(e.date),1))),'SUMMARY:'+icsEsc(e.title),e.kind!=='deadline'&&e.place?'LOCATION:'+icsEsc(e.place):'','DESCRIPTION:'+icsEsc(evDetails(e)),e.kind==='deadline'?'BEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:'+icsEsc(e.title)+'\r\nTRIGGER:-P3D\r\nEND:VALARM\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:'+icsEsc(e.title)+'\r\nTRIGGER:-P1D\r\nEND:VALARM':'BEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:'+icsEsc(e.title)+'\r\nTRIGGER:-PT1H\r\nEND:VALARM','END:VEVENT'].filter(Boolean).join('\r\n')}
+function icsFile(evs){return new Blob(['BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//CG VERTEX//PT\r\nCALSCALE:GREGORIAN\r\n'+evs.map(icsEvent).join('\r\n')+'\r\nEND:VCALENDAR\r\n'],{type:'text/calendar'})}
 const calLinks=e=>`<div class="cal-links"><a href="${gcal(e)}" target="_blank" rel="noopener">Google Calendar</a><a href="${ocal(e)}" target="_blank" rel="noopener">Outlook</a><button data-act="ics-one" data-id="${e.id}" data-kind="${e.kind}">Ficheiro .ics</button></div>`;
 function agendaItems(){return [...DB.events.map(e=>({...e,d:parse(e.date)})),...openDl().map(x=>({id:x.d.id,d:x.r.termo,date:key(x.r.termo),time:'',kind:'deadline',title:'Termo: '+x.d.title,caseId:x.d.caseId,place:x.d.basis}))].filter(e=>{const x=diff(TODAY,e.d);return x>=0&&x<=90})}
 
@@ -867,7 +867,7 @@ async function exportMinuta(kind){const d=currentDoc();if(!d)return;const name=(
  catch(_){toast('Não foi possível criar o ficheiro. Verifique a ligação à internet e tente de novo.')}}
 
 /* ---------- Cópia de segurança ---------- */
-function backupBlob(){const data={app:'LEXVORTEX',version:2,exported:new Date().toISOString(),...DB};delete data.timer;return new Blob([JSON.stringify(data,null,1)],{type:'application/json'})}
+function backupBlob(){const data={app:'CG VERTEX',version:2,exported:new Date().toISOString(),...DB};delete data.timer;return new Blob([JSON.stringify(data,null,1)],{type:'application/json'})}
 
 /* ---------- Despesas e custas processuais ---------- */
 const EXPCAT=[['taxa','Taxa de justiça'],['custas','Custas e encargos'],['certidao','Certidões e registos'],['desloc','Deslocações'],['perito','Peritos e terceiros'],['correio','Correio e portes'],['traducao','Traduções'],['outra','Outra']];
@@ -1347,7 +1347,7 @@ function buildReportPdf(c,items,from,to,showT,J,opt){opt=opt||{};const doc=new J
  let tot=0;items.forEach(it=>{const w=showT?128:150;const ls=doc.splitTextToSize(it.k+(it.x?': '+it.x:''),w);if(y+ls.length*5>H-22){doc.addPage();y=22}T(fds(parse(it.d)),ML+1,y);T(ls,ML+22,y);if(showT&&it.m){T(fmtMin(it.m),R-1,y,{align:'right'});tot+=it.m}y+=ls.length*5+2.5});
  if(!items.length){T('Sem registos no período.',ML+1,y);y+=6}
  if(showT&&tot){y+=2;doc.setDrawColor(200);doc.line(ML,y-3,R,y-3);doc.setFont('helvetica','bold');T('Tempo total registado',ML+22,y+1);T(fmtMin(tot),R-1,y+1,{align:'right'});y+=8}
- doc.setFont('helvetica','italic');doc.setFontSize(8.5);doc.setTextColor(90);if(y>H-30){doc.addPage();y=22}y+=4;T(doc.splitTextToSize('Relatório elaborado a partir dos registos do escritório no LEXVORTEX. Para esclarecimentos, contacte o seu advogado.',R-ML),ML,y);
+ doc.setFont('helvetica','italic');doc.setFontSize(8.5);doc.setTextColor(90);if(y>H-30){doc.addPage();y=22}y+=4;T(doc.splitTextToSize('Relatório elaborado a partir dos registos do escritório no CG VERTEX. Para esclarecimentos, contacte o seu advogado.',R-ML),ML,y);
  const n=doc.getNumberOfPages();for(let i=1;i<=n;i++){doc.setPage(i);doc.setFontSize(8.5);doc.setTextColor(120);doc.text('Página '+i+' de '+n,R,H-10,{align:'right'})}return doc.output('blob')}
 async function exportReport(c){const from=val('rp-from'),to=val('rp-to');if(!from||!to||to<from)return toast('Verifique as datas do período.');const items=reportItems(c,from,to,{exp:chk('rp-exp')});
  try{await loadScript(LIB_PDF);if(await saveBlob(buildReportPdf(c,items,from,to,chk('rp-time'),window.jspdf.jsPDF,{aj:chk('rp-aj'),ajRef:val('rp-ajref')}),'Relatorio-diligencias-'+(c.num||'processo').replace(/[\/\s]+/g,'-')+'.pdf'))toast('Relatório em PDF guardado.')}catch(_){toast('Não foi possível criar o PDF. Verifique a ligação à internet.')}}
@@ -1394,7 +1394,7 @@ function portalData(c){const cl=clientById(c.clientId)||{};const fut=DB.events.f
 async function portalFile(c,pin){const enc=new TextEncoder();const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));
  const base=await crypto.subtle.importKey('raw',enc.encode(pin),'PBKDF2',false,['deriveKey']);const k=await crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:250000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt']);
  const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},k,enc.encode(JSON.stringify(portalData(c)))));const b64=u=>btoa(String.fromCharCode(...u));
- const page=`<!DOCTYPE html><html lang="pt-PT"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>O seu processo</title><style>:root{color-scheme:light dark}body{margin:0;font:16px/1.55 system-ui,-apple-system,'Segoe UI',sans-serif;background:#F1F3F7;color:#18203A}@media (prefers-color-scheme:dark){body{background:#0D1424;color:#E7EBF4}.c{background:#152036!important;border-color:#27344F!important}}main{max-width:560px;margin:0 auto;padding:28px 18px}.b{font-weight:700;letter-spacing:.14em}.b span{color:#C95C0C}.c{background:#fff;border:1px solid #DCE1EA;border-radius:14px;padding:16px;margin:14px 0}input,button{font:inherit;min-height:52px;border-radius:12px;width:100%;box-sizing:border-box}input{border:1px solid #DCE1EA;padding:0 14px;font-size:22px;letter-spacing:.3em;text-align:center}button{border:none;background:#C95C0C;color:#fff;font-weight:600;margin-top:10px}h2{font-size:16px;margin:0 0 8px}.m{opacity:.7;font-size:13px}ul{margin:0;padding-left:18px}li{margin:4px 0}</style></head><body><main><div class="b">LEX<span>VORTEX</span></div><div id="a"><p>Introduza o PIN que o seu advogado lhe indicou.</p><input id="p" inputmode="numeric" type="password" autocomplete="off"><button id="g">Abrir</button><p id="e" class="m"></p></div><div id="v"></div></main><script>
+ const page=`<!DOCTYPE html><html lang="pt-PT"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>O seu processo</title><style>:root{color-scheme:light dark}body{margin:0;font:16px/1.55 system-ui,-apple-system,'Segoe UI',sans-serif;background:#F1F3F7;color:#18203A}@media (prefers-color-scheme:dark){body{background:#0D1424;color:#E7EBF4}.c{background:#152036!important;border-color:#27344F!important}}main{max-width:560px;margin:0 auto;padding:28px 18px}.b{font-weight:700;letter-spacing:.14em}.b span{color:#C95C0C}.c{background:#fff;border:1px solid #DCE1EA;border-radius:14px;padding:16px;margin:14px 0}input,button{font:inherit;min-height:52px;border-radius:12px;width:100%;box-sizing:border-box}input{border:1px solid #DCE1EA;padding:0 14px;font-size:22px;letter-spacing:.3em;text-align:center}button{border:none;background:#C95C0C;color:#fff;font-weight:600;margin-top:10px}h2{font-size:16px;margin:0 0 8px}.m{opacity:.7;font-size:13px}ul{margin:0;padding-left:18px}li{margin:4px 0}</style></head><body><main><div class="b">CG <span>VERTEX</span></div><div id="a"><p>Introduza o PIN que o seu advogado lhe indicou.</p><input id="p" inputmode="numeric" type="password" autocomplete="off"><button id="g">Abrir</button><p id="e" class="m"></p></div><div id="v"></div></main><script>
 const D={s:"${b64(salt)}",i:"${b64(iv)}",c:"${b64(ct)}"};const u=s=>Uint8Array.from(atob(s),x=>x.charCodeAt(0));const h=s=>String(s).replace(/[&<>"]/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[x]));
 document.getElementById('g').onclick=async()=>{const e=document.getElementById('e');try{const b=await crypto.subtle.importKey('raw',new TextEncoder().encode(document.getElementById('p').value),'PBKDF2',false,['deriveKey']);const k=await crypto.subtle.deriveKey({name:'PBKDF2',salt:u(D.s),iterations:250000,hash:'SHA-256'},b,{name:'AES-GCM',length:256},false,['decrypt']);const d=JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:u(D.i)},k,u(D.c))));document.getElementById('a').remove();
 const L=(t,a,f)=>a.length?'<div class="c"><h2>'+t+'</h2><ul>'+a.map(f).join('')+'</ul></div>':'';
@@ -1409,8 +1409,8 @@ function dailyNotify(){try{if(NATIVE)return;if(!('Notification' in window)||Noti
  const due=openDl().filter(x=>{const t=diff(TODAY,x.r.termo);return t>=0&&t<=1||x.l==='multa'});const obl=(DB.obligations||[]).filter(o=>diff(TODAY,parse(o.due))<=1);
  if(!due.length&&!obl.length){localStorage.setItem(k,'1');return}
  const body=[...due.map(x=>x.d.title+' · '+((caseById(x.d.caseId)||{}).num||'')+' · '+(x.l==='multa'?'em multa':diff(TODAY,x.r.termo)===0?'termina hoje':'termina amanhã')),...obl.map(o=>(o.label||'Obrigação profissional')+' · '+fds(parse(o.due)))].slice(0,4).join('\n');
- const show=()=>new Notification('LEXVORTEX · '+(due.length?due.length+' prazo(s) a terminar':'Obrigações a pagar'),{body,tag:'lv-daily'});
- if(navigator.serviceWorker&&navigator.serviceWorker.ready)navigator.serviceWorker.ready.then(r=>r.showNotification('LEXVORTEX · '+(due.length?due.length+' prazo(s) a terminar':'Obrigações a pagar'),{body,tag:'lv-daily',icon:'icon-192.png'})).catch(show);else show();
+ const show=()=>new Notification('CG VERTEX · '+(due.length?due.length+' prazo(s) a terminar':'Obrigações a pagar'),{body,tag:'lv-daily'});
+ if(navigator.serviceWorker&&navigator.serviceWorker.ready)navigator.serviceWorker.ready.then(r=>r.showNotification('CG VERTEX · '+(due.length?due.length+' prazo(s) a terminar':'Obrigações a pagar'),{body,tag:'lv-daily',icon:'icon-192.png'})).catch(show);else show();
  localStorage.setItem(k,'1')}catch(_){}}
 
 function backupAlert(){const n=DB.cases.length+DB.deadlines.length;if(!n)return '';const last=DB.lastBackup;const days=last?Math.floor((Date.now()-last)/864e5):null;if(last&&days<7)return '';
@@ -1488,7 +1488,7 @@ function adminAskBox(){return S.adminAsk?`<div class="form subform" style="margi
 async function adminCheck(){const act=S.adminAsk;const p=val('adm-pin');const h=await hashPin('adm:'+p);
  if(h===DB.profile.adminPin){S.adminOk=Date.now();S.adminAsk=null;audit('admin_ok',ADM_ACT[act]||'');runAdmin(act)}else{audit('admin_fail');toast('PIN de administrador incorreto.');const i=$('adm-pin');if(i)i.value=''}}
 function runAdmin(act){if(act==='bk-export')doExport();else if(act==='bk-import'){render();setTimeout(()=>{const f=$('bk-file');if(f)f.click()},50)}else if(act==='reset'){S.resetReady=true;render()}else if(act==='audit'){S.showAudit=true;render()}else if(act==='adm-change'){S.adminSetup=true;render()}else render()}
-function doExport(){saveBlob(backupBlob(),'lexvortex-copia-'+key(TODAY)+'.json').then(ok=>{if(ok){DB.lastBackup=Date.now();audit('backup_export');save();toast('Cópia de segurança guardada. Guarde-a fora do aparelho (disco externo, pen ou Drive).');render()}})}
+function doExport(){saveBlob(backupBlob(),'cg-vertex-copia-'+key(TODAY)+'.json').then(ok=>{if(ok){DB.lastBackup=Date.now();audit('backup_export');save();toast('Cópia de segurança guardada. Guarde-a fora do aparelho (disco externo, pen ou Drive).');render()}})}
 async function adminSave(){const a=val('adm-new'),b=val('adm-new2');if(!/^\d{4,8}$/.test(a))return toast('O PIN de administrador tem de ter 4 a 8 algarismos.');if(a!==b)return toast('Os dois PIN não são iguais.');
  if(await hashPin(a)===DB.profile.pin)return toast('O PIN de administrador tem de ser diferente do PIN de entrada.');
  DB.profile.adminPin=await hashPin('adm:'+a);S.adminSetup=false;S.adminOk=Date.now();audit('admin_set');save();toast('PIN de administrador guardado.');render()}
@@ -1537,9 +1537,9 @@ function histSection(c){const notes=(DB.notes||[]).filter(n=>n.caseId===c.id).ma
 /* ====================== Instalar no computador ou telemóvel ====================== */
 let deferredInstall=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e;if(S.logged&&(S.view==='perfil'||S.view==='mais'))render()});
-window.addEventListener('appinstalled',()=>{deferredInstall=null;toast('LEXVORTEX instalada.')});
+window.addEventListener('appinstalled',()=>{deferredInstall=null;toast('CG VERTEX instalada.')});
 function installSection(){if(NATIVE)return '';const inst=matchMedia('(display-mode: standalone)').matches;
- return `<section class="card pad-card" style="max-width:640px;margin-bottom:18px"><h2 class="sec-t">Instalar a app</h2>${inst?'<p class="pos" style="margin:0">A LEXVORTEX está instalada neste aparelho.</p>':deferredInstall?'<p class="muted" style="margin-top:0;font-size:13.5px">Instala a LEXVORTEX como uma aplicação, com ícone próprio e janela sem barra de endereços. Funciona sem internet.</p><button class="btn pri" data-act="install">Instalar LEXVORTEX</button>':'<p class="muted" style="margin:0;font-size:13.5px">No Chrome ou no Edge (Windows, Mac ou Android): menu ⋮ → <b>Instalar LEXVORTEX</b>, ou o ícone de instalar na barra de endereço. No Safari (Mac): Ficheiro → <b>Adicionar à Dock</b>. No iPhone: Partilhar → <b>Ecrã principal</b>.</p>'}</section>`}
+ return `<section class="card pad-card" style="max-width:640px;margin-bottom:18px"><h2 class="sec-t">Instalar a app</h2>${inst?'<p class="pos" style="margin:0">A CG VERTEX está instalada neste aparelho.</p>':deferredInstall?'<p class="muted" style="margin-top:0;font-size:13.5px">Instala a CG VERTEX como uma aplicação, com ícone próprio e janela sem barra de endereços. Funciona sem internet.</p><button class="btn pri" data-act="install">Instalar CG VERTEX</button>':'<p class="muted" style="margin:0;font-size:13.5px">No Chrome ou no Edge (Windows, Mac ou Android): menu ⋮ → <b>Instalar CG VERTEX</b>, ou o ícone de instalar na barra de endereço. No Safari (Mac): Ficheiro → <b>Adicionar à Dock</b>. No iPhone: Partilhar → <b>Ecrã principal</b>.</p>'}</section>`}
 if((typeof location!=='undefined'&&/github\.io$/.test(location.hostname))||NATIVE){LIB_PDF='lib/jspdf.umd.min.js';LIB_DOCX='lib/docx.umd.js';LIB_PDFJS='lib/pdf.min.js';LIB_PDFJS_W='lib/pdf.worker.min.js'}
 
 async function summarize(id){if(sigiloBlock())return;const r=DB.recs.find(x=>x.id===id),el=$('sum-'+id);if(!el||!r)return;el.style.display='';el.textContent='A preparar o resumo…';
@@ -1768,8 +1768,8 @@ document.addEventListener('click',e=>{
   case 'tm-save':{const m=+val('tm-min');if(!(m>0)){toast('Indique os minutos.');break}DB.time.push({id:nid('t'),caseId:id,date:val('tm-date')||key(TODAY),minutes:Math.round(m),desc:val('tm-d2'),kind:val('tm-kind')||'trabalho',billed:false,created:Date.now()});S.tmAdd=null;save();toast('Tempo registado.');render();break}
   case 'tm-del':if(askConfirm('tm-del'+id)){DB.time=DB.time.filter(t=>t.id!==id);save();render()}break;
   case 'tm-bill':{const c=caseById(id),rate=+P().rate||0;if(!rate){toast('Defina primeiro o valor por hora no Perfil.');go('perfil');break}const ent=DB.time.filter(t=>t.caseId===id&&!t.billed);const mins=ent.reduce((s,t)=>s+t.minutes,0);const exIds=DB.expenses.filter(x=>x.caseId===id&&!x.billed&&x.paidBy!=='client').map(x=>x.id);const nf=makeFee({clientId:c.clientId,caseId:id,desc:'Honorários — '+fmtMin(mins)+' de trabalho',H:mins/60*rate,expIds:exIds});ent.forEach(t=>{t.billed=true;t.feeId=nf.id});save();toast(exIds.length?'Nota criada como rascunho, com as horas e '+exIds.length+' despesa(s) do processo.':'Nota de honorários criada como rascunho.');go('honorarios');break}
-  case 'ics-one':{const e2=agendaItems().find(x=>x.id===id&&x.kind===a.dataset.kind);if(e2)saveBlob(icsFile([e2]),'lexvortex-'+e2.date+'.ics');break}
-  case 'ics-all':{const it=agendaItems();if(!it.length){toast('Não há marcações nem prazos para exportar.');break}saveBlob(icsFile(it),'lexvortex-agenda.ics').then(ok=>ok&&toast('Agenda exportada. Abra o ficheiro para a juntar ao seu calendário.'));break}
+  case 'ics-one':{const e2=agendaItems().find(x=>x.id===id&&x.kind===a.dataset.kind);if(e2)saveBlob(icsFile([e2]),'cg-vertex-'+e2.date+'.ics');break}
+  case 'ics-all':{const it=agendaItems();if(!it.length){toast('Não há marcações nem prazos para exportar.');break}saveBlob(icsFile(it),'cg-vertex-agenda.ics').then(ok=>ok&&toast('Agenda exportada. Abra o ficheiro para a juntar ao seu calendário.'));break}
   case 'tp-new':S.tplEdit='new';render();break;
   case 'tp-edit':S.tplEdit=id;render();break;
   case 'tp-sel':S.tplSel=id;render();break;
@@ -1946,7 +1946,7 @@ document.addEventListener('input',e=>{const t=e.target;
 document.addEventListener('change',e=>{const t=e.target;
  if(t.dataset&&t.dataset.inbox!==undefined){const fs=[...(t.files||[])];t.value='';fs.forEach(f=>importNotif(f));return}
  if(t.dataset&&t.dataset.docfile){const fs=[...(t.files||[])];if(fs.length)addDocs(t.dataset.docfile,fs);t.value='';return}
- if(t.dataset&&t.dataset.backup!==undefined){const f=t.files&&t.files[0];t.value='';if(!f)return;f.text().then(x=>{try{const o=JSON.parse(x);if(o.app!=='LEXVORTEX'||!Array.isArray(o.cases))throw 0;S.pendingImport=o;render()}catch(_){toast('Este ficheiro não é uma cópia de segurança da LEXVORTEX.')}});return}
+ if(t.dataset&&t.dataset.backup!==undefined){const f=t.files&&t.files[0];t.value='';if(!f)return;f.text().then(x=>{try{const o=JSON.parse(x);if(!['CG VERTEX','LEXVORTEX'].includes(o.app)||!Array.isArray(o.cases))throw 0;S.pendingImport=o;render()}catch(_){toast('Este ficheiro não é uma cópia de segurança da CG VERTEX.')}});return}
  if(t.dataset&&t.dataset.file){const f=t.files&&t.files[0];if(f)attachFile(t.dataset.file,f);t.value='';return}
  if(t.tagName==='SELECT'||t.type==='checkbox'||t.type==='date')t.dispatchEvent(new Event('input',{bubbles:true}))},true);
 
