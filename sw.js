@@ -1,6 +1,7 @@
 // LEXVORTEX — service worker: a app abre sem internet; bibliotecas guardadas após o primeiro uso.
-const VERSION = 'lexvortex-v1';
-const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
+const VERSION = 'lexvortex-v2';
+const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png',
+  './lib/jspdf.umd.min.js', './lib/docx.umd.js', './lib/pdf.min.js', './lib/pdf.worker.min.js'];
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(VERSION).then((c) => c.addAll(CORE)).then(() => self.skipWaiting()));
 });
