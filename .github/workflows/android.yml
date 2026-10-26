@@ -1,0 +1,55 @@
+name: App Android
+
+on:
+  push:
+    branches: [main]
+    paths: ['index.html', 'android-app/**', '.github/workflows/android.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Preparar o projeto Android
+        working-directory: android-app
+        run: |
+          npm install --no-audit --no-fund
+          mkdir -p www
+          cp ../index.html ../icon-192.png ../icon-512.png www/
+          npx cap add android
+          npx cap sync android
+      - name: Permissões, ícones, versão e assinatura
+        env:
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          pip install pillow --quiet
+          python3 android-app/patch_android.py
+      - name: Compilar a app
+        working-directory: android-app/android
+        env:
+          KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_B64 }}" | base64 -d > $RUNNER_TEMP/lexvortex.jks
+          export KEYSTORE_FILE=$RUNNER_TEMP/lexvortex.jks
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon --stacktrace
+      - name: Publicar para instalar
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cp android-app/android/app/build/outputs/apk/release/app-release.apk LEXVORTEX.apk
+          gh release create "app-${{ github.run_number }}" LEXVORTEX.apk \
+            --title "LEXVORTEX para Android — versão 1.0.${{ github.run_number }}" \
+            --notes "Instalar no telemóvel: abra o ficheiro LEXVORTEX.apk e permita a instalação. As versões novas instalam-se por cima, sem perder dados." \
+            --latest
