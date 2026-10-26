@@ -4,6 +4,7 @@ const fs = require('fs'), path = require('path');
 const file = process.argv[2] || path.join(__dirname, '..', 'index.html');
 const html = fs.readFileSync(file, 'utf8');
 const js = html.match(/<script>([\s\S]*)<\/script>/)[1];
+global.HTML = html;
 const store = {};
 global.localStorage = { getItem: k => store[k] ?? null, setItem: (k, v) => store[k] = v, removeItem: k => delete store[k] };
 global.fetch = () => Promise.reject();
@@ -44,6 +45,8 @@ ok('6 meses desde 31/8 terminam a 28/2',k(limCalc({start:'2026-08-31',m:6}).due)
 ok('Interrupção reinicia o prazo (art. 326.º CC)',k(limCalc({start:'2023-05-01',y:3,interruptions:[{date:'2026-03-10'}]}).due),'2029-03-10');
 ok('Prescrição: instaurar 5 dias antes (art. 323.º, n.º 2 CC)',k(limCalc({start:'2024-02-29',y:3,cat:'extracontratual'}).fileBy),'2027-02-23');
 ok('Caducidade: o ato tem de ser praticado até ao termo (art. 331.º CC)',k(limCalc({start:'2026-10-20',dd:60,cat:'despedimento'}).fileBy),'2026-12-19');
+console.log('Legibilidade');
+ok('Os campos de texto têm cor de letra própria (não herdam o branco do ecrã de entrada)',HTML.includes('background:var(--surface);color:var(--text);padding:10px 14px'),true);
 console.log('Honorários e juros');
 ok('IVA 23% sobre 1000 €',feeCalc(1000,true).vat.toFixed(2),'230.00');
 ok('Retenção 23% só com contabilidade organizada',[feeCalc(1000,true).ret,feeCalc(1000,false).ret].join('/'),'230/0');
