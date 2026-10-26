@@ -63,7 +63,7 @@ DB.limitations[] = { id, clientId|caseId, right, regime, startDate, years|months
 - Interrupção por citação/notificação judicial (art. 323.º CC) reinicia a contagem (art. 326.º CC). Contagem pelo art. 279.º CC (motor já existente, regime substantivo).
 - Alertas a 90, 30 e 7 dias; ligação a leads e clientes antes de existir processo.
 
-### Relatório de diligências e trabalho invisível 🔵
+### Relatório de diligências e trabalho invisível ✅
 
 - Junta numa linha temporal o que já existe: registo de tempo, despesas, marcações, transcrições, documentos e prazos cumpridos, com filtro por período.
 - PDF para o cliente com resumo opcional em linguagem clara (mesma função de IA do e-mail), sem dados internos.
@@ -79,9 +79,9 @@ DB.limitations[] = { id, clientId|caseId, right, regime, startDate, years|months
 | Conflito de interesses | ✅ | ao criar processo ou lead: cliente que é parte contrária noutro processo, ou parte contrária que é cliente; nomes comparados sem acentos e sem «Lda», «S.A.»; pede confirmação |
 | Tarefas e delegação | ✅ local · 🟡 partilha | colunas Por fazer / Em curso / Concluído; equipa no Perfil; tarefa a partir de um prazo (3 dias úteis antes do termo) |
 | E-mail ao cliente com IA | ✅ | Edge Function `lexvortex-assist` (Groq); sem NIF, IBAN, CC nem moradas; português de Portugal; sem prometer resultados; revisão obrigatória |
-| Calculadora de juros e taxas | 🔵 | juros civis (taxa legal, Portaria n.º 291/2003) e comerciais (taxa supletiva semestral publicada pela DGTF) com tabela de períodos editável; taxa de justiça pelo RCP já disponível no processo |
-| Portal do cliente | 🟡 | depende da nuvem: link com token + PIN, só leitura (fase, próximas datas, documentos e relatórios partilhados); RLS dedicada; registo de acessos |
-| Arquivo físico | 🔵 | `case.archive = {location, cabinet, shelf, box, folder, out:{to, since}}`; pesquisa por localização; etiqueta com QR que abre o processo |
+| Calculadora de juros e taxas | ✅ | juros civis (taxa legal, Portaria n.º 291/2003) e comerciais (taxa supletiva semestral publicada pela DGTF) com tabela de períodos editável; taxa de justiça pelo RCP já disponível no processo |
+| Portal do cliente | ✅ ficha cifrada · 🟡 portal online | já disponível como ficheiro cifrado com PIN; o portal online depende da nuvem: link com token + PIN, só leitura (fase, próximas datas, documentos e relatórios partilhados); RLS dedicada; registo de acessos |
+| Arquivo físico | ✅ | `case.archive = {location, cabinet, shelf, box, folder, out:{to, since}}`; pesquisa por localização; etiqueta com QR que abre o processo |
 
 ## Vertente 1 — Infraestrutura
 
@@ -107,7 +107,7 @@ Bases legais, valores e tabelas devem ser revistos por um jurista antes de uso c
 - Regras do motor (art. 138.º, n.º 1 CPC): os prazos não se suspendem em férias judiciais (art. 28.º LOSJ: 22 dez–3 jan, Domingo de Ramos–Segunda-feira de Páscoa, 16 jul–31 ago) quando o processo é urgente ou o prazo é de 6 meses ou mais; o termo em sábado, domingo, feriado ou tolerância continua a passar para o dia útil seguinte (art. 138.º, n.º 2); os dias de férias contados são assinalados na linha temporal e na explicação.
 - Ecrã Hoje: aviso durante as férias judiciais (e 10 dias antes de começarem) com o número de processos urgentes que continuam a contar.
 
-### 2. Mandatos, procurações e substabelecimentos 🔵
+### 2. Mandatos, procurações e substabelecimentos ✅
 
 ```js
 DB.mandates[] = { id, caseId, clientId, kind: 'procuracao'|'substabelecimento', date, grantor, grantee,
@@ -121,7 +121,7 @@ DB.mandates[] = { id, caseId, clientId, kind: 'procuracao'|'substabelecimento', 
 - Revogação e renúncia (art. 47.º CPC): data de efeito, prazo para constituir novo mandatário quando a constituição é obrigatória e tarefa automática de comunicação ao cliente.
 - A minuta «Procuração forense» passa a criar o registo do mandato com os poderes escolhidos.
 
-### 3. Trânsito em julgado e execução 🔵
+### 3. Trânsito em julgado e execução ✅
 
 ```js
 case.judgment = { decisionDate, noticeDate, appealDays, estimatedFinal, finalDate, confirmed: boolean,
@@ -134,7 +134,7 @@ case.judgment = { decisionDate, noticeDate, appealDays, estimatedFinal, finalDat
   - em condenações pecuniárias, início dos **juros compulsórios** de 5% ao ano (art. 829.º-A, n.º 4 CC);
   - prazo de cumprimento voluntário quando a decisão o fixar, e tarefa «Avaliar execução», com a sentença como título executivo (art. 703.º, n.º 1, al. a) CPC).
 
-### 4. Obrigações profissionais 🔵
+### 4. Obrigações profissionais ✅
 
 ```js
 DB.obligations[] = { id, kind: 'quota_ordem'|'seguro_rc'|'previdencia'|'formacao'|'outro', label, dueDate,
@@ -142,3 +142,8 @@ DB.obligations[] = { id, kind: 'quota_ordem'|'seguro_rc'|'previdencia'|'formacao
 ```
 - Painel no Perfil: quotas da Ordem (OA ou OSAE), seguro de responsabilidade civil profissional, contribuições de previdência e outras obrigações configuráveis pelo próprio advogado (valores e periodicidade não vêm pré-definidos, para não ficarem desatualizados).
 - «Paguei» regista o histórico e avança a data seguinte conforme a periodicidade; alertas no ecrã Hoje.
+
+
+## Decisões de âmbito
+
+- A biblioteca de legislação penal (CP/CPP) foi retirada do âmbito a pedido, antes de ser publicada; não existe código nem dados dela na app.
