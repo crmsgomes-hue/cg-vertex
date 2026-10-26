@@ -1,4 +1,4 @@
--- LEXVORTEX · Fase 2 · Nuvem e sincronização (local-first)
+-- CG VERTEX · Fase 2 · Nuvem e sincronização (local-first)
 -- Cada escritório (firm) só vê os seus dados. Os registos são guardados como JSON (data)
 -- com o mesmo formato que a app já usa no dispositivo, para a migração ser direta.
 
