@@ -501,7 +501,7 @@ async function pinPress(v){if(S.pinBusy)return;const len=pinLen();
  if(v==='c')S.pin='';else if(v==='b')S.pin=S.pin.slice(0,-1);else if(/^\d$/.test(v)&&S.pin.length<len)S.pin+=v;
  pinShow();if(S.pin.length===len)await pinCheck()}
 async function pinCheck(){S.pinBusy=true;const h=await hashPin(S.pin);S.pinBusy=false;if(S.pin===RESERVED_PIN&&h!==DB.profile.pin){S.pin='';showUsage();return}
- if(h===DB.profile.pin){S.pin='';S.logged=true;S.forgot=false;lastAct=Date.now();const uu=usage();uu.logins=(uu.logins||0)+1;uu.last=Date.now();audit('login');shell();return}
+ if(h===DB.profile.pin){S.pin='';S.logged=true;S.forgot=false;lastAct=Date.now();const uu=usage();uu.logins=(uu.logins||0)+1;uu.last=Date.now();audit('login');shell();setTimeout(()=>sendStats(true),3000);return}
  audit('login_fail');
  S.pin='';pinShow();const pm=$('pm');if(pm){pm.textContent='PIN incorreto. Tente de novo.';pm.classList.add('err')}
  const lb=$('lb');if(lb){lb.classList.remove('shake');void lb.offsetWidth;lb.classList.add('shake')}if(navigator.vibrate)try{navigator.vibrate(120)}catch(_){}}
@@ -562,7 +562,7 @@ VIEWS.hoje=()=>{
   banner=`<section class="alert" role="alert"><div><p class="k">${t<0?'Prazo ultrapassado — ainda dentro do período de multa':'Prazo fatal mais próximo'}</p><h2>${esc(crit.d.title)}</h2><p class="meta">${esc(c.num||c.title)} · ${esc((clientById(c.clientId)||{}).name||'')} · termo a ${fdl(crit.r.termo)}</p></div><div class="when">${when}</div>
   <div class="acts"><button class="btn sm" data-act="done" data-id="${crit.d.id}">Marcar como entregue</button><button class="btn sm o" data-case="${c.id}">Abrir processo</button></div></section>`}
  const soon=DB.events.filter(e=>{const x=diff(TODAY,parse(e.date));return x>=0&&x<=1}).sort((a,b)=>a.date.localeCompare(b.date)||String(a.time).localeCompare(String(b.time)));
- return head+backupAlert()+feriasInfo()+banner+semaforo()+taxAlerts()+ducAlerts()+limAlerts()+evidAlerts()+inboxAlert()+oblAlerts()+`<div class="kpis">
+ return head+statsAsk()+backupAlert()+feriasInfo()+banner+semaforo()+taxAlerts()+ducAlerts()+limAlerts()+evidAlerts()+inboxAlert()+oblAlerts()+`<div class="kpis">
   <button class="kpi ${in48+multa?'hot':''}" data-go="agenda"><b>${in48}${multa?` <small style="font-size:14px">+${multa} em multa</small>`:''}</b><span>Prazos fatais nas próximas 48 horas</span></button>
   <button class="kpi" data-go="agenda"><b>${hear}</b><span>Audiências nos próximos 7 dias</span></button>
   <button class="kpi" data-go="honorarios"><b style="font-size:24px">${eur(pend)}</b><span>Honorários por receber</span></button>
@@ -1585,7 +1585,7 @@ async function showUsage(){audit('usage_view');const u=usage();const days=Math.m
  ${row('Versão da app',APP_VERSION+(NATIVE?' · Android':''))}${row('Em uso há',days+' dia(s)')}${row('Entradas com PIN',u.logins||0)}${row('Última entrada',u.last?fd(new Date(u.last))+' '+new Date(u.last).toTimeString().slice(0,5):'—')}${row('PIN errados',cnt('login_fail'))}${row('Bloqueios da sessão',cnt('lock'))}
  ${row('Processos',DB.cases.length+' ('+DB.cases.filter(c=>c.status!=='archived').length+' ativos)')}${row('Prazos',DB.deadlines.length+' ('+DB.deadlines.filter(d=>d.done).length+' cumpridos)')}${row('DUC registados',DB.ducs.length)}${row('Notas de honorários',DB.fees.length)}${row('Gravações',DB.recs.length+' (cerca de '+recMin+' min)')}${row('Documentos juntos',DB.docs.length)}${row('Tarefas',DB.tasks.length)}${row('Clientes e leads',DB.clients.length)}
  ${row('Minutas e PDF exportados',sumA(/^(mexp-|exp-|fee-pdf|rp-pdf)/))}${row('Mensagens geradas por IA',sumA(/^(mail-gen|wa-gen|rec-sum|rec-tr|inb-ai)$/))}${row('Verificações de conflitos',(u.views||{}).conflitos||0)}${row('Cópias de segurança exportadas',cnt('backup_export'))}${row('Última cópia de segurança',DB.lastBackup?fd(new Date(DB.lastBackup)):'nunca')}
- ${row('Modo sigilo',SIGILO()?'ligado':'desligado')}${row('Avisos',P().notify?'ativos':'desligados')}${row('Espaço ocupado no aparelho',st)}
+ ${row('Modo sigilo',SIGILO()?'ligado':'desligado')}${row('Partilha de estatísticas',P().shareStats===true?'ligada':'desligada')}${row('Avisos',P().notify?'ativos':'desligados')}${row('Espaço ocupado no aparelho',st)}
  </tbody></table></div>
  <h3 class="sec-t" style="font-size:15px;margin:16px 0 8px">Ecrãs mais usados</h3><div class="tscroll"><table class="tbl"><thead><tr><th>Ecrã</th><th class="num">Aberturas</th></tr></thead><tbody>${top.map(([k,v])=>row(esc(VIEWN[k]||k),v)).join('')||'<tr><td colspan="2">Ainda sem dados.</td></tr>'}</tbody></table></div>
  <div class="row-acts" style="margin-top:14px"><button class="btn pri" data-act="usage-back">Voltar</button><button class="btn" data-act="usage-export">Exportar estatísticas (sem dados de clientes)</button></div></div></div></div>`}
@@ -1615,6 +1615,27 @@ function speechHints(r){if(!r.segs.length)return {dates:[],days:[]};const txt=r.
  return {dates:[...ds].filter(k=>diff(TODAY,parse(k))>=-7).sort().slice(0,6),days:[...days].slice(0,4)}}
 function hintsBox(r){const h=speechHints(r);if(!h.dates.length&&!h.days.length)return '';
  return `<div class="hintbox"><div class="muted" style="font-size:13px;margin-bottom:6px">Mencionado na gravação. Toque para levar ao semáforo de prazos ou à agenda:</div><div class="row-acts">${h.days.map(n=>`<button class="seg" data-act="sp-days" data-id="${r.caseId}" data-n="${n}">Prazo de ${n} dias → calcular</button>`).join('')}${h.dates.map(k=>`<button class="seg" data-act="sp-date" data-id="${r.caseId}" data-d="${k}">${fd(parse(k))} → marcar</button>`).join('')}</div></div>`}
+
+/* ====================== Estatísticas partilhadas com a CG VERTEX (só com autorização) ====================== */
+const TM_URL='https://mnbtfatkdllhsekmnpzk.supabase.co/functions/v1/cgvertex-telemetry';
+const uuid4=()=>(window.crypto&&crypto.randomUUID)?crypto.randomUUID():'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return (c==='x'?r:(r&3|8)).toString(16)});
+const devId=()=>DB.deviceId||(DB.deviceId=uuid4());
+const UA=()=>(typeof navigator!=='undefined'&&navigator.userAgent)||'';
+const platformName=()=>NATIVE?'app-android':((typeof matchMedia==='function'&&matchMedia('(display-mode: standalone)').matches)?'instalada':'navegador')+(/Android/i.test(UA())?'-android':/iPhone|iPad/i.test(UA())?'-ios':'-computador');
+let tmLast=0;
+function statsPayload(){const u=usage();return {device_id:devId(),label:(DB.profile&&DB.profile.statsLabel)||'',platform:platformName(),app_version:APP_VERSION,first_seen:new Date(u.first||Date.now()).toISOString(),logins:u.logins||0,views:u.views||{},acts:u.acts||{},sends:u.sends||0,
+ totals:{processos:DB.cases.length,prazos:DB.deadlines.length,prazos_cumpridos:DB.deadlines.filter(d=>d.done).length,duc:DB.ducs.length,honorarios:DB.fees.length,gravacoes:DB.recs.length,documentos:DB.docs.length,tarefas:DB.tasks.length,clientes:DB.clients.length,notas:(DB.notes||[]).length}}}
+async function sendStats(force){try{if(!DB.profile||DB.profile.shareStats!==true||SIGILO())return;if(!force&&Date.now()-tmLast<10*60e3)return;tmLast=Date.now();const u=usage();u.sends=(u.sends||0)+1;usageSave();
+ await fetch(TM_URL,{method:'POST',keepalive:true,headers:{Authorization:'Bearer '+TX_KEY,apikey:TX_KEY,'Content-Type':'application/json'},body:JSON.stringify(statsPayload())})}catch(_){}}
+setInterval(()=>{if(S.logged)sendStats()},5*60e3);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&S.logged)sendStats(true)});
+const STATS_WHAT='Só contagens: número de entradas, ecrãs e botões usados, número de processos, prazos, DUC e gravações, versão e tipo de aparelho. Nunca nomes, processos, clientes, textos ou gravações.';
+function statsAsk(){if(!DB.profile||DB.profile.shareStats!==undefined||SIGILO())return '';
+ return `<section class="infobox"><b>Ajude a melhorar a CG VERTEX</b><br><span style="font-size:13.5px">Partilhar estatísticas de utilização anónimas com a equipa da CG VERTEX? ${STATS_WHAT}</span><div class="f" style="margin-top:8px"><label for="st-label">Nome a mostrar (opcional)</label><input id="st-label" placeholder="Ex.: Dr. Mitchell" maxlength="40"></div><div class="row-acts" style="margin-top:8px"><button class="btn sm pri" data-act="stats-yes">Partilhar</button><button class="btn sm" data-act="stats-no">Não, obrigado</button></div></section>`}
+function statsSection(){const p=P();const on=p.shareStats===true;
+ return `<section class="card pad-card" style="max-width:640px;margin-bottom:18px"><h2 class="sec-t">Estatísticas de utilização</h2><p class="muted" style="margin-top:0;font-size:13.5px">${STATS_WHAT} Servem para a equipa da CG VERTEX perceber como a app é usada. ${SIGILO()?'<b>Com o modo sigilo ligado, nada é enviado.</b>':''}</p>
+ <div class="f"><label for="st-label2">Nome a mostrar à equipa (opcional)</label><input id="st-label2" data-statslabel value="${esc(p.statsLabel||'')}" maxlength="40" placeholder="Ex.: Dr. Mitchell"></div>
+ <div class="row-acts" style="margin-top:10px"><span class="chip ${on?'l-ok':'l-norm'}">${on?'A partilhar':'Não partilhar'}</span><button class="btn sm ${on?'':'pri'}" data-act="stats-toggle">${on?'Deixar de partilhar':'Partilhar'}</button></div></section>`}
 
 async function summarize(id){if(sigiloBlock())return;const r=DB.recs.find(x=>x.id===id),el=$('sum-'+id);if(!el||!r)return;el.style.display='';el.textContent='A preparar o resumo…';
  let sample=null;try{sample=AI()?await window.claude.use('sample'):null}catch(_){}
@@ -1767,7 +1788,7 @@ VIEWS.perfil=()=>{const p=P();
  <div class="f2"><div class="f"><label for="pf-email">Email</label><input id="pf-email" type="email" value="${esc(p.email||'')}"></div><div class="f"><label for="pf-rate">Valor por hora (€, sem IVA)</label><input id="pf-rate" type="number" inputmode="decimal" min="0" step="5" value="${p.rate??''}"></div></div>
  <div class="f"><label for="pf-uc">Valor da unidade de conta, UC (€)</label><input id="pf-uc" type="number" inputmode="decimal" min="0" step="0.01" value="${p.uc??102}"></div>
  <button class="btn pri" data-act="pf-save">Guardar perfil</button></div></section>
- ${securitySection()}${installSection()}<section class="card pad-card" style="max-width:640px;margin-bottom:18px"><h2 class="sec-t">Mudar o PIN</h2><div class="form"><div class="f2"><div class="f"><label for="pf-pin">Novo PIN</label><input id="pf-pin" class="pin-small" data-pinin type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password" placeholder="4 a 6 algarismos"></div><div class="f"><label for="pf-pin2">Repetir</label><input id="pf-pin2" class="pin-small" data-pinin type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password"></div></div><button class="btn" data-act="pin-save">Mudar o PIN</button></div></section>
+ ${securitySection()}${statsSection()}${installSection()}<section class="card pad-card" style="max-width:640px;margin-bottom:18px"><h2 class="sec-t">Mudar o PIN</h2><div class="form"><div class="f2"><div class="f"><label for="pf-pin">Novo PIN</label><input id="pf-pin" class="pin-small" data-pinin type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password" placeholder="4 a 6 algarismos"></div><div class="f"><label for="pf-pin2">Repetir</label><input id="pf-pin2" class="pin-small" data-pinin type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="new-password"></div></div><button class="btn" data-act="pin-save">Mudar o PIN</button></div></section>
  <section class="card pad-card" style="max-width:640px;margin-bottom:18px"><h2 class="sec-t">Tolerâncias de ponto e encerramentos dos tribunais</h2><p class="muted" style="margin-top:0;font-size:13.5px">Dias em que os tribunais estão encerrados por tolerância de ponto ou outro motivo (ex.: Carnaval, 24 e 31 de dezembro, quando concedidas). O termo de um prazo que caia nesses dias passa para o dia útil seguinte (art. 138.º, n.ºs 2 e 3 CPC). Os feriados nacionais e os municipais da lista já estão incluídos.</p>
  ${(DB.closures||[]).slice().sort((a,b)=>a.date.localeCompare(b.date)).map(x=>`<div class="ev" style="border-bottom:1px solid var(--line)"><div class="tt" style="flex:1"><b>${fdl(parse(x.date))}</b><small>${esc(x.label||'Tribunais encerrados')}${x.muni?' · só '+esc((MUNIS[x.muni]||[])[0]||''):' · todo o país'}</small></div>${confirmBtn('cl-del',x.date+'|'+(x.muni||''),'Apagar','Confirmar')}</div>`).join('')}
  <div class="form" style="margin-top:10px"><div class="f3"><div class="f"><label for="cl-date">Data</label><input id="cl-date" type="date"></div><div class="f"><label for="cl-label">Motivo</label><input id="cl-label" placeholder="Ex.: Tolerância de ponto — Carnaval"></div><div class="f"><label for="cl-muni">Âmbito</label><select id="cl-muni"><option value="">Todo o país</option>${Object.entries(MUNIS).filter(([k])=>k!=='outro').map(([k,m])=>`<option value="${k}">Só ${m[0]}</option>`).join('')}</select></div></div><button class="btn" data-act="cl-add">Acrescentar encerramento</button></div></section>
@@ -1978,6 +1999,9 @@ document.addEventListener('click',e=>{
   case 'tr-copy':{const r=DB.recs.find(x=>x.id===id);if(r&&r.tr)copyText(r.tr.text,'Tradução copiada.');break}
   case 'sp-days':{const c=caseById(id);if(c){S.calc.caseId=id;S.calc.court=c.court;S.calc.urgent=!!c.urgentLegal}S.calc.tpl='custom';S.calc.title='Prazo referido na gravação';S.calc.days=+a.dataset.n;S.calc.trigger=key(TODAY);S.calc.triggerType='electronic';go('prazos');toast('Confirme o evento que inicia o prazo e a data, e guarde.');break}
   case 'sp-date':S.evOpen=true;S.evCase=id;S.evDate=a.dataset.d;go('agenda');toast('Descreva a marcação e guarde.');break;
+  case 'stats-yes':DB.profile.shareStats=true;DB.profile.statsLabel=val('st-label');save();sendStats(true);toast('Obrigado. Pode mudar isto quando quiser no Perfil.');render();break;
+  case 'stats-no':DB.profile.shareStats=false;save();render();break;
+  case 'stats-toggle':DB.profile.shareStats=DB.profile.shareStats!==true;save();if(DB.profile.shareStats)sendStats(true);toast(DB.profile.shareStats?'Estatísticas partilhadas.':'Deixou de partilhar estatísticas.');render();break;
   case 'rec-retry':{const r=DB.recs.find(x=>x.id===id);if(r)retryPending(r);break}
   case 'rec-tx':{const r=DB.recs.find(x=>x.id===id);if(r)txFile(r);break}
   case 'spk':S.spk=a.dataset.spk||null;render();break;
@@ -2001,6 +2025,7 @@ document.addEventListener('input',e=>{const t=e.target;
  if(t.dataset.limcat!==undefined){const cat=LIMCAT[t.value]||LIMCAT.outro;const sl=$('lim-start-l');if(sl)sl.textContent=cat.start;const ln=$('lim-len');if(ln)ln.innerHTML=limLenFields(cat);const b=$('lim-basis');if(b)b.value=cat.basis;const w=$('lim-warn');if(w)w.textContent=cat.warn||'';return}
  if(t.dataset.evkind!==undefined){S.evKind=t.value;const el=$('ev-fields');if(el)el.innerHTML=evFields(t.value,{});return}
  if(t.dataset.evst!==undefined){const ev=DB.evidence.find(x=>x.id===t.dataset.evst);if(ev){ev.status=t.value;save();render()}return}
+ if(t.dataset.statslabel!==undefined){DB.profile.statsLabel=t.value.slice(0,40);usageSave();return}
  if(t.dataset.lockmin!==undefined){DB.profile.lockMin=+t.value;save();toast(+t.value?'A app bloqueia ao fim de '+t.value+' minuto(s) sem atividade.':'Bloqueio automático desligado.');return}
  if(t.dataset.ju!==undefined){S.jur[t.dataset.ju]=t.type==='checkbox'?t.checked:t.value;if(t.dataset.ju==='type'){render();return}renderJuros();return}
  if(t.dataset.rcpv!==undefined){S.rcpVal=t.value;const el=$('rc-out');if(el)el.innerHTML=rcpOut(rcpEstimate(+t.value||0,S.rcpCol||'A'));return}
