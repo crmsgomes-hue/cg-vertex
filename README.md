@@ -25,6 +25,7 @@ App web/mobile (PWA) para advogados e solicitadores em Portugal: processos, praz
 ## App Android
 
 - **Instalar:** https://github.com/crmsgomes-hue/cg-vertex/releases/latest/download/CG-VERTEX.apk
+- **Atualização automática:** a app carrega a versão publicada em https://crmsgomes-hue.github.io/cg-vertex/ (`server.url` no `capacitor.config.json`) e guarda-a para uso sem internet; só é preciso reinstalar quando mudar a parte nativa (permissões, ícone, plugins).
 - Gerada automaticamente com Capacitor 6 a cada alteração de `index.html` ([`.github/workflows/android.yml`](.github/workflows/android.yml)); assinada sempre com a mesma chave (segredo do GitHub), para as versões novas se instalarem por cima sem perder dados.
 - Na app: ficheiros guardados e partilhados pelo menu nativo do Android; **alertas de prazos agendados no próprio telemóvel, mesmo com a app fechada** (7, 3 e 1 dia antes e no dia, às 9h; audiências na véspera; prescrições; obrigações).
 
