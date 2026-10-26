@@ -379,7 +379,7 @@ const DB_KEY='lexvortex-v2';
 const fresh=()=>({profile:null,clients:[],cases:[],deadlines:[],events:[],fees:[],recs:[],docs:[],time:[],templates:[],timer:null,expenses:[],feeSeq:{},contacts:[],tasks:[],team:[],inbox:[],ducs:[],limitations:[],evidence:[],obligations:[],mandates:[],jurosTab:null,closures:[],lastBackup:null,seq:1});
 let DB=fresh();
 function load(){try{const s=localStorage.getItem(DB_KEY);if(s)DB=Object.assign(fresh(),JSON.parse(s))}catch(_){}}
-function save(){try{localStorage.setItem(DB_KEY,JSON.stringify(DB))}catch(_){toast('Não foi possível guardar neste dispositivo.')}}
+function save(){try{localStorage.setItem(DB_KEY,JSON.stringify(DB))}catch(_){toast('Não foi possível guardar neste dispositivo.')}if(typeof scheduleAlerts==='function')scheduleAlerts()}
 const nid=p=>p+(DB.seq++)+Date.now().toString(36).slice(-5);
 let idb=null;
 function idbOpen(){return new Promise(res=>{try{const r=indexedDB.open('lexvortex-audio',1);r.onupgradeneeded=()=>r.result.createObjectStore('a');r.onsuccess=()=>{idb=r.result;res(idb)};r.onerror=()=>res(null)}catch(_){res(null)}})}
@@ -496,7 +496,7 @@ function shell(){
  </div>
  <nav class="nav">${NAV_MOB.map(([k,l])=>`<button data-go="${k}" data-nav="${k}">${I[k]}<span>${l}</span></button>`).join('')}</nav>
  </div>`;
- render();txCheck();setTimeout(dailyNotify,1500);
+ render();txCheck();setTimeout(dailyNotify,1500);scheduleAlerts();
 }
 function go(v){S.view=v;S.confirm=null;render();window.scrollTo(0,0)}
 function render(){
@@ -738,7 +738,7 @@ function loadScript(src){return new Promise((res,rej)=>{if(document.querySelecto
 function recMeta(r){const c=caseById(r.caseId)||{},cl=clientById(c.clientId)||{};return [['Processo',c.num||'—'],['Assunto',c.title||'—'],['Tribunal',c.courtName||'—'],['Cliente',cl.name||'—'],['Parte adversa',c.adv||'—'],['Registo',(RK[r.kind]||RK.live)[1]],['Data',fd(parse(r.date))],['Duração',r.dur],['Elaborada por',LNAME()+(P().cedula?', cédula profissional n.º '+P().cedula:'')]]}
 const EXP_NOTE='Transcrição gerada automaticamente a partir da gravação áudio. As marcas de tempo indicam a posição de cada fala na gravação.';
 function expName(r,ext){const c=caseById(r.caseId)||{};return ('Transcricao_'+(c.num||c.title||'processo')+'_'+r.date).replace(/[\/\\:*?"<>|\s]+/g,'-')+'.'+ext}
-async function saveBlob(blob,name){let dl=null;try{dl=window.claude&&typeof window.claude.use==='function'?await window.claude.use('downloads'):null}catch(_){}
+async function saveBlob(blob,name){if(NATIVE)return nativeSave(blob,name);let dl=null;try{dl=window.claude&&typeof window.claude.use==='function'?await window.claude.use('downloads'):null}catch(_){}
  if(dl){try{await dl.save({filename:name,data:blob});return true}catch(e){if(e&&e.code==='declined')return false}}
  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),60000);return true}
 function buildPdf(r,J){const doc=new J({unit:'mm',format:'a4'});const W=210,H=297,ML=20,MR=20,TW=W-ML-MR;let y=22;
@@ -1387,7 +1387,7 @@ function portalSection(c){return `<section class="card pad-card" style="margin-b
  <div class="f2"><div class="f"><label for="pt-pin">PIN para o cliente (4 a 8 algarismos)</label><input id="pt-pin" inputmode="numeric" maxlength="8" value="${String(Math.floor(1000+Math.random()*9000))}"></div><div class="f" style="display:flex;align-items:flex-end"><button class="btn pri" style="width:100%" data-act="pt-make" data-id="${c.id}">Criar ficha para o cliente</button></div></div></div></section>`}
 
 /* ====================== Avisos no telemóvel (com a app aberta) ====================== */
-function dailyNotify(){try{if(!('Notification' in window)||Notification.permission!=='granted'||!P().notify)return;const k='lv-notified-'+key(TODAY);if(localStorage.getItem(k))return;
+function dailyNotify(){try{if(NATIVE)return;if(!('Notification' in window)||Notification.permission!=='granted'||!P().notify)return;const k='lv-notified-'+key(TODAY);if(localStorage.getItem(k))return;
  const due=openDl().filter(x=>{const t=diff(TODAY,x.r.termo);return t>=0&&t<=1||x.l==='multa'});const obl=(DB.obligations||[]).filter(o=>diff(TODAY,parse(o.due))<=1);
  if(!due.length&&!obl.length){localStorage.setItem(k,'1');return}
  const body=[...due.map(x=>x.d.title+' · '+((caseById(x.d.caseId)||{}).num||'')+' · '+(x.l==='multa'?'em multa':diff(TODAY,x.r.termo)===0?'termina hoje':'termina amanhã')),...obl.map(o=>(o.label||'Obrigação profissional')+' · '+fds(parse(o.due)))].slice(0,4).join('\n');
@@ -1399,6 +1399,26 @@ function backupAlert(){const n=DB.cases.length+DB.deadlines.length;if(!n)return 
  return `<section class="warnbox"><b>${last?'A última cópia de segurança tem '+days+' dias':'Ainda não fez nenhuma cópia de segurança'}</b><br><span style="font-size:13.5px">Os dados estão guardados só neste telemóvel. Se o perder ou limpar o navegador, perde os processos e os prazos. Faça uma cópia e guarde-a fora do telemóvel.</span><div class="row-acts" style="margin-top:8px"><button class="btn sm pri" data-act="bk-export">Fazer cópia agora</button></div></section>`}
 window.addEventListener('error',e=>{try{toast('Ocorreu um erro inesperado. Os seus dados estão guardados; se algo não responder, recarregue a página.')}catch(_){}});
 window.addEventListener('unhandledrejection',e=>{try{console.error(e.reason)}catch(_){}});
+
+/* ====================== App Android (Capacitor) ====================== */
+const NATIVE=!!(window.Capacitor&&typeof window.Capacitor.isNativePlatform==='function'&&window.Capacitor.isNativePlatform());
+const NP=n=>{try{return NATIVE&&window.Capacitor.registerPlugin?window.Capacitor.registerPlugin(n):null}catch(_){return null}};
+const blobB64=b=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=rej;r.readAsDataURL(b)});
+async function nativeSave(blob,name){const FS=NP('Filesystem'),SH=NP('Share');if(!FS||!SH)return false;
+ try{const w=await FS.writeFile({path:name,data:await blobB64(blob),directory:'CACHE'});await SH.share({title:name,files:[w.uri],dialogTitle:'Guardar ou enviar'});return true}
+ catch(e){if(/cancel/i.test(String(e&&(e.message||e))))return false;toast('Não foi possível guardar o ficheiro.');return false}}
+let lnTimer=null;
+function scheduleAlerts(){if(!NATIVE||!DB.profile||!DB.profile.notify)return;clearTimeout(lnTimer);lnTimer=setTimeout(async()=>{try{const LN=NP('LocalNotifications');if(!LN)return;
+ const pend=await LN.getPending();if(pend&&pend.notifications&&pend.notifications.length)await LN.cancel({notifications:pend.notifications.map(n=>({id:n.id}))});
+ const now=Date.now(),list=[];const at=(d,h)=>{const x=new Date(d);x.setHours(h,0,0,0);return x};
+ openDl().forEach(x=>{if(x.r.pending)return;const c=caseById(x.d.caseId)||{};[[7,'faltam 7 dias'],[3,'faltam 3 dias'],[1,'termina amanhã'],[0,'termina hoje']].forEach(([o,lab])=>{const w=at(add(x.r.termo,-o),9);if(w.getTime()>now)list.push({w,title:'Prazo: '+x.d.title,body:(c.num||c.title||'')+' · '+lab+' ('+fds(x.r.termo)+')'})});
+  if(x.r.grace){const w=at(add(x.r.termo,1),9);if(w.getTime()>now)list.push({w,title:'Prazo terminado: '+x.d.title,body:(c.num||c.title||'')+' · ainda com multa até '+fds(x.r.grace)+' (art. 139.º CPC)'})}});
+ DB.events.filter(e=>e.kind==='hearing'&&e.date>=key(TODAY)).forEach(e=>{const w=at(add(parse(e.date),-1),18);if(w.getTime()>now)list.push({w,title:'Amanhã: '+e.title,body:[e.time,e.place].filter(Boolean).join(' · ')})});
+ DB.limitations.filter(l=>l.status!=='exercised').forEach(l=>{const r=limCalc(l);[30,7,1].forEach(of=>{const w=at(add(r.fileBy,-of),9);if(w.getTime()>now)list.push({w,title:'Prescrição ou caducidade: '+(l.title||''),body:'Instaurar ou praticar o ato até '+fds(r.fileBy)})})});
+ (DB.obligations||[]).forEach(o=>{[7,1].forEach(of=>{const w=at(add(parse(o.due),-of),9);if(w.getTime()>now)list.push({w,title:'Obrigação: '+(o.label||'pagamento'),body:'Vence a '+fds(parse(o.due))})})});
+ list.sort((a,b)=>a.w-b.w);const sel=list.slice(0,60);
+ if(sel.length)await LN.schedule({notifications:sel.map((n,i)=>({id:1000+i,title:n.title,body:n.body,schedule:{at:n.w,allowWhileIdle:true}}))});
+ S.alertsScheduled=sel.length}catch(e){console.error(e)}},1500)}
 
 async function summarize(id){const r=DB.recs.find(x=>x.id===id),el=$('sum-'+id);if(!el||!r)return;el.style.display='';el.textContent='A preparar o resumo…';
  let sample=null;try{sample=AI()?await window.claude.use('sample'):null}catch(_){}
@@ -1556,7 +1576,7 @@ VIEWS.perfil=()=>{const p=P();
  ${(DB.closures||[]).slice().sort((a,b)=>a.date.localeCompare(b.date)).map(x=>`<div class="ev" style="border-bottom:1px solid var(--line)"><div class="tt" style="flex:1"><b>${fdl(parse(x.date))}</b><small>${esc(x.label||'Tribunais encerrados')}${x.muni?' · só '+esc((MUNIS[x.muni]||[])[0]||''):' · todo o país'}</small></div>${confirmBtn('cl-del',x.date+'|'+(x.muni||''),'Apagar','Confirmar')}</div>`).join('')}
  <div class="form" style="margin-top:10px"><div class="f3"><div class="f"><label for="cl-date">Data</label><input id="cl-date" type="date"></div><div class="f"><label for="cl-label">Motivo</label><input id="cl-label" placeholder="Ex.: Tolerância de ponto — Carnaval"></div><div class="f"><label for="cl-muni">Âmbito</label><select id="cl-muni"><option value="">Todo o país</option>${Object.entries(MUNIS).filter(([k])=>k!=='outro').map(([k,m])=>`<option value="${k}">Só ${m[0]}</option>`).join('')}</select></div></div><button class="btn" data-act="cl-add">Acrescentar encerramento</button></div></section>
  ${oblSection()}
- <section class="card pad-card" style="max-width:640px;margin-bottom:18px"><h2 class="sec-t">Avisos no telemóvel</h2><p class="muted" style="margin-top:0;font-size:13.5px">Quando abrir a app, mostra uma notificação com os prazos que terminam hoje ou amanhã e as obrigações a pagar. Os avisos com a app fechada precisam do servidor próprio (próxima fase).</p>${P().notify&&'Notification' in window&&Notification.permission==='granted'?'<p class="pos" style="margin:0 0 8px">Avisos ativos.</p><button class="btn" data-act="notify-off">Desativar avisos</button>':'<button class="btn" data-act="notify-on">Ativar avisos</button>'}</section>
+ <section class="card pad-card" style="max-width:640px;margin-bottom:18px"><h2 class="sec-t">Avisos no telemóvel</h2><p class="muted" style="margin-top:0;font-size:13.5px">${NATIVE?'Alertas agendados no próprio telemóvel, mesmo com a app fechada: prazos 7, 3 e 1 dia antes e no próprio dia às 9h; audiências na véspera às 18h; prescrições e obrigações.':'Quando abrir a app, mostra uma notificação com os prazos que terminam hoje ou amanhã e as obrigações a pagar. Na app Android, os alertas chegam também com a app fechada.'}</p>${(NATIVE?P().notify:P().notify&&'Notification' in window&&Notification.permission==='granted')?'<p class="pos" style="margin:0 0 8px">Avisos ativos.</p><button class="btn" data-act="notify-off">Desativar avisos</button>':'<button class="btn" data-act="notify-on">Ativar avisos</button>'}</section>
  <section class="card pad-card" style="max-width:640px;margin-bottom:18px"><h2 class="sec-t">Taxas de juros comerciais</h2><p class="muted" style="margin-top:0;font-size:13.5px">Taxas supletivas semestrais (Código Comercial, art. 102.º; DL 62/2013), usadas na calculadora. Confirme e acrescente semestres a partir dos avisos publicados no Diário da República.</p>
  <div class="tscroll"><table class="tbl"><thead><tr><th>Período</th><th class="num">Créditos de empresas</th><th class="num">Transações comerciais</th><th>Fonte</th><th></th></tr></thead><tbody>${jurosTable().map((r,i)=>`<tr><td class="mono">${fds(parse(r.from))} – ${fd(parse(r.to))}</td><td class="num">${String(r.com).replace('.',',')}%</td><td class="num">${String(r.tc).replace('.',',')}%</td><td style="font-size:12.5px">${esc(r.src||'')}</td><td>${confirmBtn('jt-del',String(i),'Apagar','Confirmar')}</td></tr>`).join('')}</tbody></table></div>
  <div class="form" style="margin-top:10px"><div class="f2"><div class="f"><label for="jt-from">De</label><input id="jt-from" type="date"></div><div class="f"><label for="jt-to">Até</label><input id="jt-to" type="date"></div></div><div class="f3"><div class="f"><label for="jt-com">Créditos de empresas (%)</label><input id="jt-com" type="number" inputmode="decimal" step="0.01"></div><div class="f"><label for="jt-tc">Transações (%)</label><input id="jt-tc" type="number" inputmode="decimal" step="0.01"></div><div class="f"><label for="jt-src">Aviso</label><input id="jt-src" placeholder="Aviso n.º …"></div></div><div class="row-acts"><button class="btn" data-act="jt-add">Acrescentar semestre</button><button class="btn" data-act="jt-reset">Repor valores de origem</button></div></div></section>
@@ -1729,8 +1749,8 @@ document.addEventListener('click',e=>{
   case 'inb-cancelpaste':S.inbPaste=false;render();break;
   case 'inb-parse':importNoticeText($('inb-text')?.value||'');break;
   case 'inb-ai':aiNotice(id);break;
-  case 'notify-on':{if(!('Notification' in window)){toast('Este navegador não mostra notificações.');break}Notification.requestPermission().then(p=>{if(p==='granted'){DB.profile.notify=true;save();try{localStorage.removeItem('lv-notified-'+key(TODAY))}catch(_){}dailyNotify();toast('Avisos ativos.')}else toast('O navegador não autorizou as notificações.');render()});break}
-  case 'notify-off':DB.profile.notify=false;save();render();break;
+  case 'notify-on':{if(NATIVE){const LN=NP('LocalNotifications');(LN?LN.requestPermissions():Promise.reject()).then(p=>{if(p&&p.display==='granted'){DB.profile.notify=true;save();toast('Alertas ativos, mesmo com a app fechada.');render()}else toast('O telemóvel não autorizou as notificações. Pode ativá-las nas definições do Android.')}).catch(()=>toast('Não foi possível ativar os alertas.'));break}if(!('Notification' in window)){toast('Este navegador não mostra notificações.');break}Notification.requestPermission().then(p=>{if(p==='granted'){DB.profile.notify=true;save();try{localStorage.removeItem('lv-notified-'+key(TODAY))}catch(_){}dailyNotify();toast('Avisos ativos.')}else toast('O navegador não autorizou as notificações.');render()});break}
+  case 'notify-off':DB.profile.notify=false;save();if(NATIVE){const LN=NP('LocalNotifications');LN&&LN.getPending().then(p=>p&&p.notifications&&p.notifications.length&&LN.cancel({notifications:p.notifications.map(n=>({id:n.id}))})).catch(()=>{})}render();break;
   case 'jt-add':{const from=val('jt-from'),to=val('jt-to'),com=+val('jt-com'),tc=+val('jt-tc');if(!from||!to||to<from||!(com>0)||!(tc>0)){toast('Preencha o período e as duas taxas.');break}const t=jurosTable();t.push({from,to,com,tc,src:val('jt-src')});DB.jurosTab=t;save();toast('Semestre acrescentado.');render();break}
   case 'jt-del':if(askConfirm('jt-del'+id)){const t=jurosTable();t.splice(+id,1);DB.jurosTab=t;save();render()}break;
   case 'jt-reset':DB.jurosTab=null;save();render();break;
