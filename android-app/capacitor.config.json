@@ -11,5 +11,12 @@
     "LocalNotifications": {
       "iconColor": "#E47A2A"
     }
+  },
+  "server": {
+    "url": "https://crmsgomes-hue.github.io/cg-vertex/",
+    "androidScheme": "https",
+    "allowNavigation": [
+      "crmsgomes-hue.github.io"
+    ]
   }
 }
