@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-// LEXVORTEX — transcrição de excertos de áudio com Whisper Large v3 (Groq).
+// CG VERTEX — transcrição de excertos de áudio com Whisper Large v3 (Groq).
 // Não guarda áudio nem texto: recebe um excerto, devolve o texto e esquece.
 // A chave da Groq vem do Secret GROQ_API_KEY do projeto Supabase (nunca no código).
 
