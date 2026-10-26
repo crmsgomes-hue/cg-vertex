@@ -1,4 +1,4 @@
-# LEXVORTEX — Plano de evolução (3 vertentes)
+# CG VERTEX — Plano de evolução (3 vertentes)
 
 Estado: ✅ na app · 🟡 especificado, depende do servidor próprio · 🔵 especificado · ⚪ por especificar
 
