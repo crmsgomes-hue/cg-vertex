@@ -1,0 +1,55 @@
+// CG VERTEX — teste do ecrã de entrada num navegador simulado (jsdom): criar perfil, asteriscos, validação, PIN, bloqueio e painel 9999.
+// Correr: node tests/ui.test.js [caminho/index.html]   (precisa de: npm i jsdom)
+const fs = require('fs'), path = require('path');
+const { JSDOM } = require(process.env.JSDOM_PATH || 'jsdom');
+const file = process.argv[2] || path.join(__dirname, '..', 'index.html');
+const html = fs.readFileSync(file, 'utf8');
+let n = 0, fails = 0;
+const ok = (name, got, exp = true) => { n++; if (got === exp) console.log('  ✓ ' + name); else { fails++; console.log('  ✗ ' + name + ' — obtido ' + JSON.stringify(got) + ', esperado ' + JSON.stringify(exp)); } };
+const wait = (ms = 60) => new Promise(r => setTimeout(r, ms));
+(async () => {
+  const dom = new JSDOM(html, { url: 'https://exemplo.pt/cg-vertex/', runScripts: 'dangerously', pretendToBeVisual: true,
+    beforeParse(w) { w.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {} }); Object.defineProperty(w, 'crypto', { value: require('crypto').webcrypto }); w.TextEncoder = TextEncoder; w.scrollTo = () => {}; } });
+  const w = dom.window, d = w.document, $ = id => d.getElementById(id);
+  const type = (id, v) => { const el = $(id); el.value = v; el.dispatchEvent(new w.Event('input', { bubbles: true })); };
+  const click = sel => { const el = typeof sel === 'string' ? d.querySelector(sel) : sel; el.click(); };
+  await wait(200);
+  console.log('Criar perfil');
+  ok('O ecrã de criar perfil aparece', !!$('o-name'));
+  const req = ['o-title', 'o-ced', 'o-name', 'o-pin', 'o-pin2'].every(id => d.querySelector('label[for="' + id + '"]').classList.contains('req'));
+  ok('Título, Cédula, Nome, PIN e Repetir PIN têm asterisco de obrigatório', req);
+  ok('Há a nota «campos com * são obrigatórios»', /são obrigatórios/.test(d.body.textContent));
+  ok('O campo Nome tem texto escrito (valor por defeito)', $('o-name').value.length > 0);
+  type('o-ced', ''); type('o-pin', ''); type('o-pin2', '');
+  click('[data-act="onb-save"]'); await wait(150);
+  ok('Sem cédula: mensagem clara', /cédula|campos assinalados/i.test($('o-msg').textContent));
+  ok('Sem cédula: o campo fica destacado a vermelho', $('o-ced').classList.contains('invalid'));
+  type('o-ced', '51234L'); ok('Ao escrever, o destaque desaparece', !$('o-ced').classList.contains('invalid'));
+  type('o-pin', '9999'); type('o-pin2', '9999'); click('[data-act="onb-save"]'); await wait(150);
+  ok('O PIN 9999 é recusado (reservado)', /reservado/.test($('o-msg').textContent));
+  type('o-pin', '12ab34'); ok('O campo PIN só aceita algarismos', $('o-pin').value, '1234');
+  type('o-pin', '4321'); type('o-pin2', '4320'); click('[data-act="onb-save"]'); await wait(150);
+  ok('PIN diferentes: mensagem clara', /não são iguais/.test($('o-msg').textContent));
+  type('o-pin2', '4321'); click('[data-act="onb-save"]'); await wait(300);
+  ok('Com tudo preenchido, entra na app', !!$('view'));
+  ok('O ecrã inicial mostra o começo («Novo processo»)', /Novo processo/.test(d.body.textContent));
+  console.log('Novo processo');
+  click('[data-act="new-proc"]'); await wait(100);
+  ok('N.º de processo e Assunto marcados com asterisco', d.querySelector('label[for="p-num"]').classList.contains('req-alt'));
+  click('[data-act="save-proc"]'); await wait(100);
+  ok('Sem número nem assunto: campos destacados', $('p-num').classList.contains('invalid'));
+  type('p-num', '1234/26.0T8LSB'); type('c-name', 'Cliente Secreto Lda'); click('[data-act="save-proc"]'); await wait(150);
+  ok('Processo criado e ficha aberta', /1234\/26\.0T8LSB/.test($('view').textContent) && /Notas e histórico/.test($('view').textContent));
+  console.log('PIN de entrada, bloqueio e painel 9999');
+  click('[data-act="lock-now"]'); await wait(100);
+  ok('O cadeado bloqueia e pede o PIN', !!$('pin-input'));
+  for (const k of '1111') click('[data-pin="' + k + '"]'); await wait(200);
+  ok('PIN errado: mensagem e campo limpo', /incorreto/.test($('pm').textContent) && $('pin-input').value === '');
+  for (const k of '9999') click('[data-pin="' + k + '"]'); await wait(250);
+  ok('O PIN 9999 abre o painel de utilização', /Painel de utilização/.test($('root').textContent));
+  ok('O painel não mostra nomes de clientes nem números de processo', !/Cliente Secreto|1234\/26/.test($('root').textContent));
+  click('[data-act="usage-back"]'); await wait(100);
+  type('pin-input', '4321'); await wait(250);
+  ok('O PIN certo, escrito no teclado, entra na app', !!$('view'));
+  console.log((n) + ' testes, ' + fails + ' falhas'); process.exit(fails ? 1 : 0);
+})().catch(e => { console.error(e); process.exit(1); });
