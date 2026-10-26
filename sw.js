@@ -1,5 +1,5 @@
-// LEXVORTEX — service worker: a app abre sem internet; bibliotecas guardadas após o primeiro uso.
-const VERSION = 'lexvortex-v2';
+// CG VERTEX — service worker: a app abre sem internet; bibliotecas guardadas após o primeiro uso.
+const VERSION = 'cgvertex-v3';
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png',
   './lib/jspdf.umd.min.js', './lib/docx.umd.js', './lib/pdf.min.js', './lib/pdf.worker.min.js'];
 self.addEventListener('install', (e) => {
