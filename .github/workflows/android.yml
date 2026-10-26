@@ -3,7 +3,7 @@ name: App Android
 on:
   push:
     branches: [main]
-    paths: ['index.html', 'android-app/**', '.github/workflows/android.yml']
+    paths: ['index.html', 'lib/**', 'android-app/**', '.github/workflows/android.yml']
   workflow_dispatch:
 
 permissions:
@@ -27,6 +27,7 @@ jobs:
           npm install --no-audit --no-fund
           mkdir -p www
           cp ../index.html ../icon-192.png ../icon-512.png www/
+          cp -r ../lib www/lib
           npx cap add android
           npx cap sync android
       - name: Permissões, ícones, versão e assinatura
