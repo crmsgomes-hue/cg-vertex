@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0B1326">
+<title>CJ-Vertex Minutas: códigos de créditos</title>
+<style>
+:root{--bg:#0B1326;--panel:#14213D;--line:rgba(255,255,255,.08);--text:#E9E6DF;--text2:#9097A3;--gold:#E47A2A;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+main{max-width:520px;margin:0 auto;padding:28px 20px 40px}
+.brand{font-weight:700;font-size:13px;letter-spacing:.05em}.brand span{color:var(--gold)}
+h1{font-family:Georgia,"Noto Serif",serif;font-weight:400;font-size:28px;margin:6px 0 4px}
+p{color:var(--text2);font-size:14px;margin:0 0 18px}
+.card{background:var(--panel);border-radius:14px;padding:16px}
+label{display:block;font-size:13px;color:var(--text2);margin:0 0 6px}
+input,select{width:100%;min-height:48px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--text);padding:0 12px;font-size:16px;margin-bottom:14px;-webkit-appearance:none;appearance:none}
+button{width:100%;min-height:50px;border:0;border-radius:12px;background:var(--gold);color:#fff;font-size:16px;font-weight:600;cursor:pointer}
+button.ghost{background:none;border:1px solid var(--line);color:var(--text);margin-top:10px}
+.out{margin-top:16px;padding:14px;border:1px dashed var(--gold);border-radius:12px;text-align:center;font-size:22px;font-weight:700;letter-spacing:.04em;color:var(--gold);word-break:break-all;min-height:58px}
+.msg{font-size:13px;color:var(--text2);margin-top:10px;min-height:18px;text-align:center}
+</style>
+</head>
+<body>
+<main>
+  <div class="brand">CJ-<span>Vertex</span></div>
+  <h1>Códigos de créditos</h1>
+  <p>Cole o ID do dispositivo que vem no email de pedido, escolha os créditos e envie o código à pessoa. O código só funciona nesse dispositivo e só pode ser usado uma vez.</p>
+  <div class="card">
+    <label for="dev">ID do dispositivo</label>
+    <input id="dev" autocapitalize="characters" spellcheck="false" placeholder="Ex.: CJ-AB7K-29QX">
+    <label for="amt">Créditos a atribuir</label>
+    <select id="amt"><option value="5">5 transcrições</option><option value="10" selected>10 transcrições</option><option value="20">20 transcrições</option><option value="50">50 transcrições</option><option value="100">100 transcrições</option><option value="ILIM">Sem limite (licença)</option></select>
+    <button id="gen">Gerar código</button>
+    <div class="out" id="out"></div>
+    <button class="ghost" id="copy" hidden>Copiar código</button>
+    <button class="ghost" id="mail" hidden>Responder por email</button>
+    <div class="msg" id="msg"></div>
+  </div>
+</main>
+<script>
+(() => {
+  "use strict";
+  const SALT = "cj-vertex-minutas-2026-licenca";
+  const $ = s => document.querySelector(s);
+  async function hash(dev, amt) {
+    const h = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(dev + "|" + amt + "|" + SALT));
+    return [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 10).toUpperCase();
+  }
+  let code = "";
+  $("#gen").addEventListener("click", async () => {
+    const dev = $("#dev").value.trim().toUpperCase().replace(/\s+/g, "");
+    if (!/^CJ-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(dev)) { $("#msg").textContent = "O ID deve ter o formato CJ-XXXX-XXXX."; return; }
+    if (!window.crypto || !crypto.subtle) { $("#msg").textContent = "Abra esta página em https."; return; }
+    const amt = $("#amt").value;
+    code = "CJ-" + amt + "-" + await hash(dev, amt);
+    $("#out").textContent = code; $("#copy").hidden = false; $("#mail").hidden = false;
+    $("#msg").textContent = "Código para o dispositivo " + dev + ".";
+  });
+  $("#copy").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(code); $("#msg").textContent = "Código copiado."; }
+    catch { const t = document.createElement("textarea"); t.value = code; document.body.append(t); t.select(); document.execCommand("copy"); t.remove(); $("#msg").textContent = "Código copiado."; }
+  });
+  $("#mail").addEventListener("click", () => {
+    const amt = $("#amt").value, what = amt === "ILIM" ? "uma licença sem limite" : amt + " transcrições";
+    const body = "Olá,\n\nSegue o código de ativação da CJ-Vertex Minutas, com " + what + ":\n\n" + code + "\n\nPara ativar: abra a app, toque em Definições, depois em Licença, cole o código e toque em Ativar.\n\nCumprimentos.";
+    location.href = "mailto:?subject=" + encodeURIComponent("CJ-Vertex Minutas: código de ativação") + "&body=" + encodeURIComponent(body);
+  });
+})();
+</script>
+</body>
+</html>
