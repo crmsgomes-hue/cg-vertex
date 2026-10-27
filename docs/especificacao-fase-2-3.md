@@ -1,4 +1,4 @@
-# CG VERTEX — Especificação técnica das fases 2 e 3
+# CJ-Vertex — Especificação técnica das fases 2 e 3
 
 Documento de trabalho. Estado de cada ponto: ✅ implementado na app · 🟡 especificado, falta servidor · 🔵 especificado.
 
