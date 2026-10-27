@@ -1,14 +1,14 @@
-# CG VERTEX — Pitch comercial
+# CJ-Vertex — Pitch comercial
 
 *A secretária digital do advogado português. Os prazos não falham, os dados não saem do escritório.*
 
 ## A frase de abertura (30 segundos)
 
-> «Quantas vezes já confirmou o mesmo prazo três vezes, com medo das férias judiciais ou de um feriado municipal? A CG VERTEX conta os prazos pelo CPC, avisa no telemóvel antes de terminarem, controla os DUC e verifica conflitos de interesses em segundos. Funciona no seu computador e no seu telemóvel, sem mensalidades, e os dados dos seus clientes nunca saem do seu aparelho.»
+> «Quantas vezes já confirmou o mesmo prazo três vezes, com medo das férias judiciais ou de um feriado municipal? A CJ-Vertex conta os prazos pelo CPC, avisa no telemóvel antes de terminarem, controla os DUC e verifica conflitos de interesses em segundos. Funciona no seu computador e no seu telemóvel, sem mensalidades, e os dados dos seus clientes nunca saem do seu aparelho.»
 
 ## As dores que resolvemos
 
-| Dor do advogado | O que a CG VERTEX faz |
+| Dor do advogado | O que a CJ-Vertex faz |
 | --- | --- |
 | Medo de perder um prazo fatal | Motor de prazos CPC, CPT e Código Civil: férias judiciais, processos urgentes, feriados municipais, tolerâncias de ponto, presunção de notificação, dilação, multa do art. 139.º. **Semáforo** no ecrã inicial (vermelho, amarelo, verde) e alertas no telemóvel 7, 3 e 1 dia antes |
 | Notificações do Citius para ler e calcular | Cola-se o texto ou o e-mail da notificação: a app reconhece o processo, a data e o prazo, e o advogado só confirma |
