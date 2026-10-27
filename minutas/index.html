@@ -12,13 +12,16 @@
 <meta name="theme-color" content="#0E1729">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&display=swap">
 <title>CJ-Vertex Minutas</title>
 <style>
 :root{
   --bg:#0E1729; --panel:#15213A; --panel2:#1C2A47; --panel3:#263759; --line:rgba(255,255,255,.07);
-  --text:#E9E6DF; --text2:#9097A3; --text3:#646B78; --gold:#E47A2A; --gold2:#F0995A; --gold-soft:rgba(228,122,42,.13);
+  --text:#E9E6DF; --text2:#9097A3; --text3:#646B78; --gold:#C5A059; --gold2:#D4AF37; --gold-soft:rgba(197,160,89,.14); --ink:#0B1326; --glass:rgba(22,33,58,.52); --glass-line:rgba(212,175,55,.16);
   --red:#C9605A; --ok:#7FA88A;
-  --serif:"Iowan Old Style","Palatino Linotype","Book Antiqua",Palatino,Georgia,"Noto Serif",serif;
+  --serif:"Playfair Display","Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Noto Serif",serif;
   --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   color-scheme:dark; box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
@@ -115,7 +118,7 @@ h1{font-family:var(--serif);font-weight:400;font-size:34px;line-height:1.05;marg
 .sec>h2{font-family:var(--serif);font-weight:400;font-size:13px;letter-spacing:.16em;color:var(--gold);margin:0 0 10px;padding-bottom:8px;border-bottom:1px solid var(--line)}
 .sec h3{font-size:13px;color:var(--text2);font-weight:600;margin:16px 0 4px}
 .crit{background:var(--gold-soft);border-left:2px solid var(--gold);border-radius:0 12px 12px 0;padding:6px 14px 8px}
-.crit .row{display:grid;grid-template-columns:100px minmax(0,1fr) auto;gap:12px;align-items:start;padding:10px 0;border-bottom:1px solid rgba(228,122,42,.18)}
+.crit .row{display:grid;grid-template-columns:100px minmax(0,1fr) auto;gap:12px;align-items:start;padding:10px 0;border-bottom:1px solid rgba(197,160,89,.18)}
 .crit .row:last-of-type{border-bottom:0}
 .crit .d{font-variant-numeric:tabular-nums;font-weight:600;color:var(--gold2);min-width:0;width:100%}
 .crit .o{font-size:13px;color:var(--text2);margin-top:2px}
@@ -229,15 +232,53 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--text2) 50%),
 
 .vbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:18px 0 0}
 .vb{min-height:36px;padding:0 14px;border-radius:18px;border:1px solid var(--line);font-size:14px;font-weight:600;color:var(--text2)}
-.vb.on{background:var(--gold);border-color:var(--gold);color:#fff}
+.vb.on{background:var(--gold);border-color:var(--gold);color:var(--ink)}
 .vbar select{width:auto;min-height:36px;border-radius:18px;font-size:14px;font-weight:600;color:var(--gold);border-color:var(--gold-soft);background-color:transparent;padding:0 30px 0 14px;background-position:calc(100% - 17px) 15px,calc(100% - 12px) 15px}
 .vnote{flex-basis:100%;font-size:13px;color:var(--text2);margin:2px 2px 0}
 
 .trialtag{margin:6px 0 0;font-size:12px;color:var(--text2);letter-spacing:.02em}
 .trialtag b{color:var(--gold);font-weight:600}
-.trialbox{border:1px solid var(--gold);background:linear-gradient(180deg,rgba(228,122,42,.10),rgba(228,122,42,.03))}
+.trialbox{border:1px solid var(--gold);background:linear-gradient(180deg,rgba(197,160,89,.10),rgba(197,160,89,.03))}
 .trialbox .row{margin-top:12px}
 @media (min-width:760px){ .crit .row{grid-template-columns:140px minmax(0,1fr) auto} .doc{padding-top:34px} h1{font-size:40px} }
+
+/* ================= Acabamento de luxo: dourado champanhe, vidro fosco, serifa editorial ================= */
+body{background:
+  radial-gradient(1200px 700px at 85% -10%,rgba(212,175,55,.10),transparent 60%),
+  radial-gradient(900px 600px at -10% 110%,rgba(52,78,132,.28),transparent 60%),
+  linear-gradient(180deg,#0B1326 0%,#0A101F 100%) fixed;background-color:var(--bg)}
+h1{font-weight:500;letter-spacing:.005em;font-size:36px}
+.brand{letter-spacing:.08em}
+.brand span,.wm span{background:linear-gradient(100deg,#B8923F 0%,#D4AF37 45%,#F1DC9A 60%,#C5A059 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.item .t,.doc-h,.lockin h2,.empty .serif{font-family:var(--serif);font-weight:500;letter-spacing:.005em}
+.doc-h{font-size:30px}
+.list{display:flex;flex-direction:column;gap:10px;margin-top:16px}
+.item{background:var(--glass);border:1px solid var(--glass-line);border-radius:18px;padding:16px 18px;
+  -webkit-backdrop-filter:blur(18px) saturate(140%);backdrop-filter:blur(18px) saturate(140%);
+  box-shadow:0 10px 30px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.05);transition:transform .2s,border-color .2s,box-shadow .2s}
+.item:active{transform:scale(.985);background:var(--glass)}
+.item:hover{border-color:rgba(212,175,55,.32)}
+.card,.ident,.state,.banner,.tr{background:var(--glass);border:1px solid var(--glass-line);
+  -webkit-backdrop-filter:blur(16px) saturate(135%);backdrop-filter:blur(16px) saturate(135%);box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+.sheet{background:radial-gradient(1000px 600px at 100% 0%,rgba(212,175,55,.07),transparent 60%),var(--bg)}
+.bar,.foot{background:rgba(11,19,38,.72);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.btn,.foot button:first-child{background:linear-gradient(135deg,#D4AF37 0%,#C5A059 55%,#B08D45 100%);color:var(--ink);border-color:transparent;box-shadow:0 6px 18px rgba(197,160,89,.22)}
+.badge,.trialtag b{color:var(--gold2)}
+.crit{background:linear-gradient(90deg,rgba(212,175,55,.12),rgba(212,175,55,.03));border-left:2px solid var(--gold2)}
+.sec>h2,.grp>h2,.doc-k,.ident-h span{color:var(--gold2)}
+.recmain,.stopbtn,.upbtn{border-color:rgba(212,175,55,.75);background:rgba(22,33,58,.6);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.recmain{box-shadow:0 0 0 6px rgba(212,175,55,.06),0 12px 30px rgba(0,0,0,.35)}
+/* Botão de gravação aceso enquanto grava; em pausa fica sereno */
+@keyframes glow{0%,100%{box-shadow:0 0 0 0 rgba(212,175,55,.45),0 0 22px 2px rgba(212,175,55,.22)}50%{box-shadow:0 0 0 14px rgba(212,175,55,0),0 0 38px 8px rgba(212,175,55,.38)}}
+@keyframes glowDot{0%,100%{opacity:1}50%{opacity:.72}}
+#recSheet.open .stopbtn{animation:glow 2.2s ease-in-out infinite;border-color:var(--gold2)}
+#recSheet.open .stopbtn span{animation:glowDot 2.2s ease-in-out infinite}
+#recSheet.open.paused .stopbtn,#recSheet.open.paused .stopbtn span{animation:none}
+#recSheet .rec-l{font-family:var(--serif);letter-spacing:.2em;color:var(--gold2)}
+.clock{font-family:var(--serif);font-weight:400}
+.seal{border-color:rgba(212,175,55,.3)}
+.dots span{border-color:var(--gold2)}.dots span.f{background:var(--gold2)}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.item,.card,.ident,.state,.banner,.tr{background:#14213D}}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -905,13 +946,13 @@ async function startRec() {
   }, 1000);
   try { if (navigator.wakeLock) st.wake = await navigator.wakeLock.request("screen"); } catch {}
   $("#pauseBtn").textContent = "Pausar"; $("#discardBtn").textContent = "Descartar"; $("#discardBtn").dataset.arm = "";
-  openSheet($("#recSheet")); btn.disabled = false; paintRecInfo();
+  $("#recSheet").classList.remove("paused"); openSheet($("#recSheet")); btn.disabled = false; paintRecInfo();
 }
 function togglePause() {
   if (!st.recording) return;
   if (!st.paused) { st.acc = elapsed(); st.paused = true; st.mrs.forEach(m => { try { if (m.state === "recording") { m.requestData(); m.pause(); } } catch {} }); $("#pauseBtn").textContent = "Retomar"; }
   else { st.paused = false; st.startedAt = performance.now(); st.mrs.forEach(m => { try { if (m.state === "paused") m.resume(); } catch {} }); $("#pauseBtn").textContent = "Pausar"; }
-  paintRecInfo();
+  $("#recSheet").classList.toggle("paused", st.paused); paintRecInfo();
 }
 function stopRec(msg, discard) {
   if (!st.recording || st.finishing) return;
@@ -1044,7 +1085,7 @@ function draw() {
     g2.clearRect(0, 0, W, H);
     for (let i = 0; i < n; i++) {
       const li = st.levels.length - (n - i), v = li >= 0 ? st.levels[li] : 0, h = Math.max(bw, v * H * .9);
-      g2.fillStyle = li >= 0 ? "rgba(228,122,42,.95)" : "rgba(228,122,42,.2)";
+      g2.fillStyle = li >= 0 ? "rgba(212,175,55,.95)" : "rgba(212,175,55,.2)";
       g2.fillRect(i * step, (H - h) / 2, bw, h);
     }
     $("#clock").textContent = fmtDur(elapsed());
