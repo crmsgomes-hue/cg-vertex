@@ -1,5 +1,5 @@
 // CG VERTEX — service worker: a app abre sem internet; bibliotecas guardadas após o primeiro uso.
-const VERSION = 'cgvertex-v4';
+const VERSION = 'cgvertex-v5';
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png',
   './lib/jspdf.umd.min.js', './lib/docx.umd.js', './lib/pdf.min.js', './lib/pdf.worker.min.js'];
 self.addEventListener('install', (e) => {
@@ -14,6 +14,7 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(req.url);
   if (url.hostname.endsWith('supabase.co')) return; // transcrição e IA: sempre pela rede
   if (url.pathname.endsWith('/painel.html')) return; // painel: sempre pela rede, nunca guardado
+  if (url.pathname.includes('/minutas/')) return; // app Minutas: tem o seu próprio service worker
   if (url.origin === location.origin && /\/(index\.html)?$/.test(url.pathname)) {
     // página: rede primeiro (versão mais recente), cópia guardada se não houver internet
     e.respondWith(fetch(req).then((r) => { const cp = r.clone(); caches.open(VERSION).then((c) => c.put('./index.html', cp)); return r; })
