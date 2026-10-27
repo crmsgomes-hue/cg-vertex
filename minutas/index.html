@@ -335,9 +335,7 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--text2) 50%),
           <button class="btn sm" id="checkKey">Verificar chave</button>
           <p class="note" id="keyNote"></p>
           <label class="fld"><span>Modelo de redação</span><select id="sModel"><option value="">Escolhido automaticamente</option></select></label>
-          <div class="tg"><span style="font-size:15px">Retenção zero ativa na conta</span><button class="sw" role="switch" id="sZdr" aria-checked="false" aria-label="Retenção zero ativa"></button></div>
-          <p class="note warn" id="zdrNote"></p>
-          <p class="note">Chave gratuita em <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a>. Retenção zero em <a href="https://console.groq.com/settings/data-controls" target="_blank" rel="noopener">console.groq.com/settings/data-controls</a>. A chave fica guardada encriptada neste dispositivo.</p>
+          <p class="note">Chave gratuita em <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a>. Pode ativar a retenção zero da conta em <a href="https://console.groq.com/settings/data-controls" target="_blank" rel="noopener">console.groq.com/settings/data-controls</a>. A chave fica guardada encriptada neste dispositivo.</p>
         </div>
       </div>
       <div class="grp"><h2>SEGURANÇA</h2>
@@ -1370,10 +1368,6 @@ function renderState() {
     box.innerHTML = '<div class="state"><b>Serviço de transcrição por configurar</b>Cole a chave do serviço nas Definições para elaborar a minuta.<br><button class="btn sm" id="goSet" style="margin-top:12px">Abrir definições</button></div>';
     $("#goSet").onclick = openSettings; return;
   }
-  if (!prefs.zdr && !r.consent) {
-    box.innerHTML = '<div class="state"><b>Confirmação de sigilo</b>A retenção zero ainda não está indicada como ativa. Sem ela, o serviço pode guardar o pedido até 30 dias para monitorização de abusos. Ative-a em <a style="color:var(--gold2)" href="https://console.groq.com/settings/data-controls" target="_blank" rel="noopener">console.groq.com/settings/data-controls</a> e assinale-a nas Definições.<br><button class="btn sm" id="goOn" style="margin-top:12px">Elaborar minuta desta diligência</button></div>';
-    $("#goOn").onclick = () => { if (identMissing(r).length) { flagMissing(); toast("Complete primeiro a identificação da diligência."); return; } r.consent = true; saveRec(r); processRec(r.id); }; return;
-  }
   if (r.status === "error") {
     box.innerHTML = '<div class="state"><b>' + esc(r.error || "Ocorreu um erro.") + '</b>O que já foi feito está guardado.<br><button class="btn sm" id="goOn" style="margin-top:12px">Continuar</button></div>';
     $("#goOn").onclick = () => processRec(r.id); return;
@@ -1665,8 +1659,6 @@ function paintModels(list) {
   sel.value = conf.model || "";
 }
 function paintSec() {
-  $("#sZdr").setAttribute("aria-checked", prefs.zdr ? "true" : "false");
-  $("#zdrNote").textContent = prefs.zdr ? "" : "Sem retenção zero, o serviço pode guardar os pedidos até 30 dias para monitorização de abusos. Recomenda-se ativá-la antes de usar com clientes.";
   const hasBio = !!Vault.bio();
   $("#sBio").setAttribute("aria-checked", hasBio ? "true" : "false");
   $("#sBio").disabled = !bioAvail;
@@ -1700,7 +1692,6 @@ $("#checkKey").addEventListener("click", async () => {
   finally { b.disabled = false; }
 });
 $$("[data-show]").forEach(b => b.addEventListener("click", e => { e.preventDefault(); const i = $("#" + b.dataset.show); const show = i.type === "password"; i.type = show ? "text" : "password"; b.textContent = show ? "Ocultar" : "Ver"; }));
-$("#sZdr").addEventListener("click", () => { prefs.zdr = !prefs.zdr; savePrefs(); paintSec(); });
 $("#sAuto").addEventListener("change", e => { prefs.autoLock = +e.target.value; savePrefs(); });
 $("#sRetain").addEventListener("change", e => { prefs.retain = e.target.value; savePrefs(); });
 $("#sBio").addEventListener("click", async () => {
