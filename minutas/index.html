@@ -2288,6 +2288,8 @@ function makeIcon() {
 (async function init() {
   try { history.replaceState({ mxBase: 1 }, ""); } catch {}
   backTrap();
+  /* Regista o aparelho no servidor de créditos logo ao abrir, mesmo antes do PIN */
+  licRefresh().then(() => { if (unlocked) renderTrial(); }).catch(() => {});
   makeIcon();
   if ("serviceWorker" in navigator && window.isSecureContext && location.protocol === "https:") {
     navigator.serviceWorker.register("sw.js", { scope: "./" }).then(reg => { try { reg.update(); } catch {} }).catch(() => {});
