@@ -865,7 +865,7 @@ async function finishRec() {
     const rec = await assemble(sid, { started: st.started, mime: st.mime, segs: st.segs.slice(), duration: duration || (s && s.duration) || 0 });
     if (!rec) { toast("A gravação ficou vazia."); return; }
     renderList(); openDoc(rec.id);
-    toast("Complete a identificação da diligência para elaborar a minuta.", 3500);
+    toast("Áudio guardado. Toque em Elaborar minuta quando quiser.", 3000);
   } finally { finishing = false; }
 }
 async function assemble(sid, info) {
@@ -942,7 +942,7 @@ $("#fileIn").addEventListener("change", async e => {
     const rec = { id, created, duration: dur, source: "file", fileName: f.name, ident: { lawyer: lawyerLine(), proc: "", court: "", client: "", adv: "", kind: "", place: "", people: "", ref: "", caseId: "" },
       status: "new", error: "", notice: "", hasAudio: true, size: buf.byteLength, nseg: 1, tx: null, transcript: "", min: null, consent: false };
     RECS.set(id, rec); await saveRec(rec); renderList(); openDoc(id);
-    toast("Complete a identificação da diligência para elaborar a minuta.", 3500);
+    toast("Áudio guardado. Toque em Elaborar minuta quando quiser.", 3000);
   } catch { toast("Não foi possível guardar este ficheiro."); }
 });
 $("#stopBtn").addEventListener("click", () => stopRec());
@@ -982,10 +982,10 @@ requestAnimationFrame(draw);
 /* ================= Lista ================= */
 const KINDS = ["Reunião com cliente", "Reunião com a parte contrária", "Audiência prévia", "Audiência de julgamento", "Tentativa de conciliação", "Inquirição de testemunhas", "Diligência externa", "Outra"];
 const IDENT = [
-  ["lawyer", "Advogado / Cédula", "Ex.: Dra. Ana Lopes, CP n.º 12345L", 1, 1],
-  ["proc", "Processo n.º / NIG / NUIPC", "Ex.: Proc. 123/26.0T8CLD ou NUIPC 456/26.1PBCLD", 0, 1], ["court", "Tribunal / Entidade", "Ex.: Juízo Local Cível das Caldas da Rainha", 0, 1],
-  ["client", "Cliente", "", 0, 1], ["adv", "Parte contrária", "", 0, 2],
-  ["people", "Intervenientes", "Nomes e qualidade, separados por vírgulas", 1, 2],
+  ["lawyer", "Advogado / Cédula", "Ex.: Dra. Ana Lopes, CP n.º 12345L", 1, 0],
+  ["proc", "Processo n.º / NIG / NUIPC", "Ex.: Proc. 123/26.0T8CLD ou NUIPC 456/26.1PBCLD", 0, 0], ["court", "Tribunal / Entidade", "Ex.: Juízo Local Cível das Caldas da Rainha", 0, 0],
+  ["client", "Cliente", "", 0, 0], ["adv", "Parte contrária", "", 0, 0],
+  ["people", "Intervenientes", "Nomes e qualidade, separados por vírgulas", 1, 0],
   ["kind", "Tipo de diligência", "", 0, 0], ["place", "Local", "", 0, 0], ["ref", "Referência interna", "", 0, 0]
 ];
 function ident(r) {
@@ -999,11 +999,8 @@ function lawyerLine() {
   return n + (c ? (n ? ", " : "") + "Cédula Profissional n.º " + c.replace(/^(c\.?\s*p\.?|cédula[^0-9]*)\s*/i, "") : "");
 }
 const filled = v => !!String(v || "").trim();
-function identMissing(r) {
-  const i = ident(r), out = IDENT.filter(f => f[4] === 1 && !filled(i[f[0]])).map(f => f[1]);
-  if (!filled(i.adv) && !filled(i.people)) out.push("Parte contrária ou Intervenientes");
-  return out;
-}
+/* Nenhum campo é obrigatório: a minuta pode ser elaborada e exportada com a identificação incompleta */
+function identMissing() { return []; }
 const recTitle = r => { const i = ident(r); return [i.client, i.proc].filter(s => s && s.trim()).join(" — ") || (r.min && r.min.assunto) || "Diligência sem identificação"; };
 /* Processos existentes na app CJ-Vertex (mesmo endereço, só leitura) */
 function vertexCases() {
@@ -1557,7 +1554,7 @@ function renderState() {
   }
   const miss = identMissing(r);
   box.innerHTML = '<div class="state"><b>' + (miss.length ? "Identificação da diligência" : "Pronta a elaborar") + "</b>" +
-    (miss.length ? "Preencha os campos obrigatórios da identificação para elaborar a minuta: " + esc(miss.join(", ")) + "." : "A gravação está guardada e encriptada neste dispositivo.") +
+    (miss.length ? "" : "A gravação está guardada e encriptada neste dispositivo. Pode preencher a identificação antes ou depois.") +
     '<br><button class="btn sm" id="goOn" style="margin-top:12px"' + (miss.length ? " disabled" : "") + ">Elaborar minuta</button></div>";
   $("#goOn").onclick = () => { if (!identMissing(r).length) processRec(r.id); };
 }
@@ -1695,7 +1692,7 @@ function mailBody(d, full) {
 }
 $("#mailBtn").addEventListener("click", async () => {
   if (!cur || !cur.min || !requireIdent()) return;
-  const d = docData(), subject = d.T.file + " - " + (/^\s*(nig|nuipc)\b/i.test(d.proc) ? d.proc.trim() : d.T.proc + " " + d.proc.replace(/^\s*proc(esso)?\.?\s*(n\.?\s*º?)?\s*/i, ""));
+  const d = docData(), subject = d.T.file + " - " + (!d.proc ? (titleFor(d) !== "Diligência" ? titleFor(d) : d.date) : /^\s*(nig|nuipc)\b/i.test(d.proc) ? d.proc.trim() : d.T.proc + " " + d.proc.replace(/^\s*proc(esso)?\.?\s*(n\.?\s*º?)?\s*/i, ""));
   let body = mailBody(d, true), url = "mailto:" + encodeURIComponent(conf.mailTo || "") + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
   if (url.length > 15000) { body = mailBody(d, false); url = "mailto:" + encodeURIComponent(conf.mailTo || "") + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body); toast("A transcrição é longa: anexe o Word ou PDF ao email.", 4000); }
   const a = document.createElement("a"); a.href = url; a.rel = "noopener"; document.body.append(a); a.click(); a.remove();
