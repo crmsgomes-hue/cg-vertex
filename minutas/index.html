@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Minutas">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="../icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <meta name="theme-color" content="#0E1729">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
@@ -223,6 +223,9 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--text2) 50%),
 .upbtn{width:56px;height:56px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;color:var(--text);background:var(--panel)}
 .upbtn svg{width:22px;height:22px}
 .upbtn:active{transform:scale(.95)}
+
+.instbtn{min-height:36px;padding:0 14px;border-radius:18px;border:1px solid var(--gold);color:var(--gold);font-size:14px;font-weight:600;margin-right:4px;align-self:center}
+.instbtn:active{background:var(--gold-soft)}
 @media (min-width:760px){ .crit .row{grid-template-columns:140px minmax(0,1fr) auto} .doc{padding-top:34px} h1{font-size:40px} }
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 </style>
@@ -235,6 +238,7 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--text2) 50%),
     <header class="top">
       <div><p class="brand">CG <span>VERTEX</span></p><h1>Minutas</h1><p class="office" id="brand" hidden></p></div>
       <div style="display:flex">
+        <button class="instbtn" id="instBtn" hidden>Instalar</button>
         <button class="ib" id="lockBtn" aria-label="Bloquear"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></button>
         <button class="ib" id="setBtn" aria-label="Definições"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button>
       </div>
@@ -345,6 +349,12 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--text2) 50%),
           <label class="fld"><span>Bloquear ao sair da app após</span><select id="sAuto"><option value="0">Imediatamente</option><option value="1">1 minuto</option><option value="5">5 minutos</option><option value="15">15 minutos</option></select></label>
           <button class="btn ghost sm" id="chPin">Alterar PIN</button>
           <p class="note">Todas as minutas, transcrições e áudios são guardados encriptados (AES-256) neste dispositivo, com uma chave protegida pelo seu PIN. Sem o PIN não é possível lê-los.</p>
+        </div>
+      </div>
+      <div class="grp"><h2>APLICAÇÃO</h2>
+        <div class="card">
+          <p class="note" id="instNote"></p>
+          <button class="btn sm" id="instBtn2" hidden>Instalar neste dispositivo</button>
         </div>
       </div>
       <div class="grp"><h2>ARMAZENAMENTO</h2>
@@ -1672,7 +1682,7 @@ async function paintUsage() {
 function openSettings() {
   $("#sOffice").value = conf.office; $("#sLawyerName").value = conf.lawyerName || ""; $("#sCedula").value = conf.cedula || ""; $("#sAddress").value = conf.address || ""; $("#sLetter").value = conf.letter; $("#sMailTo").value = conf.mailTo; $("#sKey").value = conf.key;
   $("#sAuto").value = String(prefs.autoLock); $("#sRetain").value = prefs.retain; $("#keyNote").textContent = "";
-  paintModels(null); paintSec(); paintUsage(); openSheet(setEl);
+  paintModels(null); paintSec(); paintUsage(); paintInstall(); openSheet(setEl);
 }
 $("#setBtn").addEventListener("click", openSettings);
 $("#setBack").addEventListener("click", () => { closeSheet(setEl); saveConf(); renderBrand(); if (cur) renderDetail(); });
@@ -1705,6 +1715,35 @@ $("#chPin").addEventListener("click", async () => { if (await askLock("verify"))
 armed($("#wipe"), "Apagar todos os dados", "Toque de novo para apagar tudo", async () => {
   busy.forEach(c => c.abort()); await DB.wipe(); Vault.reset(); try { localStorage.removeItem("mx.fail"); localStorage.removeItem("mx.prefs"); } catch {} location.reload();
 });
+
+/* ================= Instalação no telemóvel e no computador ================= */
+let installEvt = null;
+const isInstalled = () => matchMedia("(display-mode: standalone)").matches || matchMedia("(display-mode: window-controls-overlay)").matches || navigator.standalone === true;
+function installHelp() {
+  const ua = navigator.userAgent;
+  if (isInstalled()) return "A app está instalada e abre na sua própria janela. As atualizações chegam sozinhas sempre que abre a app com internet.";
+  if (installEvt) return "Pode instalar a app neste dispositivo: fica com ícone próprio e abre na sua janela, como uma app normal.";
+  if (/iPhone|iPad|iPod/.test(ua)) return "No iPhone ou iPad: abra no Safari, toque em Partilhar e depois em «Adicionar ao ecrã principal».";
+  if (/Android/.test(ua)) return "No Android: no Chrome, toque em ⋮ e depois em «Instalar app» ou «Adicionar ao ecrã principal».";
+  if (/Edg\//.test(ua)) return "No computador (Edge): clique em ⋯, depois «Aplicações» e «Instalar este site como uma aplicação».";
+  if (/Chrome\//.test(ua)) return "No computador (Chrome): clique no ícone de instalar à direita da barra de endereço, ou em ⋮, «Transmitir, guardar e partilhar» e «Instalar página como app».";
+  if (/Safari\//.test(ua) && /Macintosh/.test(ua)) return "No Mac (Safari): menu Ficheiro e depois «Adicionar à Dock».";
+  return "Abra este endereço no Chrome ou no Edge para instalar a app.";
+}
+function paintInstall() {
+  const can = !!installEvt && !isInstalled();
+  $("#instBtn").hidden = !can; $("#instBtn2").hidden = !can; $("#instNote").textContent = installHelp();
+}
+async function doInstall() {
+  if (!installEvt) { toast(installHelp(), 5000); return; }
+  installEvt.prompt();
+  try { const c = await installEvt.userChoice; if (c && c.outcome === "accepted") toast("App instalada"); } catch {}
+  installEvt = null; paintInstall();
+}
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); installEvt = e; paintInstall(); });
+window.addEventListener("appinstalled", () => { installEvt = null; paintInstall(); });
+$("#instBtn").addEventListener("click", doInstall);
+$("#instBtn2").addEventListener("click", doInstall);
 
 /* ================= Arranque ================= */
 function renderBrand() { const b = $("#brand"); b.textContent = conf.office || ""; b.hidden = !conf.office; document.title = "CG VERTEX Minutas"; }
