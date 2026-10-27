@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="CG VERTEX">
+<meta name="apple-mobile-web-app-title" content="Verbo">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="../icon-192.png">
 <meta name="theme-color" content="#0E1729">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
-<title>CG VERTEX, Minutas</title>
+<title>CG VERTEX Verbo</title>
 <style>
 :root{
   --bg:#0E1729; --panel:#15213A; --panel2:#1C2A47; --panel3:#263759; --line:rgba(255,255,255,.07);
@@ -63,7 +63,7 @@ h1{font-family:var(--serif);font-weight:400;font-size:34px;line-height:1.05;marg
 .recmain{width:84px;height:84px;border-radius:50%;border:1.5px solid var(--gold);display:grid;place-items:center;background:var(--panel);transition:transform .15s}
 .recmain:active{transform:scale(.95)}
 .recmain span{width:26px;height:26px;border-radius:50%;background:var(--red)}
-.dock small{font-size:13px;color:var(--text2);letter-spacing:.02em}
+
 
 /* Folhas em ecrã inteiro */
 .sheet{position:fixed;inset:0;z-index:20;background:var(--bg);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);transform:translateY(100%);transition:transform .42s cubic-bezier(.32,.72,0,1);visibility:hidden}
@@ -185,6 +185,44 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--text2) 50%),
 .forgot{margin-top:22px;min-height:40px;font-size:14px;color:var(--text3)}
 .toast{position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom,0px));transform:translate(-50%,16px);opacity:0;background:var(--panel3);color:var(--text);padding:12px 18px;border-radius:12px;font-size:14px;z-index:90;pointer-events:none;transition:opacity .25s,transform .25s;max-width:88vw;text-align:center;border:1px solid var(--line)}
 .toast.show{opacity:1;transform:translate(-50%,0)}
+
+.ident{margin-top:16px;border:1px solid var(--line);border-radius:14px;padding:12px 14px 6px;background:var(--panel)}
+.ident-h{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:36px}
+.ident-h span{font-family:var(--serif);font-size:12px;letter-spacing:.16em;color:var(--gold)}
+.igrid{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+.ifld{display:block;padding:8px 0;border-bottom:1px solid var(--line);min-width:0}
+.ifld.w{grid-column:1/-1}
+.ifld>span{display:block;font-size:12px;color:var(--text2);margin-bottom:2px}
+.ifld input,.ifld select{width:100%;border:0;background:none;outline:none;font-size:16px;padding:2px 0;min-height:30px;color:var(--text);-webkit-appearance:none;appearance:none}
+.ifld select{background-image:linear-gradient(45deg,transparent 50%,var(--text2) 50%),linear-gradient(135deg,var(--text2) 50%,transparent 50%);background-position:calc(100% - 10px) 13px,calc(100% - 5px) 13px;background-size:5px 5px;background-repeat:no-repeat;padding-right:20px}
+.ifld select option{background:var(--panel);color:var(--text)}
+.ifld input::placeholder{color:var(--text3)}
+.igrid .ifld:last-child,.igrid .ifld.w:last-child{border-bottom:0}
+.pick{margin:6px 0 10px}
+.pick-l{max-height:260px;overflow-y:auto;margin-top:8px;border:1px solid var(--line);border-radius:10px}
+.pk{display:block;width:100%;text-align:left;padding:11px 12px;border-bottom:1px solid var(--line);font-size:15px}
+.pk:last-child{border-bottom:0}
+.pk:active{background:var(--panel2)}
+.pk small{display:block;color:var(--text2);font-size:13px;margin-top:2px}
+.doc-h{margin:0;font-weight:400}
+@media (max-width:420px){.igrid{grid-template-columns:1fr}}
+
+.turn{display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;align-items:start;padding:10px 0;border-bottom:1px solid var(--line)}
+.turn:last-child{border-bottom:0}
+.ts{font-variant-numeric:tabular-nums;font-size:13px;font-weight:600;color:var(--gold);border:1px solid var(--gold-soft);border-radius:8px;padding:4px 7px;min-height:30px}
+.ts:active{background:var(--gold-soft)}
+.who{border:0;background:none;outline:none;font-size:14px;font-weight:600;color:var(--text);padding:5px 0;width:100%;min-width:0}
+.turn .ed{grid-column:1/-1;font-family:var(--serif);font-size:16px;line-height:1.6}
+.ifld.req>span::after{content:" *";color:var(--gold)}
+.ifld.miss{border-bottom-color:var(--red)}
+.ifld.miss>span{color:var(--red)}
+
+.dockrow{display:grid;grid-template-columns:1fr auto 1fr;align-items:end;width:100%;max-width:420px}
+.dk{display:flex;flex-direction:column;align-items:center;gap:10px}
+.dk small{font-size:13px;color:var(--text2)}
+.upbtn{width:56px;height:56px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;color:var(--text);background:var(--panel)}
+.upbtn svg{width:22px;height:22px}
+.upbtn:active{transform:scale(.95)}
 @media (min-width:760px){ .crit .row{grid-template-columns:140px minmax(0,1fr) auto} .doc{padding-top:34px} h1{font-size:40px} }
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 </style>
@@ -195,7 +233,7 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--text2) 50%),
 <main class="home" id="home" aria-hidden="true">
   <div class="wrap">
     <header class="top">
-      <div><p class="brand">CG <span>VERTEX</span></p><h1>Minutas</h1><p class="office" id="brand" hidden></p></div>
+      <div><p class="brand">CG <span>VERTEX</span></p><h1>Verbo</h1><p class="office" id="brand" hidden></p></div>
       <div style="display:flex">
         <button class="ib" id="lockBtn" aria-label="Bloquear"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></button>
         <button class="ib" id="setBtn" aria-label="Definições"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button>
@@ -205,8 +243,12 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--text2) 50%),
     <div class="list" id="list"></div>
   </div>
   <div class="dock">
-    <button class="recmain" id="startBtn" aria-label="Iniciar gravação"><span></span></button>
-    <small>Iniciar diligência</small>
+    <div class="dockrow">
+      <div class="dk"><button class="upbtn" id="upBtn" aria-label="Carregar ficheiro de áudio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></svg></button><small>Carregar áudio</small></div>
+      <div class="dk"><button class="recmain" id="startBtn" aria-label="Iniciar gravação"><span></span></button><small>Iniciar diligência</small></div>
+      <div class="dk" aria-hidden="true"></div>
+    </div>
+    <input type="file" id="fileIn" accept=".mp3,.wav,.m4a,.aac,.mp4,.ogg,.webm,.flac,audio/*" hidden>
   </div>
 </main>
 
@@ -235,8 +277,16 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--text2) 50%),
   <div class="body" id="docBody">
     <article class="doc">
       <div class="doc-k">MINUTA DE DILIGÊNCIA</div>
-      <input class="doc-h" id="dClient" placeholder="Cliente / Processo" aria-label="Cliente ou processo" autocomplete="off">
+      <h2 class="doc-h" id="dTitle"></h2>
       <div class="meta" id="dMeta"></div>
+      <section class="ident" aria-label="Identificação do processo">
+        <div class="ident-h"><span>IDENTIFICAÇÃO</span><button class="link" id="pickBtn" hidden>Escolher processo do CG VERTEX</button></div>
+        <div class="pick" id="pick" hidden>
+          <input class="in" id="pickQ" placeholder="Procurar por número, cliente ou assunto" autocomplete="off">
+          <div class="pick-l" id="pickL"></div>
+        </div>
+        <div class="igrid" id="dIdent"></div>
+      </section>
       <div class="audio" id="dAudio"><audio id="player" controls preload="metadata"></audio><button class="link danger" id="delAudio">Apagar áudio</button></div>
       <div id="dState"></div>
       <div id="dContent" hidden>
@@ -249,7 +299,7 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--text2) 50%),
           <h3>Tarefas</h3><div id="dAcoes"></div><button class="add" data-add="acoes">Adicionar tarefa</button>
           <h3>Diligências futuras</h3><div id="dDilig"></div><button class="add" data-add="diligencias">Adicionar diligência</button>
         </section>
-        <section class="sec"><h2>TRANSCRIÇÃO INTEGRAL</h2><textarea class="tr" id="dTr" aria-label="Transcrição integral"></textarea>
+        <section class="sec"><h2>TRANSCRIÇÃO POR INTERVENIENTES</h2><p class="note" style="margin:-2px 0 10px">Os tempos vêm do áudio. Toque num tempo para ouvir esse momento.</p><div id="dTr"></div>
           <button class="add" id="redo">Elaborar novamente a minuta a partir da transcrição</button>
         </section>
       </div>
@@ -269,8 +319,11 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--text2) 50%),
     <div class="set">
       <div class="grp"><h2>ESCRITÓRIO</h2>
         <div class="card">
-          <label class="fld"><span>Nome do escritório ou do advogado</span><input class="in" id="sOffice" autocomplete="organization"></label>
-          <label class="fld"><span>Linhas do timbre (morada, contactos, cédula)</span><textarea class="ta" id="sLetter" placeholder="Uma informação por linha"></textarea></label>
+          <label class="fld"><span>Nome do advogado</span><input class="in" id="sLawyerName" autocomplete="name" placeholder="Ex.: Dra. Ana Lopes"></label>
+          <label class="fld"><span>Cédula profissional</span><input class="in" id="sCedula" autocapitalize="characters" spellcheck="false" placeholder="Ex.: 12345L"></label>
+          <label class="fld"><span>Morada do escritório</span><input class="in" id="sAddress" autocomplete="street-address" placeholder="Ex.: Rua Heróis da Grande Guerra, 10, 2500-000 Caldas da Rainha"></label>
+          <label class="fld"><span>Nome do escritório (opcional)</span><input class="in" id="sOffice" autocomplete="organization"></label>
+          <label class="fld"><span>Outros contactos do timbre (opcional)</span><textarea class="ta" id="sLetter" placeholder="Telefone, email, NIF: uma informação por linha"></textarea></label>
           <label class="fld"><span>Email habitual de envio (opcional)</span><input class="in" id="sMailTo" type="email" autocomplete="email" autocapitalize="off"></label>
         </div>
       </div>
@@ -354,6 +407,15 @@ function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch
 function b64e(buf) { const b = new Uint8Array(buf); let s = ""; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(s); }
 function b64d(str) { const s = atob(str), b = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) b[i] = s.charCodeAt(i); return b; }
 const rnd = n => crypto.getRandomValues(new Uint8Array(n));
+const normKey = k => String(k || "").trim().replace(/\s+/g, "").replace(/^gsk_/i, "gsk_");
+/* Link de configuração: #chave=gsk_... é lido uma vez, retirado do endereço e guardado encriptado depois do PIN */
+let pendingKey = "";
+(function captureSetupLink() {
+  try {
+    const m = location.hash.match(/(?:^#|&)(?:chave|k)=([^&]+)/);
+    if (m) { pendingKey = normKey(decodeURIComponent(m[1])); history.replaceState(null, "", location.pathname + location.search); }
+  } catch {}
+})();
 function armed(btn, label, armedLabel, fn) {
   let t = null;
   btn.addEventListener("click", () => {
@@ -458,7 +520,7 @@ const sput = async (store, k, obj) => DB.put(store, k, await Vault.encObj(obj));
 const sget = async (store, k) => { const e = await DB.get(store, k); return e ? Vault.decObj(e) : null; };
 
 /* Configuração sensível (encriptada) */
-let conf = { office: "", letter: "", mailTo: "", key: "", model: "", modelOut: 0 };
+let conf = { office: "", lawyer: "", lawyerName: "", cedula: "", address: "", letter: "", mailTo: "", key: "", model: "", modelOut: 0 };
 const saveConf = () => sput("conf", "main", conf).catch(() => {});
 
 /* Minutas em memória (só enquanto desbloqueado) */
@@ -481,7 +543,7 @@ function lockUI(mode) {
   const T = {
     setup1: ["Crie o seu PIN", "Primeira utilização: escolha 6 dígitos à sua escolha. Não existe PIN pré-definido."],
     setup2: ["Confirme o PIN", "Introduza novamente o mesmo PIN."],
-    unlock: ["Minutas", "Introduza o PIN que escolheu"],
+    unlock: ["Verbo", "Introduza o PIN que escolheu"],
     verify: ["PIN atual", "Introduza o PIN atual para continuar."],
     new1: ["Novo PIN", "Escolha um novo PIN de 6 dígitos."],
     new2: ["Confirme o novo PIN", "Introduza novamente o novo PIN."]
@@ -540,7 +602,7 @@ async function bioCreate() {
   const prfSalt = rnd(32);
   const cred = await navigator.credentials.create({ publicKey: {
     challenge: rnd(32), rp: { name: "CG VERTEX", id: location.hostname },
-    user: { id: rnd(16), name: "minutas@" + location.hostname, displayName: "CG VERTEX Minutas" },
+    user: { id: rnd(16), name: "minutas@" + location.hostname, displayName: "CG VERTEX Verbo" },
     pubKeyCredParams: [{ type: "public-key", alg: -7 }, { type: "public-key", alg: -257 }],
     authenticatorSelection: { authenticatorAttachment: "platform", userVerification: "required", residentKey: "preferred" },
     timeout: 60000, attestation: "none", extensions: { prf: { eval: { first: prfSalt } } }
@@ -580,7 +642,7 @@ function lockNow() {
   try { $("#player").pause(); } catch {}
   revokePlayer();
   RECS.clear(); cur = null; unlocked = false;
-  conf = { office: "", letter: "", mailTo: "", key: "", model: "", modelOut: 0 };
+  conf = { office: "", lawyer: "", lawyerName: "", cedula: "", address: "", letter: "", mailTo: "", key: "", model: "", modelOut: 0 };
   Vault.lock(); $("#list").innerHTML = ""; $("#banners").innerHTML = "";
   lockUI("unlock");
 }
@@ -703,7 +765,7 @@ async function finishRec() {
     const rec = await assemble(sid, { started: st.started, mime: st.mime, segs: st.segs.slice(), duration: duration || (s && s.duration) || 0 });
     if (!rec) { toast("A gravação ficou vazia."); return; }
     renderList(); openDoc(rec.id);
-    if (conf.key && prefs.zdr) processRec(rec.id);
+    toast("Complete a identificação da diligência para elaborar a minuta.", 3500);
   } finally { finishing = false; }
 }
 async function assemble(sid, info) {
@@ -729,7 +791,7 @@ async function assemble(sid, info) {
   const id = uid(), size = parts.reduce((a, p) => a + p.buf.byteLength, 0);
   await DB.put("audio", id, await Vault.encObj({ segs: parts.map(p => ({ start: p.start, dur: p.dur, mime: p.mime })) }));
   for (let i = 0; i < parts.length; i++) await DB.put("audio", id + ":" + pad3(i), await Vault.encBuf(parts[i].buf));
-  const rec = { id, created: info.started || Date.now(), duration: total, client: "", status: "new", error: "", notice: "", hasAudio: true, size, nseg: parts.length, tx: null, transcript: "", min: null, consent: false };
+  const rec = { id, created: info.started || Date.now(), duration: total, ident: { lawyer: lawyerLine(), proc: "", court: "", client: "", adv: "", kind: "", place: "", people: "", ref: "", caseId: "" }, status: "new", error: "", notice: "", hasAudio: true, size, nseg: parts.length, tx: null, transcript: "", min: null, consent: false };
   RECS.set(id, rec); await saveRec(rec);
   await DB.delRange("chunks", sid + ":").catch(() => {}); await DB.del("sessions", sid).catch(() => {});
   return rec;
@@ -750,6 +812,36 @@ async function deleteAudio(rec) {
 }
 
 $("#startBtn").addEventListener("click", () => { if (!st.recording && Vault.ready) startRec(); });
+/* Carregar áudios já existentes: são guardados encriptados e tratados como uma gravação */
+function probeDuration(blob) {
+  return new Promise(res => {
+    let url; try { url = URL.createObjectURL(blob); } catch { res(0); return; }
+    const a = document.createElement("audio"); let done = false;
+    const end = v => { if (done) return; done = true; try { URL.revokeObjectURL(url); } catch {} res(isFinite(v) && v > 0 ? v : 0); };
+    a.preload = "metadata";
+    a.onloadedmetadata = () => { if (a.duration === Infinity) { a.currentTime = 1e7; a.ontimeupdate = () => { a.ontimeupdate = null; end(a.duration); }; } else end(a.duration); };
+    a.onerror = () => end(0); setTimeout(() => end(0), 8000); a.src = url;
+  });
+}
+const EXT_MIME = { mp3: "audio/mpeg", mpeg: "audio/mpeg", mpga: "audio/mpeg", wav: "audio/wav", m4a: "audio/mp4", mp4: "audio/mp4", aac: "audio/aac", ogg: "audio/ogg", oga: "audio/ogg", webm: "audio/webm", flac: "audio/flac" };
+$("#upBtn").addEventListener("click", () => { if (Vault.ready && !st.recording) $("#fileIn").click(); });
+$("#fileIn").addEventListener("change", async e => {
+  const f = e.target.files && e.target.files[0]; e.target.value = "";
+  if (!f || !Vault.ready) return;
+  const ext = (f.name.split(".").pop() || "").toLowerCase();
+  if (!EXT_MIME[ext] && !/^audio\//.test(f.type)) { toast("Formato não suportado. Use mp3, wav, m4a ou aac."); return; }
+  toast("A guardar o áudio encriptado…", 2500);
+  try {
+    const mime = EXT_MIME[ext] || f.type, buf = await f.arrayBuffer(), dur = await probeDuration(f);
+    const id = uid(), created = f.lastModified && f.lastModified < Date.now() ? f.lastModified : Date.now();
+    await DB.put("audio", id, await Vault.encObj({ segs: [{ start: 0, dur, mime, ext }] }));
+    await DB.put("audio", id + ":" + pad3(0), await Vault.encBuf(buf));
+    const rec = { id, created, duration: dur, source: "file", fileName: f.name, ident: { lawyer: lawyerLine(), proc: "", court: "", client: "", adv: "", kind: "", place: "", people: "", ref: "", caseId: "" },
+      status: "new", error: "", notice: "", hasAudio: true, size: buf.byteLength, nseg: 1, tx: null, transcript: "", min: null, consent: false };
+    RECS.set(id, rec); await saveRec(rec); renderList(); openDoc(id);
+    toast("Complete a identificação da diligência para elaborar a minuta.", 3500);
+  } catch { toast("Não foi possível guardar este ficheiro."); }
+});
 $("#stopBtn").addEventListener("click", () => stopRec());
 $("#pauseBtn").addEventListener("click", togglePause);
 armed($("#discardBtn"), "Descartar", "Confirmar", () => stopRec("", true));
@@ -785,7 +877,40 @@ function draw() {
 requestAnimationFrame(draw);
 
 /* ================= Lista ================= */
-const recTitle = r => r.client || (r.min && r.min.assunto) || "Diligência sem processo";
+const KINDS = ["Reunião com cliente", "Reunião com a parte contrária", "Audiência prévia", "Audiência de julgamento", "Tentativa de conciliação", "Inquirição de testemunhas", "Diligência externa", "Outra"];
+const IDENT = [
+  ["lawyer", "Advogado / Cédula", "Ex.: Dra. Ana Lopes, CP n.º 12345L", 1, 1],
+  ["proc", "Processo n.º", "Ex.: Proc. 123/26.0T8CLD", 0, 1], ["court", "Tribunal / Entidade", "Ex.: Juízo Local Cível das Caldas da Rainha", 0, 1],
+  ["client", "Cliente", "", 0, 1], ["adv", "Parte contrária", "", 0, 2],
+  ["people", "Intervenientes", "Nomes e qualidade, separados por vírgulas", 1, 2],
+  ["kind", "Tipo de diligência", "", 0, 0], ["place", "Local", "", 0, 0], ["ref", "Referência interna", "", 0, 0]
+];
+function ident(r) {
+  if (!r.ident) r.ident = { proc: "", court: "", client: r.client || "", adv: "", kind: "", place: "", people: "", ref: "", caseId: "" };
+  if (r.ident.lawyer == null || (!r.ident.lawyer && lawyerLine())) r.ident.lawyer = r.ident.lawyer || lawyerLine();
+  return r.ident;
+}
+function lawyerLine() {
+  const n = (conf.lawyerName || "").trim(), c = (conf.cedula || "").trim();
+  if (!n && !c) return (conf.lawyer || "").trim();
+  return n + (c ? (n ? ", " : "") + "Cédula Profissional n.º " + c.replace(/^(c\.?\s*p\.?|cédula[^0-9]*)\s*/i, "") : "");
+}
+const filled = v => !!String(v || "").trim();
+function identMissing(r) {
+  const i = ident(r), out = IDENT.filter(f => f[4] === 1 && !filled(i[f[0]])).map(f => f[1]);
+  if (!filled(i.adv) && !filled(i.people)) out.push("Parte contrária ou Intervenientes");
+  return out;
+}
+const recTitle = r => { const i = ident(r); return [i.client, i.proc].filter(s => s && s.trim()).join(" — ") || (r.min && r.min.assunto) || "Diligência sem identificação"; };
+/* Processos existentes na app CG VERTEX (mesmo endereço, só leitura) */
+function vertexCases() {
+  try {
+    const db = JSON.parse(localStorage.getItem("lexvortex-v2") || "null");
+    if (!db || !Array.isArray(db.cases)) return [];
+    const cl = new Map((db.clients || []).map(c => [c.id, c]));
+    return db.cases.filter(c => c && c.status !== "archived").map(c => ({ id: c.id, num: c.num || "", title: c.title || "", court: c.courtName || "", adv: c.adv || "", client: (cl.get(c.clientId) || {}).name || "" }));
+  } catch { return []; }
+}
 function renderList() {
   const recs = [...RECS.values()].sort((a, b) => b.created - a.created), box = $("#list");
   if (!recs.length) { box.innerHTML = '<div class="empty"><span class="serif">Sem minutas</span>Toque no botão abaixo para registar a primeira diligência.</div>'; return; }
@@ -921,67 +1046,158 @@ function splitText(text, max) {
 function setProg(rec, label, frac) { rec.prog = { label, frac: Math.max(0, Math.min(1, frac || 0)) }; if (cur && cur.id === rec.id) renderState(); }
 const waitHook = (rec, frac) => s => setProg(rec, "Limite por minuto do plano gratuito: a retomar em " + s + " s", frac);
 
+/* Conversão e divisão: formatos não aceites (ex.: .aac) ou ficheiros acima de 24 MB passam a WAV 16 kHz em blocos de 10 minutos, cortados nos silêncios */
+const STT_EXT = ["flac", "mp3", "mp4", "mpeg", "mpga", "m4a", "ogg", "wav", "webm"];
+const MAX_STT = 24 * 1024 * 1024, WAV_PART = 10 * 60;
+function extOf(p) {
+  if (p.ext) return p.ext === "mp4" ? "m4a" : p.ext;
+  const m = p.mime || "";
+  return /webm/.test(m) ? "webm" : /mp4|m4a/.test(m) ? "m4a" : /mpeg|mp3/.test(m) ? "mp3" : /ogg/.test(m) ? "ogg" : /wav/.test(m) ? "wav" : /flac/.test(m) ? "flac" : /aac/.test(m) ? "aac" : "webm";
+}
+function decodeAudio(buf) {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  let ctx; try { ctx = new AC({ sampleRate: 16000 }); } catch { ctx = new AC(); }
+  return new Promise((res, rej) => { let p; try { p = ctx.decodeAudioData(buf.slice(0), res, rej); } catch (e) { rej(e); return; } if (p && p.then) p.then(res, rej); })
+    .finally(() => { try { ctx.close(); } catch {} });
+}
+function monoOf(d) {
+  if (d.numberOfChannels === 1) return d.getChannelData(0);
+  const a = d.getChannelData(0), b = d.getChannelData(1), m = new Float32Array(a.length);
+  for (let i = 0; i < a.length; i++) m[i] = (a[i] + b[i]) * .5;
+  return m;
+}
+function quietPoint(data, sr, target, win) {
+  const frame = Math.round(sr * .1), from = Math.max(0, Math.floor((target - win) * sr)), to = Math.min(data.length - frame, Math.floor((target + win) * sr));
+  let best = target, bestE = Infinity;
+  for (let i = from; i < to; i += frame) { let e = 0; for (let j = 0; j < frame; j += 4) e += Math.abs(data[i + j]); if (e < bestE) { bestE = e; best = i / sr; } }
+  return best;
+}
+function resample(data, from, to) {
+  if (from === to) return data;
+  const r = from / to, n = Math.floor(data.length / r), out = new Float32Array(n);
+  for (let i = 0; i < n; i++) { const s = i * r, i0 = Math.floor(s), f = s - i0; out[i] = (data[i0] || 0) * (1 - f) + (data[i0 + 1] || 0) * f; }
+  return out;
+}
+function encodeWav(samples, sr) {
+  const n = samples.length, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+  const w = (o, x) => { for (let i = 0; i < x.length; i++) v.setUint8(o + i, x.charCodeAt(i)); };
+  w(0, "RIFF"); v.setUint32(4, 36 + n * 2, true); w(8, "WAVE"); w(12, "fmt "); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, "data"); v.setUint32(40, n * 2, true);
+  let o = 44; for (let i = 0; i < n; i++, o += 2) { const x = Math.max(-1, Math.min(1, samples[i])); v.setInt16(o, x < 0 ? x * 0x8000 : x * 0x7FFF, true); }
+  return new Blob([buf], { type: "audio/wav" });
+}
 async function stepTranscribe(rec, signal) {
-  if (rec.tx && rec.tx.parts && rec.tx.done >= rec.tx.parts) return;
+  if (rec.tx && rec.tx.plan && rec.tx.done >= rec.tx.plan.length) return;
   if (!rec.hasAudio) throw appErr("O áudio desta diligência já foi apagado.", "noaudio");
   const parts = await loadAudio(rec);
   if (!parts || !parts.length) throw appErr("O áudio desta diligência não foi encontrado no dispositivo.", "noaudio");
-  if (!rec.tx || rec.tx.parts !== parts.length) rec.tx = { parts: parts.length, done: 0, segments: [] };
-  const ext = m => /webm/.test(m) ? "webm" : /mp4|m4a/.test(m) ? "m4a" : /ogg/.test(m) ? "ogg" : /aac/.test(m) ? "m4a" : /wav/.test(m) ? "wav" : "webm";
-  for (let i = rec.tx.done; i < parts.length; i++) {
+  const decoded = new Map();
+  async function pcmOf(si) {
+    if (decoded.has(si)) return decoded.get(si);
+    setProg(rec, "A preparar o áudio para transcrição", .03);
+    let d; try { d = await decodeAudio(parts[si].buf); } catch { throw appErr("Não foi possível ler este ficheiro de áudio. Converta-o para mp3 ou m4a e carregue-o de novo.", "decode"); }
+    const v = { data: monoOf(d), sr: d.sampleRate }; decoded.set(si, v); return v;
+  }
+  if (!rec.tx || !rec.tx.plan) {
+    const plan = [];
+    for (let si = 0; si < parts.length; si++) {
+      const p = parts[si], ext = extOf(p);
+      if (STT_EXT.includes(ext) && p.buf.byteLength <= MAX_STT) { plan.push({ si, wav: false, from: 0, to: p.dur || 0, ext }); continue; }
+      const { data, sr } = await pcmOf(si), dur = data.length / sr;
+      let t = 0;
+      while (t < dur - .5) { let end = t + WAV_PART; if (end < dur - 15) end = quietPoint(data, sr, end, 8); else end = dur; plan.push({ si, wav: true, from: t, to: end }); t = end; }
+      if (!p.dur) p.dur = dur;
+      if (!rec.duration && parts.length === 1) rec.duration = dur;
+    }
+    rec.tx = { plan, done: 0, segments: [] }; await saveRec(rec);
+  }
+  const plan = rec.tx.plan;
+  for (let k = rec.tx.done; k < plan.length; k++) {
     if (signal.aborted) throw appErr("Elaboração interrompida.", "cancelled");
-    const p = parts[i], frac = .03 + .42 * (i / parts.length);
-    if (p.buf.byteLength > 24 * 1024 * 1024) throw appErr("Um bloco de áudio excede o limite de 25 MB do serviço.", "big");
-    setProg(rec, parts.length > 1 ? "A transcrever, bloco " + (i + 1) + " de " + parts.length : "A transcrever", frac);
+    const job = plan[k], p = parts[job.si], frac = .03 + .42 * (k / plan.length);
+    setProg(rec, plan.length > 1 ? "A transcrever, bloco " + (k + 1) + " de " + plan.length : "A transcrever", frac);
+    let blob, name;
+    if (!job.wav) { blob = new Blob([p.buf], { type: p.mime }); name = "bloco" + (k + 1) + "." + job.ext; }
+    else { const { data, sr } = await pcmOf(job.si); blob = encodeWav(resample(data.subarray(Math.floor(job.from * sr), Math.floor(job.to * sr)), sr, 16000), 16000); name = "bloco" + (k + 1) + ".wav"; }
     const prev = rec.tx.segments.slice(-4).map(s => s.text).join(" ").slice(-300);
-    const segs = await whisper(new Blob([p.buf], { type: p.mime }), "bloco" + (i + 1) + "." + ext(p.mime), (prev || LEGAL_HINT).slice(-600), signal, waitHook(rec, frac));
-    segs.forEach(s => rec.tx.segments.push({ start: s.start + p.start, text: s.text }));
-    rec.tx.done = i + 1; await saveRec(rec);
+    const segs = await whisper(blob, name, (prev || LEGAL_HINT).slice(-600), signal, waitHook(rec, frac));
+    const offset = (p.start || 0) + (job.wav ? job.from : 0);
+    segs.forEach(s => rec.tx.segments.push({ start: s.start + offset, text: s.text }));
+    rec.tx.done = k + 1; await saveRec(rec);
   }
 }
 
-async function stepClean(rec, signal) {
-  const raw = rec.tx.segments.map(s => s.text).join(" ").replace(/\s+/g, " ").trim();
-  if (!raw) throw appErr("Não foi detetada fala nesta gravação.", "empty");
-  if (!rec.clean || rec.clean.n !== rec.tx.segments.length) rec.clean = { n: rec.tx.segments.length, size: 6000, out: [] };
+/* Intervenientes e tempos: os tempos vêm dos segmentos do áudio; o modelo só atribui quem fala e corrige o texto */
+const turnLine = t => "[" + fmtTs(t.t) + " - " + t.who + "] " + t.text;
+const turnsText = turns => turns.map(turnLine).join("\n");
+function knownPeople(rec) {
+  const i = ident(rec), out = [];
+  if (i.lawyer.trim()) out.push(i.lawyer.split(",")[0].trim() + " (advogado/a do cliente)");
+  if (i.client.trim()) out.push(i.client.trim() + " (cliente)");
+  if (i.adv.trim()) out.push(i.adv.trim() + " (parte contrária)");
+  i.people.split(/[,;\n]+/).map(x => x.trim()).filter(Boolean).forEach(p => out.push(p));
+  return out;
+}
+async function stepDiarize(rec, signal) {
+  const segs = rec.tx.segments;
+  if (!segs.length) throw appErr("Não foi detetada fala nesta gravação.", "empty");
+  const sig = segs.length + "|" + knownPeople(rec).join(";");
+  if (!rec.dia || rec.dia.sig !== sig) rec.dia = { sig, size: 5000, done: 0, map: {} };
   for (;;) {
-    const blocks = splitText(raw, rec.clean.size);
+    const blocks = []; let curB = [], len = 0;
+    segs.forEach((s, i) => { const l = s.text.length + 14; if (len + l > rec.dia.size && curB.length) { blocks.push(curB); curB = []; len = 0; } curB.push(i); len += l; });
+    if (curB.length) blocks.push(curB);
     try {
-      for (let i = rec.clean.out.length; i < blocks.length; i++) {
+      for (let b = rec.dia.done; b < blocks.length; b++) {
         if (signal.aborted) throw appErr("Elaboração interrompida.", "cancelled");
-        const frac = .45 + .3 * (i / blocks.length);
-        setProg(rec, "A rever a transcrição" + (blocks.length > 1 ? ", parte " + (i + 1) + " de " + blocks.length : ""), frac);
-        const tail = i ? rec.clean.out[i - 1].slice(-500) : "";
-        const out = await chat([
-          "Revês a transcrição automática de uma diligência jurídica em Portugal (reunião com cliente, audiência ou diligência). Parte " + (i + 1) + " de " + blocks.length + ".",
-          "Regras:",
-          "- Devolve o texto integral em português europeu, com pontuação, maiúsculas e parágrafos.",
-          "- Corrige apenas erros evidentes de reconhecimento, com especial rigor em termos jurídicos, nomes de diplomas e artigos (ex.: «artigo 569.º do Código de Processo Civil»).",
-          "- Separa as intervenções pelos indícios do próprio texto (perguntas e respostas, mudanças de interlocutor). Começa cada intervenção numa linha nova com «Interveniente 1:», «Interveniente 2:», etc. Sem indícios claros de várias pessoas, usa só «Interveniente 1:». Não inventes nomes.",
-          tail ? "- Mantém a numeração coerente com o fim da parte anterior:\n«" + tail + "»" : "",
-          "- O início pode repetir uma ou duas palavras do fim da parte anterior; não as dupliques.",
-          "- Não resumas, não acrescentes e não cortes conteúdo. Remove só hesitações e repetições acidentais.",
-          "- Responde só com o texto revisto.",
-          "", "<<<", blocks[i], ">>>"].filter(x => x !== "").join("\n"), { signal, max: Math.min(8000, Math.ceil(rec.clean.size / 2.2)), onWait: waitHook(rec, frac) });
-        if (!out) throw appErr("O serviço devolveu uma resposta vazia. Toque em Continuar.", "empty");
-        rec.clean.out.push(out.replace(/^<<<|>>>$/g, "").trim()); await saveRec(rec);
+        const frac = .45 + .3 * (b / blocks.length);
+        setProg(rec, "A identificar intervenientes" + (blocks.length > 1 ? ", parte " + (b + 1) + " de " + blocks.length : ""), frac);
+        const prevIds = b ? blocks[b - 1].slice(-6) : [];
+        const prev = prevIds.map(i => rec.dia.map[i]).filter(Boolean).map((x, k) => "#" + prevIds[k] + " " + x.o + ": " + x.t).join("\n");
+        const people = knownPeople(rec);
+        const prompt = [
+          "Recebes segmentos de uma transcrição automática de uma diligência jurídica em Portugal. Cada segmento tem um número e o tempo de início no áudio.",
+          people.length ? "Intervenientes conhecidos: " + people.join("; ") + "." : "Não há intervenientes identificados.",
+          "Para CADA segmento devolve:",
+          "- \"i\": o mesmo número do segmento (não alteres, não juntes e não dividas segmentos);",
+          "- \"o\": quem fala. Usa o nome curto de um interveniente conhecido (por exemplo «Dra. Ana Lopes», «Cliente») só quando o conteúdo o indicar com segurança (quem pergunta, quem relata os factos, vocativos, apresentações). Caso contrário usa «Interveniente 1», «Interveniente 2», etc., de forma coerente;",
+          "- \"t\": o texto do segmento em português europeu, com pontuação e correção de erros evidentes de reconhecimento, sobretudo termos jurídicos e referências legais. Não resumas e não acrescentes. Se o segmento repetir exatamente o anterior, devolve \"t\": \"\".",
+          prev ? "Atribuições do fim do bloco anterior, para manteres a coerência:\n" + prev : "",
+          "Responde apenas com JSON válido: {\"s\":[{\"i\":0,\"o\":\"\",\"t\":\"\"}]}",
+          "", "Segmentos:",
+          blocks[b].map(i => "#" + i + " [" + fmtTs(segs[i].start) + "] " + segs[i].text).join("\n")
+        ].filter(x => x !== "").join("\n");
+        const j = parseJSON(await chat(prompt, { signal, json: true, max: Math.min(8000, Math.ceil(rec.dia.size / 1.6) + 600), onWait: waitHook(rec, frac) }));
+        const arr = Array.isArray(j.s) ? j.s : Array.isArray(j) ? j : [];
+        arr.forEach(x => { const i = +x.i; if (blocks[b].includes(i)) rec.dia.map[i] = { o: String(x.o || "").trim(), t: String(x.t == null ? segs[i].text : x.t).trim() }; });
+        rec.dia.done = b + 1; await saveRec(rec);
       }
-      return rec.clean.out.join("\n\n");
+      break;
     } catch (e) {
-      if (e.code === "toolarge" && rec.clean.size > 1500) { rec.clean = { n: rec.clean.n, size: Math.floor(rec.clean.size / 2), out: [] }; await saveRec(rec); continue; }
+      if ((e.code === "toolarge" || e.code === "json") && rec.dia.size > 1200) { rec.dia = { sig, size: Math.floor(rec.dia.size / 2), done: 0, map: {} }; await saveRec(rec); continue; }
       throw e;
     }
   }
+  const turns = []; let last = "Interveniente 1";
+  segs.forEach((s, i) => {
+    const m = rec.dia.map[i], who = (m && m.o) || last, text = m ? m.t : s.text;
+    last = who;
+    if (!text) return;
+    const t = turns[turns.length - 1];
+    if (t && t.who === who && s.start - t.t < 60) t.text += " " + text;
+    else turns.push({ t: s.start, who, text });
+  });
+  return turns;
 }
 
-const SCHEMA = '{"assunto":"","cliente":"","prazos":[{"data":"","descricao":"","origem":""}],"factos":[""],"posicionamento":[""],"acoes":[{"tarefa":"","responsavel":"","prazo":""}],"diligencias":[""]}';
+const SCHEMA = '{"assunto":"","cliente":"","processo":"","tribunal":"","parte_contraria":"","tipo":"","local":"","presentes":"","prazos":[{"data":"","descricao":"","origem":"","tempo":""}],"factos":[""],"posicionamento":[""],"acoes":[{"tarefa":"","responsavel":"","prazo":""}],"diligencias":[""]}';
 function minutaRules(rec) {
   return [
     "A diligência ocorreu em " + fmtLong(rec.created) + " (" + fmtNum(rec.created) + ").",
     "Regras:",
     "- \"assunto\": até 8 palavras que identifiquem a matéria.",
-    "- \"cliente\": nome do cliente ou número de processo só se forem ditos claramente; senão \"\".",
-    "- \"prazos\": todos os prazos, datas e marcos temporais mencionados (audiências, prazos processuais, entregas, reuniões). Em \"data\" usa DD/MM/AAAA quando a data for determinável; converte datas relativas (por exemplo «próxima sexta») a partir da data da diligência. Para prazos em dias (por exemplo «10 dias para contestar») NÃO calcules o termo: escreve o prazo tal como dito (\"10 dias\"), porque a contagem depende das regras processuais. \"descricao\": o ato ou evento. \"origem\": frase curta do que foi dito que o suporta.",
+    "- Identificação: preenche só com o que for dito claramente, senão \"\". \"cliente\": nome do cliente. \"processo\": número do processo tal como dito (formato habitual 1234/26.0T8LSB). \"tribunal\": tribunal ou juízo. \"parte_contraria\": a outra parte. \"local\": onde decorreu. \"presentes\": pessoas presentes e a sua qualidade, separadas por vírgulas. \"tipo\": um destes valores, ou \"\" se não for claro: " + KINDS.join(", ") + ".",
+    "- \"prazos\": todos os prazos, datas e marcos temporais mencionados (audiências, prazos processuais, entregas, reuniões). Em \"data\" usa DD/MM/AAAA quando a data for determinável; converte datas relativas (por exemplo «próxima sexta») a partir da data da diligência. Para prazos em dias (por exemplo «10 dias para contestar») NÃO calcules o termo: escreve o prazo tal como dito (\"10 dias\"), porque a contagem depende das regras processuais. \"descricao\": o ato ou evento. \"origem\": frase curta do que foi dito que o suporta. \"tempo\": o tempo [mm:ss] da linha da transcrição onde foi dito.",
     "- \"factos\": factos relevantes relatados, em frases curtas e objetivas.",
     "- \"posicionamento\": posição do cliente, estratégia ou entendimento jurídico manifestado.",
     "- \"acoes\": tarefas a realizar; \"tarefa\" começa por um verbo no infinitivo; \"responsavel\" e \"prazo\" só se forem ditos, senão \"\".",
@@ -993,7 +1209,8 @@ function normMin(o) {
   const arr = x => Array.isArray(x) ? x : [], str = x => String(x == null ? "" : x).trim();
   return {
     assunto: str(o.assunto), cliente: str(o.cliente),
-    prazos: arr(o.prazos).filter(p => p && (p.data || p.descricao)).map(p => ({ date: str(p.data), desc: str(p.descricao), src: str(p.origem) })),
+    idn: { client: str(o.cliente), proc: str(o.processo), court: str(o.tribunal), adv: str(o.parte_contraria), kind: KINDS.includes(str(o.tipo)) ? str(o.tipo) : "", place: str(o.local), people: str(o.presentes) },
+    prazos: arr(o.prazos).filter(p => p && (p.data || p.descricao)).map(p => ({ date: str(p.data), desc: str(p.descricao), src: str(p.origem), time: str(p.tempo).replace(/[\[\]]/g, "") })),
     factos: arr(o.factos).map(str).filter(Boolean),
     posicionamento: arr(o.posicionamento).map(str).filter(Boolean),
     acoes: arr(o.acoes).filter(a => a && a.tarefa).map(a => ({ text: str(a.tarefa), who: str(a.responsavel), due: str(a.prazo), done: false })),
@@ -1007,7 +1224,7 @@ async function stepMinuta(rec, transcript, signal) {
       const blocks = splitText(transcript, Math.round(size * 1.4));
       if (blocks.length === 1) {
         setProg(rec, "A elaborar a minuta", .82);
-        return normMin(parseJSON(await chat("Elabora, a partir da transcrição seguinte, os elementos de uma minuta de diligência jurídica.\n" + minutaRules(rec) + "\n\nResponde apenas com JSON válido neste formato:\n" + SCHEMA + "\n\nTranscrição:\n<<<\n" + transcript + "\n>>>", { signal, json: true, max: 3000, onWait: waitHook(rec, .82) })));
+        return normMin(parseJSON(await chat("Elabora, a partir da transcrição seguinte (cada linha tem [tempo - interveniente]), os elementos de uma minuta de diligência jurídica.\n" + minutaRules(rec) + "\n\nResponde apenas com JSON válido neste formato:\n" + SCHEMA + "\n\nTranscrição:\n<<<\n" + transcript + "\n>>>", { signal, json: true, max: 3000, onWait: waitHook(rec, .82) })));
       }
       const partials = [];
       for (let i = 0; i < blocks.length; i++) {
@@ -1017,9 +1234,10 @@ async function stepMinuta(rec, transcript, signal) {
         partials.push(normMin(parseJSON(await chat("Extrai desta parte (" + (i + 1) + " de " + blocks.length + ") de uma transcrição de diligência jurídica os elementos de minuta.\n" + minutaRules(rec) + "\n\nResponde apenas com JSON válido neste formato:\n" + SCHEMA + "\n\nTexto:\n<<<\n" + blocks[i] + "\n>>>", { signal, json: true, max: 2500, onWait: waitHook(rec, frac) }))));
       }
       setProg(rec, "A consolidar a minuta", .94);
-      const merged = { assunto: partials.map(p => p.assunto).filter(Boolean), cliente: partials.map(p => p.cliente).filter(Boolean), prazos: [], factos: [], posicionamento: [], acoes: [], diligencias: [] };
-      partials.forEach(p => { merged.prazos.push(...p.prazos.map(x => ({ data: x.date, descricao: x.desc, origem: x.src }))); merged.factos.push(...p.factos); merged.posicionamento.push(...p.posicionamento); merged.acoes.push(...p.acoes.map(a => ({ tarefa: a.text, responsavel: a.who, prazo: a.due }))); merged.diligencias.push(...p.diligencias); });
-      return normMin(parseJSON(await chat("Consolida estes elementos de minuta extraídos de várias partes da mesma diligência jurídica: elimina repetições, junta o que for o mesmo facto ou tarefa, mantém todos os prazos distintos e escolhe um único assunto e cliente. Não acrescentes nada que não esteja nos dados.\n\nResponde apenas com JSON válido neste formato:\n" + SCHEMA + "\n\nDados:\n" + JSON.stringify(merged), { signal, json: true, max: 3000, onWait: waitHook(rec, .94) })));
+      const pick = k => partials.map(p => p.idn[k]).filter(Boolean);
+      const merged = { assunto: partials.map(p => p.assunto).filter(Boolean), cliente: pick("client"), processo: pick("proc"), tribunal: pick("court"), parte_contraria: pick("adv"), tipo: pick("kind"), local: pick("place"), presentes: pick("people"), prazos: [], factos: [], posicionamento: [], acoes: [], diligencias: [] };
+      partials.forEach(p => { merged.prazos.push(...p.prazos.map(x => ({ data: x.date, descricao: x.desc, origem: x.src, tempo: x.time }))); merged.factos.push(...p.factos); merged.posicionamento.push(...p.posicionamento); merged.acoes.push(...p.acoes.map(a => ({ tarefa: a.text, responsavel: a.who, prazo: a.due }))); merged.diligencias.push(...p.diligencias); });
+      return normMin(parseJSON(await chat("Consolida estes elementos de minuta extraídos de várias partes da mesma diligência jurídica: elimina repetições, junta o que for o mesmo facto ou tarefa, mantém todos os prazos distintos e escolhe um único valor para assunto, cliente, processo, tribunal, parte contrária, tipo e local, e junta os presentes sem repetições. Não acrescentes nada que não esteja nos dados.\n\nResponde apenas com JSON válido neste formato:\n" + SCHEMA + "\n\nDados:\n" + JSON.stringify(merged), { signal, json: true, max: 3000, onWait: waitHook(rec, .94) })));
     } catch (e) {
       if (e.code === "toolarge" && size > 1500) { size = Math.floor(size / 2); continue; }
       throw e;
@@ -1037,11 +1255,15 @@ async function processRec(id, opts) {
   await saveRec(rec); renderList(); if (cur && cur.id === id) renderDetail();
   try {
     let transcript;
-    if (opts.fromText) transcript = rec.transcript;
-    else { await stepTranscribe(rec, ctl.signal); if (!rec.tx.segments.length) throw appErr("Não foi detetada fala nesta gravação.", "empty"); transcript = await stepClean(rec, ctl.signal); }
+    if (opts.fromText) transcript = rec.turns ? turnsText(rec.turns) : rec.transcript;
+    else {
+      await stepTranscribe(rec, ctl.signal);
+      if (!rec.tx.segments.length) throw appErr("Não foi detetada fala nesta gravação.", "empty");
+      rec.turns = await stepDiarize(rec, ctl.signal); transcript = turnsText(rec.turns); await saveRec(rec);
+    }
     const min = await stepMinuta(rec, transcript, ctl.signal);
     if (rec.min) min.acoes.forEach(a => { const o = rec.min.acoes.find(x => x.text === a.text); if (o) a.done = o.done; });
-    if (!rec.client && min.cliente) rec.client = min.cliente;
+    const idf = ident(rec); Object.keys(min.idn).forEach(k => { if (!(idf[k] || "").trim() && min.idn[k]) idf[k] = min.idn[k]; });
     rec.transcript = transcript; rec.min = min; rec.status = "ready";
   } catch (e) {
     rec.status = rec.min ? "ready" : "error";
@@ -1073,6 +1295,7 @@ async function openDoc(id) {
   }).catch(() => {});
   $("#delAudio").textContent = "Apagar áudio"; $("#delAudio").dataset.arm = "";
   $("#docDel").textContent = "Eliminar"; $("#docDel").dataset.arm = "";
+  $("#pick").hidden = true;
   openSheet($("#docSheet")); $("#docBody").scrollTop = 0;
   renderDetail();
 }
@@ -1081,8 +1304,9 @@ $("#docBack").addEventListener("click", closeDoc);
 
 function renderDetail() {
   const r = cur; if (!r) return;
-  const c = $("#dClient"); if (document.activeElement !== c) c.value = r.client || "";
-  c.placeholder = (r.min && r.min.assunto) || "Cliente / Processo";
+  $("#dTitle").textContent = recTitle(r);
+  if (!$("#dIdent").contains(document.activeElement)) renderIdent();
+  $("#pickBtn").hidden = !vertexCases().length;
   $("#dMeta").innerHTML = "<span>Data <b>" + esc(fmtNum(r.created)) + "</b></span><span>Início <b>" + esc(fmtHour(r.created)) + "</b></span><span>Duração <b>" + fmtDur(r.duration) + "</b></span>";
   $("#docStatus").textContent = busy.has(r.id) ? "A elaborar" : r.min ? (r.hasAudio ? "" : "Só texto") : "";
   $("#dAudio").hidden = !r.hasAudio;
@@ -1092,7 +1316,45 @@ function renderDetail() {
   ["#mailBtn", "#docxBtn", "#pdfBtn"].forEach(s => $(s).disabled = !has || busy.has(r.id));
   if (has) renderMin();
 }
-$("#dClient").addEventListener("input", e => { if (!cur) return; cur.client = e.target.value; saveSoon(cur); });
+function renderIdent() {
+  const i = ident(cur), box = $("#dIdent"); box.innerHTML = "";
+  IDENT.forEach(([k, label, ph, wide, req]) => {
+    const f = document.createElement("label"); f.className = "ifld" + (wide ? " w" : "") + (req ? " req" : ""); f.dataset.k = k;
+    const sp = document.createElement("span"); sp.textContent = label; f.append(sp);
+    let el;
+    if (k === "kind") {
+      el = document.createElement("select");
+      el.innerHTML = '<option value="">Escolher</option>' + KINDS.map(x => '<option>' + esc(x) + "</option>").join("") + (i.kind && !KINDS.includes(i.kind) ? '<option>' + esc(i.kind) + "</option>" : "");
+      el.value = i.kind || "";
+      el.addEventListener("change", () => { i.kind = el.value; saveSoon(cur); });
+    } else {
+      el = document.createElement("input"); el.value = i[k] || ""; el.placeholder = ph || ""; el.autocomplete = "off";
+      if (k === "proc" || k === "ref") { el.autocapitalize = "characters"; el.spellcheck = false; }
+      el.addEventListener("input", () => { i[k] = el.value; f.classList.remove("miss"); if (k === "adv" || k === "people") $$("#dIdent .ifld[data-k=adv], #dIdent .ifld[data-k=people]").forEach(x => x.classList.remove("miss")); if (k === "proc" || k === "client") $("#dTitle").textContent = recTitle(cur); saveSoon(cur); if (!cur.min && !busy.has(cur.id)) renderState(); });
+    }
+    f.append(el); box.append(f);
+  });
+}
+function flagMissing() {
+  if (!cur) return; const i = ident(cur);
+  const either = !filled(i.adv) && !filled(i.people);
+  $$("#dIdent .ifld").forEach(f => { const def = IDENT.find(x => x[0] === f.dataset.k); f.classList.toggle("miss", !!(def && ((def[4] === 1 && !filled(i[def[0]])) || (def[4] === 2 && either)))); });
+  const first = $("#dIdent .ifld.miss input"); if (first) { first.scrollIntoView({ block: "center", behavior: "smooth" }); setTimeout(() => first.focus(), 350); }
+}
+function requireIdent() { if (!cur) return false; const m = identMissing(cur); if (!m.length) return true; flagMissing(); toast("Complete a identificação: " + m.join(", ") + ".", 4000); return false; }
+function renderPick() {
+  const q = $("#pickQ").value.trim().toLowerCase(), list = vertexCases().filter(c => !q || [c.num, c.client, c.title, c.court].join(" ").toLowerCase().includes(q));
+  $("#pickL").innerHTML = list.length ? list.slice(0, 60).map(c => '<button class="pk" data-id="' + esc(c.id) + '">' + esc([c.num, c.client].filter(Boolean).join(" — ") || c.title || "Processo sem número") + "<small>" + esc([c.title, c.court].filter(Boolean).join(", ")) + "</small></button>").join("") : '<div class="none" style="padding:12px">Nenhum processo encontrado.</div>';
+}
+$("#pickBtn").addEventListener("click", () => { const p = $("#pick"); p.hidden = !p.hidden; if (!p.hidden) { $("#pickQ").value = ""; renderPick(); } });
+$("#pickQ").addEventListener("input", renderPick);
+$("#pickL").addEventListener("click", e => {
+  const b = e.target.closest(".pk"); if (!b || !cur) return;
+  const c = vertexCases().find(x => x.id === b.dataset.id); if (!c) return;
+  const i = ident(cur);
+  Object.assign(i, { caseId: c.id, proc: c.num || i.proc, client: c.client || i.client, court: c.court || i.court, adv: c.adv || i.adv });
+  $("#pick").hidden = true; saveRec(cur); renderDetail(); toast("Processo associado");
+});
 
 function renderState() {
   const r = cur, box = $("#dState"); if (!r) return;
@@ -1110,14 +1372,17 @@ function renderState() {
   }
   if (!prefs.zdr && !r.consent) {
     box.innerHTML = '<div class="state"><b>Confirmação de sigilo</b>A retenção zero ainda não está indicada como ativa. Sem ela, o serviço pode guardar o pedido até 30 dias para monitorização de abusos. Ative-a em <a style="color:var(--gold2)" href="https://console.groq.com/settings/data-controls" target="_blank" rel="noopener">console.groq.com/settings/data-controls</a> e assinale-a nas Definições.<br><button class="btn sm" id="goOn" style="margin-top:12px">Elaborar minuta desta diligência</button></div>';
-    $("#goOn").onclick = () => { r.consent = true; saveRec(r); processRec(r.id); }; return;
+    $("#goOn").onclick = () => { if (identMissing(r).length) { flagMissing(); toast("Complete primeiro a identificação da diligência."); return; } r.consent = true; saveRec(r); processRec(r.id); }; return;
   }
   if (r.status === "error") {
     box.innerHTML = '<div class="state"><b>' + esc(r.error || "Ocorreu um erro.") + '</b>O que já foi feito está guardado.<br><button class="btn sm" id="goOn" style="margin-top:12px">Continuar</button></div>';
     $("#goOn").onclick = () => processRec(r.id); return;
   }
-  box.innerHTML = '<div class="state"><b>Pronta a elaborar</b>A gravação está guardada e encriptada neste dispositivo.<br><button class="btn sm" id="goOn" style="margin-top:12px">Elaborar minuta</button></div>';
-  $("#goOn").onclick = () => processRec(r.id);
+  const miss = identMissing(r);
+  box.innerHTML = '<div class="state"><b>' + (miss.length ? "Identificação da diligência" : "Pronta a elaborar") + "</b>" +
+    (miss.length ? "Preencha os campos obrigatórios da identificação para elaborar a minuta: " + esc(miss.join(", ")) + "." : "A gravação está guardada e encriptada neste dispositivo.") +
+    '<br><button class="btn sm" id="goOn" style="margin-top:12px"' + (miss.length ? " disabled" : "") + ">Elaborar minuta</button></div>";
+  $("#goOn").onclick = () => { if (!identMissing(r).length) processRec(r.id); };
 }
 
 function editor(value, onInput, ph, cls) {
@@ -1145,7 +1410,7 @@ function renderMin() {
     const d = document.createElement("input"); d.className = "in2 d"; d.value = p.date; d.placeholder = "Data"; d.setAttribute("aria-label", "Data ou prazo");
     d.addEventListener("input", () => { p.date = d.value; saveSoon(cur); });
     const b = document.createElement("div"); b.append(editor(p.desc, v => p.desc = v, "Ato ou evento"));
-    if (p.src) { const o = document.createElement("div"); o.className = "o"; o.textContent = "«" + p.src + "»"; b.append(o); }
+    if (p.src || p.time) { const o = document.createElement("div"); o.className = "o"; o.textContent = (p.src ? "«" + p.src + "»" : "") + (p.time ? "  [" + p.time + "]" : ""); b.append(o); }
     row.append(d, b, rmBtn(() => m.prazos.splice(i, 1))); crit.append(row);
   });
   listEditor($("#dFactos"), m.factos, "Facto");
@@ -1163,9 +1428,24 @@ function renderMin() {
     b.append(sub); row.append(ck, b, rmBtn(() => m.acoes.splice(i, 1))); acts.append(row);
   });
   const tr = $("#dTr");
-  if (document.activeElement !== tr) { tr.value = cur.transcript || ""; requestAnimationFrame(() => autoGrow(tr)); }
+  if (tr.contains(document.activeElement)) return;
+  tr.innerHTML = "";
+  if (!cur.turns) { tr.append(editor(cur.transcript || "", v => cur.transcript = v, "", "tr")); return; }
+  cur.turns.forEach(t => {
+    const row = document.createElement("div"); row.className = "turn";
+    const ts = document.createElement("button"); ts.className = "ts"; ts.textContent = fmtTs(t.t); ts.setAttribute("aria-label", "Ouvir a partir de " + fmtTs(t.t));
+    ts.onclick = () => { if (!cur.hasAudio || !player.src) { toast("O áudio desta diligência já não está disponível."); return; } try { player.currentTime = Math.max(0, t.t - 1); player.play().catch(() => {}); } catch {} };
+    const who = document.createElement("input"); who.className = "who"; who.value = t.who; who.setAttribute("aria-label", "Interveniente");
+    who.addEventListener("input", () => { t.who = who.value; saveSoon(cur); });
+    who.addEventListener("change", () => {
+      const from = who.dataset.prev || "", to = who.value.trim();
+      if (from && to && from !== to && cur.turns.filter(x => x.who === from).length) { cur.turns.forEach(x => { if (x.who === from) x.who = to; }); saveSoon(cur); renderMin(); toast("«" + from + "» passou a «" + to + "» em toda a transcrição"); }
+    });
+    who.addEventListener("focus", () => { who.dataset.prev = t.who; });
+    row.append(ts, who, document.createElement("span"), editor(t.text, v => t.text = v, "", "ed"));
+    tr.append(row);
+  });
 }
-$("#dTr").addEventListener("input", e => { if (!cur) return; cur.transcript = e.target.value; autoGrow(e.target); saveSoon(cur); });
 $$("[data-add]").forEach(b => b.addEventListener("click", () => {
   if (!cur || !cur.min) return; const k = b.dataset.add, m = cur.min;
   if (k === "prazos") m.prazos.push({ date: "", desc: "", src: "" });
@@ -1173,7 +1453,7 @@ $$("[data-add]").forEach(b => b.addEventListener("click", () => {
   else m[k].push("");
   renderMin(); saveSoon(cur);
 }));
-$("#redo").addEventListener("click", () => { if (cur && cur.transcript && conf.key) processRec(cur.id, { fromText: true }); else toast("Configure primeiro o serviço nas Definições."); });
+$("#redo").addEventListener("click", () => { if (cur && (cur.turns || cur.transcript) && conf.key) processRec(cur.id, { fromText: true }); else toast("Configure primeiro o serviço nas Definições."); });
 armed($("#delAudio"), "Apagar áudio", "Confirmar", async () => { if (!cur) return; revokePlayer(); await deleteAudio(cur); renderDetail(); toast("Áudio apagado. A minuta foi mantida."); });
 armed($("#docDel"), "Eliminar", "Confirmar", async () => {
   if (!cur) return; const r = cur, c = busy.get(r.id); if (c) c.abort();
@@ -1184,16 +1464,22 @@ armed($("#docDel"), "Eliminar", "Confirmar", async () => {
 function docData() {
   const r = cur, m = r.min;
   return {
-    office: conf.office.trim(), letter: conf.letter.split(/\n+/).map(s => s.trim()).filter(Boolean),
-    client: (r.client || "").trim(), subject: m.assunto,
+    office: (conf.office || conf.lawyerName || "").trim(), letter: [conf.address || "", ...String(conf.letter || "").split(/\n+/)].map(s => s.trim()).filter(Boolean),
+    id: (() => { const i = ident(r); return { lawyer: i.lawyer.trim(), proc: i.proc.trim(), court: i.court.trim(), client: i.client.trim(), adv: i.adv.trim(), kind: i.kind.trim(), place: i.place.trim(), people: i.people.trim(), ref: i.ref.trim() }; })(),
+    client: ident(r).client.trim(), proc: ident(r).proc.trim(), subject: m.assunto,
     date: fmtNum(r.created), longDate: fmtLong(r.created), hour: fmtHour(r.created), dur: fmtDur(r.duration),
     prazos: m.prazos.filter(p => (p.date + p.desc).trim()), factos: m.factos.filter(s => s.trim()), pos: m.posicionamento.filter(s => s.trim()),
-    acoes: m.acoes.filter(a => a.text.trim()), dilig: m.diligencias.filter(s => s.trim()), transcript: r.transcript || ""
+    acoes: m.acoes.filter(a => a.text.trim()), dilig: m.diligencias.filter(s => s.trim()),
+    turns: r.turns ? r.turns.filter(t => t.text.trim()) : null, transcript: r.turns ? turnsText(r.turns.filter(t => t.text.trim())) : (r.transcript || "")
   };
 }
 const actLine = a => a.text + (a.who ? " (responsável: " + a.who + ")" : "") + (a.due ? " (prazo: " + a.due + ")" : "");
-const prazoLine = p => (p.date || "s/ data") + " — " + p.desc;
-const titleFor = d => d.client || d.subject || "Diligência";
+const prazoLine = p => (p.date || "s/ data") + " — " + p.desc + (p.time ? " [" + p.time + "]" : "");
+const titleFor = d => [d.client, d.proc].filter(Boolean).join(" — ") || d.subject || "Diligência";
+function identRows(d) {
+  const rows = [["Advogado / Cédula", d.id.lawyer], ["Processo n.º", d.id.proc], ["Tribunal / Entidade", d.id.court], ["Cliente", d.id.client], ["Parte contrária", d.id.adv], ["Intervenientes", d.id.people], ["Tipo de diligência", d.id.kind], ["Local", d.id.place], ["Data", d.longDate + ", " + d.hour], ["Duração", d.dur], ["Referência interna", d.id.ref]];
+  return rows.filter(r => r[1]);
+}
 function safeName(s) { return ("Minuta - " + (s || "diligencia")).replace(/[\\/:*?"<>|]+/g, "").replace(/\s+/g, " ").trim().slice(0, 90); }
 async function afterExport() {
   if (prefs.retain === "delete" && cur && cur.hasAudio) { revokePlayer(); await deleteAudio(cur); renderDetail(); toast("Exportado. O áudio foi apagado e o texto mantido.", 3500); }
@@ -1202,20 +1488,21 @@ async function afterExport() {
 function mailBody(d, full) {
   const L = [];
   if (d.office) L.push(d.office);
-  L.push("MINUTA DE DILIGÊNCIA", "Cliente / Processo: " + (d.client || "—"), "Data: " + d.date + ", " + d.hour + "   Duração: " + d.dur, "");
+  L.push("MINUTA DE DILIGÊNCIA"); if (d.subject) L.push(d.subject);
+  identRows(d).forEach(r => L.push(r[0] + ": " + r[1])); L.push("");
   L.push("PRAZOS E DATAS CRÍTICAS"); if (!d.prazos.length) L.push("Não foram mencionados prazos."); d.prazos.forEach(p => L.push("• " + prazoLine(p)));
   L.push("", "SUMÁRIO EXECUTIVO", "Factos relevantes:"); (d.factos.length ? d.factos : ["—"]).forEach(s => L.push("• " + s));
   L.push("Posicionamento:"); (d.pos.length ? d.pos : ["—"]).forEach(s => L.push("• " + s));
   L.push("", "PLANO DE AÇÃO", "Tarefas:"); (d.acoes.length ? d.acoes : [{ text: "—" }]).forEach(a => L.push((a.done ? "☑ " : "☐ ") + actLine(a)));
   L.push("Diligências futuras:"); (d.dilig.length ? d.dilig : ["—"]).forEach(s => L.push("• " + s));
-  L.push("", "TRANSCRIÇÃO INTEGRAL");
+  L.push("", "TRANSCRIÇÃO POR INTERVENIENTES");
   L.push(full ? d.transcript : "A transcrição integral segue no documento Word ou PDF em anexo.");
   L.push("", "Documento confidencial, sujeito a sigilo profissional.");
   return L.join("\n");
 }
 $("#mailBtn").addEventListener("click", async () => {
-  if (!cur || !cur.min) return;
-  const d = docData(), subject = "Minuta de Reunião - " + titleFor(d);
+  if (!cur || !cur.min || !requireIdent()) return;
+  const d = docData(), subject = "Minuta de Reunião - Proc. " + d.proc.replace(/^\s*proc(esso)?\.?\s*(n\.?\s*º?)?\s*/i, "");
   let body = mailBody(d, true), url = "mailto:" + encodeURIComponent(conf.mailTo || "") + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
   if (url.length > 15000) { body = mailBody(d, false); url = "mailto:" + encodeURIComponent(conf.mailTo || "") + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body); toast("A transcrição é longa: anexe o Word ou PDF ao email.", 4000); }
   const a = document.createElement("a"); a.href = url; a.rel = "noopener"; document.body.append(a); a.click(); a.remove();
@@ -1248,28 +1535,28 @@ const H2 = t => para(run(t, { serif: 1, caps: 1, sp: 30, color: GOLD, sz: 20, b:
 const H3 = t => para(run(t, { b: 1, color: GREY, sz: 19 }), { before: 140, after: 60, keep: 1 });
 const BUL = (t, mark) => para(run((mark || "—") + "  ", { color: GOLD }) + run(t), { ind: 360, after: 80 });
 async function exportDocx() {
-  if (!cur || !cur.min) return;
+  if (!cur || !cur.min || !requireIdent()) return;
   if (!window.JSZip) { toast("O exportador não carregou. Verifique a ligação e reabra a app."); return; }
   const d = docData();
   let body = "";
   body += para(run("MINUTA DE DILIGÊNCIA", { serif: 1, sp: 40, color: GOLD, sz: 18, b: 1 }), { after: 60 });
   body += para(run(titleFor(d), { serif: 1, sz: 36 }), { after: 60 });
-  if (d.client && d.subject) body += para(run(d.subject, { i: 1, color: GREY, sz: 21 }), { after: 60 });
-  body += para(run("Data: ", { color: GREY, sz: 19 }) + run(d.longDate + ", " + d.hour, { sz: 19 }) + run("     Duração: ", { color: GREY, sz: 19 }) + run(d.dur, { sz: 19 }), { after: 200, border: 1 });
+  if ((d.client || d.proc) && d.subject) body += para(run(d.subject, { i: 1, color: GREY, sz: 21 }), { after: 80 });
+  const ir = identRows(d), cell = (t, o, w) => '<w:tc><w:tcPr><w:tcW w:w="' + w + '" w:type="dxa"/></w:tcPr>' + para(run(t, o), { after: 40 }) + "</w:tc>";
+  body += '<w:tbl><w:tblPr><w:tblW w:w="9070" w:type="dxa"/><w:tblBorders><w:top w:val="single" w:sz="4" w:color="' + GOLD + '"/><w:bottom w:val="single" w:sz="4" w:color="' + GOLD + '"/><w:insideH w:val="single" w:sz="2" w:color="D9DDE5"/></w:tblBorders><w:tblCellMar><w:top w:w="50" w:type="dxa"/><w:left w:w="60" w:type="dxa"/><w:bottom w:w="30" w:type="dxa"/><w:right w:w="60" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid><w:gridCol w:w="2400"/><w:gridCol w:w="6670"/></w:tblGrid>' +
+    ir.map(r => "<w:tr>" + cell(r[0], { color: GREY, sz: 18 }, 2400) + cell(r[1], { sz: 20 }, 6670) + "</w:tr>").join("") + "</w:tbl>" + para("", { after: 120 });
   body += H2("Prazos & Datas Críticas");
   if (!d.prazos.length) body += para(run("Não foram mencionados prazos ou datas.", { color: GREY }), { leftBar: 1, shade: 1 });
-  d.prazos.forEach(p => body += para(run((p.date || "s/ data") + "   ", { b: 1, color: GOLD }) + run(p.desc) + (p.src ? run("   «" + p.src + "»", { i: 1, color: GREY, sz: 18 }) : ""), { leftBar: 1, shade: 1, after: 0 }));
+  d.prazos.forEach(p => body += para(run((p.date || "s/ data") + "   ", { b: 1, color: GOLD }) + run(p.desc) + (p.src ? run("   «" + p.src + "»", { i: 1, color: GREY, sz: 18 }) : "") + (p.time ? run("  [" + p.time + "]", { color: GREY, sz: 18 }) : ""), { leftBar: 1, shade: 1, after: 0 }));
   body += H2("Sumário Executivo");
   body += H3("Factos relevantes"); (d.factos.length ? d.factos : ["—"]).forEach(s => body += BUL(s));
   body += H3("Posicionamento"); (d.pos.length ? d.pos : ["—"]).forEach(s => body += BUL(s));
   body += H2("Plano de Ação");
   body += H3("Tarefas"); (d.acoes.length ? d.acoes : [{ text: "—" }]).forEach(a => body += BUL(actLine(a), a.done ? "☑" : "☐"));
   body += H3("Diligências futuras"); (d.dilig.length ? d.dilig : ["—"]).forEach(s => body += BUL(s));
-  body += H2("Transcrição Integral");
-  d.transcript.split(/\n+/).filter(x => x.trim()).forEach(p => {
-    const m = p.match(/^(Interveniente\s+\d+):\s*([\s\S]*)$/);
-    body += m ? para(run(m[1] + ": ", { b: 1, color: GOLD, serif: 1 }) + run(m[2], { serif: 1 }), { after: 120, jc: "both" }) : para(run(p.trim(), { serif: 1 }), { after: 120, jc: "both" });
-  });
+  body += H2("Transcrição por Intervenientes");
+  if (d.turns) d.turns.forEach(t => { body += para(run("[" + fmtTs(t.t) + "]  ", { b: 1, color: GOLD, sz: 18 }) + run(t.who + ": ", { b: 1, serif: 1 }) + run(t.text, { serif: 1 }), { after: 110, jc: "both", ind: 1000, hang: 1000 }); });
+  else d.transcript.split(/\n+/).filter(x => x.trim()).forEach(p => body += para(run(p.trim(), { serif: 1 }), { after: 120, jc: "both" }));
   const header = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
     para(run((d.office || "Minuta de diligência").toUpperCase(), { serif: 1, sp: 40, color: INK, sz: 20, b: 1 }), { after: 20, jc: "center" }) +
     (d.letter.length ? para(run(d.letter.join("   |   "), { color: GREY, sz: 15 }), { after: 0, jc: "center", border: 1 }) : para("", { border: 1, after: 0 })) + "</w:hdr>";
@@ -1291,7 +1578,7 @@ $("#docxBtn").addEventListener("click", () => exportDocx().catch(() => toast("N�
 
 /* PDF timbrado */
 async function exportPdf() {
-  if (!cur || !cur.min) return;
+  if (!cur || !cur.min || !requireIdent()) return;
   if (!window.jspdf || !window.jspdf.jsPDF) { toast("O exportador não carregou. Verifique a ligação e reabra a app."); return; }
   const d = docData(), pdf = new window.jspdf.jsPDF({ unit: "mm", format: "a4" });
   const M = 22, W = 210 - 2 * M, TOP = 38, BOTTOM = 297 - 22, gold = [208, 106, 31], grey = [107, 111, 118], ink = [20, 33, 61];
@@ -1311,14 +1598,21 @@ async function exportPdf() {
   const bullet = (t, mark) => { ensure(6); pdf.setTextColor.apply(pdf, gold); pdf.setFont("helvetica", "normal"); pdf.setFontSize(10); pdf.text(mark || "—", M, y + 3.6); text(t, 10, { indent: 6 }); };
   text("MINUTA DE DILIGÊNCIA", 8.5, { bold: 1, color: gold, after: 1.5 });
   text(titleFor(d), 19, { serif: 1, after: 1 });
-  if (d.client && d.subject) text(d.subject, 10.5, { italic: 1, color: grey, after: 1 });
-  text("Data: " + d.longDate + ", " + d.hour + "     Duração: " + d.dur, 9, { color: grey, after: 2 });
-  pdf.setDrawColor.apply(pdf, gold); pdf.setLineWidth(.25); pdf.line(M, y, M + W, y); y += 3;
+  if ((d.client || d.proc) && d.subject) text(d.subject, 10.5, { italic: 1, color: grey, after: 2 });
+  pdf.setDrawColor.apply(pdf, gold); pdf.setLineWidth(.3); pdf.line(M, y, M + W, y); y += 1;
+  identRows(d).forEach(r => {
+    pdf.setFont("helvetica", "normal"); pdf.setFontSize(9.5);
+    const lines = pdf.splitTextToSize(r[1], W - 42), h = lines.length * 4.6 + 2.6; ensure(h);
+    pdf.setTextColor.apply(pdf, grey); pdf.setFontSize(8.5); pdf.text(r[0], M, y + 4.4);
+    pdf.setTextColor.apply(pdf, ink); pdf.setFontSize(9.5); lines.forEach((l, k) => pdf.text(l, M + 42, y + 4.4 + k * 4.6));
+    y += h; pdf.setDrawColor(217, 221, 229); pdf.setLineWidth(.15); pdf.line(M, y, M + W, y);
+  });
+  pdf.setDrawColor.apply(pdf, gold); pdf.setLineWidth(.3); pdf.line(M, y, M + W, y); y += 3;
   h2("Prazos & Datas Críticas");
   const pz = d.prazos.length ? d.prazos : [{ date: "", desc: "Não foram mencionados prazos ou datas.", src: "" }];
   pz.forEach(p => {
     pdf.setFont("helvetica", "normal"); pdf.setFontSize(10);
-    const desc = pdf.splitTextToSize(p.desc, W - 40), src = p.src ? pdf.splitTextToSize("«" + p.src + "»", W - 40) : [];
+    const desc = pdf.splitTextToSize(p.desc, W - 40), src = (p.src || p.time) ? pdf.splitTextToSize((p.src ? "«" + p.src + "»" : "") + (p.time ? "  [" + p.time + "]" : ""), W - 40) : [];
     const h = (desc.length + src.length) * 5.1 + 4; ensure(h);
     pdf.setFillColor(252, 240, 230); pdf.rect(M, y, W, h, "F"); pdf.setFillColor.apply(pdf, gold); pdf.rect(M, y, .9, h, "F");
     pdf.setFont("helvetica", "bold"); pdf.setTextColor.apply(pdf, gold); pdf.text(p.date || (d.prazos.length ? "s/ data" : ""), M + 4, y + 5.6);
@@ -1337,8 +1631,16 @@ async function exportPdf() {
     text(actLine(a), 10, { indent: 6 });
   });
   y += 2; h3("Diligências futuras"); (d.dilig.length ? d.dilig : ["—"]).forEach(s => bullet(s));
-  h2("Transcrição Integral");
-  d.transcript.split(/\n+/).filter(x => x.trim()).forEach(p => text(p.trim(), 10.5, { serif: 1, after: 2.5, lh: 1.5 }));
+  h2("Transcrição por Intervenientes");
+  if (d.turns) d.turns.forEach(t => {
+    pdf.setFont("times", "normal"); pdf.setFontSize(10.5);
+    const lines = pdf.splitTextToSize(t.who + ": " + t.text, W - 18), lh = 10.5 * .3528 * 1.5; ensure(lh * Math.min(lines.length, 3) + 2);
+    pdf.setFont("helvetica", "bold"); pdf.setFontSize(8.5); pdf.setTextColor.apply(pdf, gold); pdf.text(fmtTs(t.t), M, y + lh * .75);
+    pdf.setFont("times", "normal"); pdf.setFontSize(10.5); pdf.setTextColor.apply(pdf, ink);
+    lines.forEach((l, k) => { ensure(lh); if (k === 0) { const w0 = pdf.getTextWidth(t.who + ": "); pdf.setFont("times", "bold"); pdf.text(t.who + ": ", M + 18, y + lh * .75); pdf.setFont("times", "normal"); pdf.text(l.slice((t.who + ": ").length), M + 18 + w0, y + lh * .75); } else pdf.text(l, M + 18, y + lh * .75); y += lh; });
+    y += 2;
+  });
+  else d.transcript.split(/\n+/).filter(x => x.trim()).forEach(p => text(p.trim(), 10.5, { serif: 1, after: 2.5, lh: 1.5 }));
   const n = pdf.getNumberOfPages();
   for (let i = 1; i <= n; i++) {
     pdf.setPage(i);
@@ -1376,14 +1678,14 @@ async function paintUsage() {
   $("#usage").textContent = t;
 }
 function openSettings() {
-  $("#sOffice").value = conf.office; $("#sLetter").value = conf.letter; $("#sMailTo").value = conf.mailTo; $("#sKey").value = conf.key;
+  $("#sOffice").value = conf.office; $("#sLawyerName").value = conf.lawyerName || ""; $("#sCedula").value = conf.cedula || ""; $("#sAddress").value = conf.address || ""; $("#sLetter").value = conf.letter; $("#sMailTo").value = conf.mailTo; $("#sKey").value = conf.key;
   $("#sAuto").value = String(prefs.autoLock); $("#sRetain").value = prefs.retain; $("#keyNote").textContent = "";
   paintModels(null); paintSec(); paintUsage(); openSheet(setEl);
 }
 $("#setBtn").addEventListener("click", openSettings);
 $("#setBack").addEventListener("click", () => { closeSheet(setEl); saveConf(); renderBrand(); if (cur) renderDetail(); });
-[["#sOffice", "office"], ["#sLetter", "letter"], ["#sMailTo", "mailTo"]].forEach(([s, k]) => $(s).addEventListener("input", e => { conf[k] = e.target.value; clearTimeout(confT); confT = setTimeout(saveConf, 400); }));
-$("#sKey").addEventListener("input", e => { conf.key = e.target.value.trim(); conf.model = ""; clearTimeout(confT); confT = setTimeout(saveConf, 400); $("#keyNote").textContent = ""; });
+[["#sOffice", "office"], ["#sLawyerName", "lawyerName"], ["#sCedula", "cedula"], ["#sAddress", "address"], ["#sLetter", "letter"], ["#sMailTo", "mailTo"]].forEach(([s, k]) => $(s).addEventListener("input", e => { conf[k] = e.target.value; clearTimeout(confT); confT = setTimeout(saveConf, 400); }));
+$("#sKey").addEventListener("input", e => { conf.key = normKey(e.target.value); conf.model = ""; clearTimeout(confT); confT = setTimeout(saveConf, 400); $("#keyNote").textContent = ""; });
 $("#sModel").addEventListener("change", e => { if (e.target.value) { conf.model = e.target.value; saveConf(); } });
 $("#checkKey").addEventListener("click", async () => {
   const b = $("#checkKey"), note = $("#keyNote");
@@ -1414,7 +1716,7 @@ armed($("#wipe"), "Apagar todos os dados", "Toque de novo para apagar tudo", asy
 });
 
 /* ================= Arranque ================= */
-function renderBrand() { const b = $("#brand"); b.textContent = conf.office || ""; b.hidden = !conf.office; document.title = "CG VERTEX, Minutas"; }
+function renderBrand() { const b = $("#brand"); b.textContent = conf.office || ""; b.hidden = !conf.office; document.title = "CG VERTEX Verbo"; }
 async function afterUnlock() {
   try { const c = await sget("conf", "main"); if (c) conf = Object.assign(conf, c); } catch {}
   RECS.clear();
@@ -1422,6 +1724,8 @@ async function afterUnlock() {
   for (const k of keys) {
     try { const r = await sget("recs", k); if (!r) continue; if (r.status === "busy") { r.status = r.min ? "ready" : "error"; r.error = "A elaboração foi interrompida. Toque em Continuar para retomar."; } RECS.set(r.id, r); } catch {}
   }
+  if (pendingKey) { conf.key = pendingKey; conf.model = ""; pendingKey = ""; await saveConf(); setTimeout(() => toast("Serviço de transcrição configurado.", 3000), 600); }
+  if (conf.key && /^Gsk_/.test(conf.key)) { conf.key = normKey(conf.key); await saveConf(); }
   unlocked = true; renderBrand(); renderList();
   $("#lock").hidden = true; $("#home").setAttribute("aria-hidden", "false");
   endLock(true);
