@@ -232,6 +232,11 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--text2) 50%),
 .vb.on{background:var(--gold);border-color:var(--gold);color:#fff}
 .vbar select{width:auto;min-height:36px;border-radius:18px;font-size:14px;font-weight:600;color:var(--gold);border-color:var(--gold-soft);background-color:transparent;padding:0 30px 0 14px;background-position:calc(100% - 17px) 15px,calc(100% - 12px) 15px}
 .vnote{flex-basis:100%;font-size:13px;color:var(--text2);margin:2px 2px 0}
+
+.trialtag{margin:6px 0 0;font-size:12px;color:var(--text2);letter-spacing:.02em}
+.trialtag b{color:var(--gold);font-weight:600}
+.trialbox{border:1px solid var(--gold);background:linear-gradient(180deg,rgba(228,122,42,.10),rgba(228,122,42,.03))}
+.trialbox .row{margin-top:12px}
 @media (min-width:760px){ .crit .row{grid-template-columns:140px minmax(0,1fr) auto} .doc{padding-top:34px} h1{font-size:40px} }
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 </style>
@@ -242,7 +247,7 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--text2) 50%),
 <main class="home" id="home" aria-hidden="true">
   <div class="wrap">
     <header class="top">
-      <div><p class="brand">CJ-<span>Vertex</span></p><h1>Minutas</h1><p class="office" id="brand" hidden></p></div>
+      <div><p class="brand">CJ-<span>Vertex</span></p><h1>Minutas</h1><p class="office" id="brand" hidden></p><p class="trialtag" id="trialTag" hidden></p></div>
       <div style="display:flex">
         <button class="instbtn" id="instBtn" hidden>Instalar</button>
         <button class="ib" id="lockBtn" aria-label="Bloquear"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></button>
@@ -290,6 +295,7 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--text2) 50%),
       <div class="doc-k">MINUTA DE DILIGÊNCIA</div>
       <h2 class="doc-h" id="dTitle"></h2>
       <div class="meta" id="dMeta"></div>
+      <div id="dState"></div>
       <section class="ident" aria-label="Identificação do processo">
         <div class="ident-h"><span>IDENTIFICAÇÃO</span><button class="link" id="pickBtn" hidden>Escolher processo do CJ-Vertex</button></div>
         <div class="pick" id="pick" hidden>
@@ -299,7 +305,7 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--text2) 50%),
         <div class="igrid" id="dIdent"></div>
       </section>
       <div class="audio" id="dAudio"><audio id="player" controls preload="metadata"></audio><button class="link danger" id="delAudio">Apagar áudio</button></div>
-      <div id="dState"></div>
+      
       <div id="dContent" hidden>
         <div class="vbar" id="vbar"></div>
         <section class="sec"><h2>PRAZOS &amp; DATAS CRÍTICAS</h2><div class="crit" id="dCrit"></div><button class="add" data-add="prazos">Adicionar prazo</button></section>
@@ -379,6 +385,13 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--text2) 50%),
             </div>
             <div class="row" style="flex-wrap:wrap;margin-top:6px"><button class="btn ghost sm" id="syncOffBtn">Desligar este aparelho</button><button class="btn ghost sm" id="syncWipe" style="color:var(--red)">Apagar a cópia na nuvem</button></div>
           </div>
+        </div>
+      </div>
+      <div class="grp"><h2>LICENÇA</h2>
+        <div class="card">
+          <p class="note" id="licNote"></p>
+          <div class="row"><input class="in" id="licCode" autocapitalize="characters" spellcheck="false" placeholder="Código de ativação (ex.: CJ-10-A1B2C3D4E5)"><button class="btn ghost sm" id="licApply">Ativar</button></div>
+          <button class="btn sm" id="licAsk">Pedir mais créditos / Ativar licença</button>
         </div>
       </div>
       <div class="grp"><h2>APLICAÇÃO</h2>
@@ -489,6 +502,56 @@ function armed(btn, label, armedLabel, fn) {
     clearTimeout(t); btn.dataset.arm = ""; btn.textContent = label; fn();
   });
 }
+
+/* ================= Testes gratuitos por dispositivo =================
+   Contador local (localStorage). Serve para controlar o período de teste e saber quem quer continuar;
+   não é uma proteção forte: quem apagar os dados do site recomeça o contador. */
+const TRIAL_FREE = 5;
+const CREATOR_EMAIL = "crmsgomes@mc.pt";
+const LIC_SALT = "cj-vertex-minutas-2026-licenca";
+function deviceId() {
+  let d = lsGet("mx.device", "");
+  if (!d) { const a = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", r = crypto.getRandomValues(new Uint8Array(8)); d = "CJ-" + [...r].map(x => a[x % a.length]).join("").replace(/(.{4})/, "$1-"); lsSet("mx.device", d); }
+  return d;
+}
+const trialState = () => Object.assign({ used: 0, extra: 0, unlimited: false, codes: [] }, lsGet("mx.trial", {}));
+const trialSave = t => lsSet("mx.trial", t);
+function trialLeft() { const t = trialState(); return t.unlimited ? Infinity : Math.max(0, TRIAL_FREE + t.extra - t.used); }
+function trialLabel() {
+  const t = trialState();
+  if (t.unlimited) return "Licença ativa";
+  const total = TRIAL_FREE + t.extra;
+  return (t.extra ? "Créditos restantes: " : "Testes restantes: ") + trialLeft() + "/" + total;
+}
+function trialUse() { const t = trialState(); if (!t.unlimited) { t.used++; trialSave(t); } }
+async function licHash(dev, amt) {
+  const h = await crypto.subtle.digest("SHA-256", enc.encode(dev + "|" + amt + "|" + LIC_SALT));
+  return [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 10).toUpperCase();
+}
+async function licApply(code) {
+  const c = String(code || "").trim().toUpperCase().replace(/\s+/g, "");
+  const m = c.match(/^CJ-(\d{1,4}|ILIM)-([0-9A-F]{10})$/);
+  if (!m) return { ok: false, msg: "Código inválido. Confirme que o copiou por inteiro." };
+  const t = trialState();
+  if (t.codes.includes(c)) return { ok: false, msg: "Este código já foi usado neste dispositivo." };
+  if (await licHash(deviceId(), m[1]) !== m[2]) return { ok: false, msg: "Este código não corresponde a este dispositivo (" + deviceId() + ")." };
+  t.codes.push(c);
+  if (m[1] === "ILIM") t.unlimited = true; else t.extra += +m[1];
+  trialSave(t);
+  return { ok: true, msg: m[1] === "ILIM" ? "Licença ativada sem limite." : "Foram acrescentados " + m[1] + " créditos." };
+}
+function licMailto() {
+  const t = trialState(), who = [conf.lawyerName, conf.cedula ? "Cédula " + conf.cedula : "", conf.office].filter(x => x && String(x).trim()).join(", ");
+  const subject = "CJ-Vertex Minutas: pedido de créditos (dispositivo " + deviceId() + ")";
+  const body = ["Olá,", "", "Gostaria de continuar a usar a CJ-Vertex Minutas depois do período de teste.", "",
+    "Nome / escritório: " + (who || "(por preencher)"),
+    "ID do dispositivo: " + deviceId(),
+    "Transcrições usadas: " + t.used + (t.extra ? " (créditos já ativados: " + t.extra + ")" : ""),
+    "Data do pedido: " + new Intl.DateTimeFormat("pt-PT", { dateStyle: "long", timeStyle: "short" }).format(new Date()), "",
+    "Obrigado."].join("\n");
+  return "mailto:" + CREATOR_EMAIL + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
+}
+function openMail(url) { const a = document.createElement("a"); a.href = url; a.rel = "noopener"; document.body.append(a); a.click(); a.remove(); }
 
 /* Preferências não sensíveis (em claro) */
 const prefs = Object.assign({ autoLock: 1, retain: "keep", zdr: false }, lsGet("mx.prefs", {}));
@@ -1367,6 +1430,9 @@ async function processRec(id, opts) {
   const rec = RECS.get(id);
   if (!rec || busy.has(id)) return;
   if (!conf.key) { if (cur && cur.id === id) renderDetail(); return; }
+  const txDone = rec.tx && rec.tx.plan && rec.tx.done >= rec.tx.plan.length;
+  if (!opts.fromText && !txDone && !rec.counted && trialLeft() <= 0) { rec.trialBlocked = true; renderTrial(); if (cur && cur.id === id) renderDetail(); return; }
+  rec.trialBlocked = false;
   const ctl = new AbortController(); busy.set(id, ctl);
   rec.status = "busy"; rec.error = ""; rec.notice = ""; rec.prog = { label: "A preparar", frac: 0 };
   await saveRec(rec); renderList(); if (cur && cur.id === id) renderDetail();
@@ -1375,6 +1441,7 @@ async function processRec(id, opts) {
     if (opts.fromText) transcript = rec.turns ? turnsText(rec.turns) : rec.transcript;
     else {
       await stepTranscribe(rec, ctl.signal);
+      if (!rec.counted) { rec.counted = true; trialUse(); renderTrial(); await saveRec(rec); }
       if (!rec.tx.segments.length) throw appErr("Não foi detetada fala nesta gravação.", "empty");
       rec.turns = await stepDiarize(rec, ctl.signal); transcript = turnsText(rec.turns); await saveRec(rec);
     }
@@ -1551,6 +1618,15 @@ function renderState() {
   if (r.status === "error") {
     box.innerHTML = '<div class="state"><b>' + esc(r.error || "Ocorreu um erro.") + '</b>O que já foi feito está guardado.<br><button class="btn sm" id="goOn" style="margin-top:12px">Continuar</button></div>';
     $("#goOn").onclick = () => processRec(r.id); return;
+  }
+  if (trialLeft() <= 0 && !r.counted && !(r.tx && r.tx.plan && r.tx.done >= r.tx.plan.length)) {
+    box.innerHTML = '<div class="state trialbox"><b>O período de teste terminou</b>Já usou as ' + TRIAL_FREE + ' transcrições gratuitas deste dispositivo. A gravação está guardada e pode ser elaborada assim que tiver mais créditos.' +
+      '<br><button class="btn" id="askMore" style="margin-top:14px">Pedir Mais Créditos / Ativar Licença</button>' +
+      '<div class="row"><input class="in" id="codeIn" autocapitalize="characters" spellcheck="false" placeholder="Já tenho um código"><button class="btn ghost sm" id="codeGo">Ativar</button></div>' +
+      '<p class="note" style="margin-top:8px">ID deste dispositivo: <b>' + esc(deviceId()) + "</b></p></div>";
+    $("#askMore").onclick = () => openMail(licMailto());
+    $("#codeGo").onclick = async () => { const res = await licApply($("#codeIn").value); toast(res.msg, 3500); if (res.ok) { renderTrial(); renderDetail(); } };
+    return;
   }
   const miss = identMissing(r);
   box.innerHTML = '<div class="state"><b>' + (miss.length ? "Identificação da diligência" : "Pronta a elaborar") + "</b>" +
@@ -1874,7 +1950,7 @@ async function paintUsage() {
 function openSettings() {
   $("#sOffice").value = conf.office; $("#sLawyerName").value = conf.lawyerName || ""; $("#sCedula").value = conf.cedula || ""; $("#sAddress").value = conf.address || ""; $("#sLetter").value = conf.letter; $("#sMailTo").value = conf.mailTo; $("#sKey").value = conf.key;
   $("#sAuto").value = String(prefs.autoLock); $("#sRetain").value = prefs.retain; $("#keyNote").textContent = "";
-  paintModels(null); paintSec(); paintUsage(); paintInstall(); paintSync(); $("#syncPair").hidden = true; openSheet(setEl);
+  paintModels(null); paintSec(); paintUsage(); paintInstall(); renderTrial(); paintSync(); $("#syncPair").hidden = true; openSheet(setEl);
 }
 $("#setBtn").addEventListener("click", openSettings);
 $("#setBack").addEventListener("click", () => { closeSheet(setEl); saveConf(); renderBrand(); if (cur) renderDetail(); });
@@ -2098,6 +2174,17 @@ $("#syncShare").addEventListener("click", async () => {
 armed($("#syncOffBtn"), "Desligar este aparelho", "Confirmar", async () => { await Sync.disable(); paintSync(); toast("Este aparelho deixou de sincronizar. As minutas ficam no aparelho."); });
 armed($("#syncWipe"), "Apagar a cópia na nuvem", "Toque de novo para apagar", async () => { try { await Sync.wipeRemote(); paintSync(); toast("Cópia na nuvem apagada. As minutas ficam nos aparelhos."); } catch (e) { toast(e.message, 4500); } });
 
+/* ================= Testes e licença ================= */
+function renderTrial() {
+  const tag = $("#trialTag"), t = trialState(), left = trialLeft();
+  tag.hidden = false;
+  tag.innerHTML = t.unlimited ? "Licença ativa" : esc(trialLabel().split(":")[0]) + ": <b>" + (left === Infinity ? "" : left) + "</b>/" + (TRIAL_FREE + t.extra);
+  const n = $("#licNote");
+  if (n) n.innerHTML = (t.unlimited ? "Licença ativa sem limite." : esc(trialLabel()) + ". Cada gravação ou áudio carregado conta uma vez, quando é transcrito. Traduzir ou elaborar de novo não gasta créditos.") + "<br>ID deste dispositivo: <b>" + esc(deviceId()) + "</b>";
+}
+$("#licAsk").addEventListener("click", () => openMail(licMailto()));
+$("#licApply").addEventListener("click", async () => { const res = await licApply($("#licCode").value); toast(res.msg, 3500); if (res.ok) { $("#licCode").value = ""; renderTrial(); if (cur) renderDetail(); } });
+
 /* ================= Instalação no telemóvel e no computador ================= */
 let installEvt = null;
 const isInstalled = () => matchMedia("(display-mode: standalone)").matches || matchMedia("(display-mode: window-controls-overlay)").matches || navigator.standalone === true;
@@ -2138,7 +2225,7 @@ async function afterUnlock() {
   }
   if (pendingKey) { conf.key = pendingKey; conf.model = ""; pendingKey = ""; await saveConf(); setTimeout(() => toast("Serviço de transcrição configurado.", 3000), 600); }
   if (conf.key && /^Gsk_/.test(conf.key)) { conf.key = normKey(conf.key); await saveConf(); }
-  unlocked = true; renderBrand(); renderList();
+  unlocked = true; renderBrand(); renderList(); renderTrial();
   $("#lock").hidden = true; $("#home").setAttribute("aria-hidden", "false");
   endLock(true);
   checkRecovery();
