@@ -12,7 +12,7 @@
 <meta name="theme-color" content="#0E1729">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
-<title>CG VERTEX Minutas</title>
+<title>CJ-Vertex Minutas</title>
 <style>
 :root{
   --bg:#0E1729; --panel:#15213A; --panel2:#1C2A47; --panel3:#263759; --line:rgba(255,255,255,.07);
@@ -36,7 +36,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 /* Ecrã principal */
 .home{min-height:100vh;padding-bottom:170px}
 .top{display:flex;align-items:flex-end;justify-content:space-between;padding:22px 0 18px;border-bottom:1px solid var(--line)}
-.brand{font-family:var(--sans);font-weight:700;font-size:12px;letter-spacing:.16em;color:var(--text);margin:0 0 6px}
+.brand{font-family:var(--sans);font-weight:700;font-size:12px;letter-spacing:.06em;color:var(--text);margin:0 0 6px}
 .brand span{color:var(--gold)}
 .office{font-size:13px;color:var(--text2);margin:6px 0 0}
 h1{font-family:var(--serif);font-weight:400;font-size:34px;line-height:1.05;margin:0;letter-spacing:-.01em}
@@ -135,7 +135,7 @@ h1{font-family:var(--serif);font-weight:400;font-size:34px;line-height:1.05;marg
 .sub2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
 .sub2 input{min-height:34px;border-radius:8px;border:1px solid var(--line);background:none;padding:0 10px;font-size:14px;width:100%;outline:none}
 .tr{width:100%;border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:14px;font-size:15px;line-height:1.6;resize:none;outline:none;overflow:hidden;font-family:var(--serif)}
-.foot{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:10px 16px 12px;border-top:1px solid var(--line);background:var(--bg)}
+.foot{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:8px;padding:10px 16px 12px;border-top:1px solid var(--line);background:var(--bg)}
 .foot button{min-height:50px;border-radius:12px;border:1px solid var(--line);font-size:14px;font-weight:500;color:var(--text)}
 .foot button:first-child{background:var(--gold);color:#14213D;border-color:var(--gold);font-weight:600}
 .foot button:disabled{opacity:.35}
@@ -168,7 +168,7 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--text2) 50%),
 .lockin{width:100%;max-width:340px;text-align:center}
 .seal{width:64px;height:64px;margin:0 auto;border-radius:16px;background:#14213D;border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--sans);font-weight:700;color:var(--gold);font-size:24px;line-height:1}
 .seal::after{content:"";width:30px;height:2.5px;background:var(--gold);margin-top:5px}
-.wm{font-weight:700;letter-spacing:.16em;font-size:12px;color:var(--text);margin-top:14px}
+.wm{font-weight:700;letter-spacing:.06em;font-size:12px;color:var(--text);margin-top:14px}
 .wm span{color:var(--gold)}
 .lockin h2{font-family:var(--serif);font-weight:400;font-size:24px;margin:18px 0 6px}
 .lockin p.s{font-size:14px;color:var(--text2);margin:0 0 22px;min-height:20px}
@@ -236,7 +236,7 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--text2) 50%),
 <main class="home" id="home" aria-hidden="true">
   <div class="wrap">
     <header class="top">
-      <div><p class="brand">CG <span>VERTEX</span></p><h1>Minutas</h1><p class="office" id="brand" hidden></p></div>
+      <div><p class="brand">CJ-<span>Vertex</span></p><h1>Minutas</h1><p class="office" id="brand" hidden></p></div>
       <div style="display:flex">
         <button class="instbtn" id="instBtn" hidden>Instalar</button>
         <button class="ib" id="lockBtn" aria-label="Bloquear"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></button>
@@ -313,6 +313,7 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--text2) 50%),
     <button id="mailBtn">Enviar por email</button>
     <button id="docxBtn">Word</button>
     <button id="pdfBtn">PDF</button>
+    <button id="txtBtn">TXT</button>
   </div>
 </section>
 
@@ -392,7 +393,7 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--text2) 50%),
 <!-- Bloqueio -->
 <div class="lock" id="lock">
   <div class="lockin">
-    <div class="seal" id="seal">CG</div><div class="wm">CG <span>VERTEX</span></div>
+    <div class="seal" id="seal">CJ</div><div class="wm">CJ-<span>Vertex</span></div>
     <h2 id="lkTitle">Minutas</h2>
     <p class="s" id="lkSub"></p>
     <div class="dots" id="dots"><span></span><span></span><span></span><span></span><span></span><span></span></div>
@@ -411,7 +412,6 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--text2) 50%),
 <div class="toast" id="toast" role="status"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 (() => {
 "use strict";
@@ -635,8 +635,8 @@ armed($("#forgot"), "Esqueci o PIN", "Toque de novo para apagar todos os dados e
 async function bioCreate() {
   const prfSalt = rnd(32);
   const cred = await navigator.credentials.create({ publicKey: {
-    challenge: rnd(32), rp: { name: "CG VERTEX", id: location.hostname },
-    user: { id: rnd(16), name: "minutas@" + location.hostname, displayName: "CG VERTEX Minutas" },
+    challenge: rnd(32), rp: { name: "CJ-Vertex", id: location.hostname },
+    user: { id: rnd(16), name: "minutas@" + location.hostname, displayName: "CJ-Vertex Minutas" },
     pubKeyCredParams: [{ type: "public-key", alg: -7 }, { type: "public-key", alg: -257 }],
     authenticatorSelection: { authenticatorAttachment: "platform", userVerification: "required", residentKey: "preferred" },
     timeout: 60000, attestation: "none", extensions: { prf: { eval: { first: prfSalt } } }
@@ -918,7 +918,7 @@ requestAnimationFrame(draw);
 const KINDS = ["Reunião com cliente", "Reunião com a parte contrária", "Audiência prévia", "Audiência de julgamento", "Tentativa de conciliação", "Inquirição de testemunhas", "Diligência externa", "Outra"];
 const IDENT = [
   ["lawyer", "Advogado / Cédula", "Ex.: Dra. Ana Lopes, CP n.º 12345L", 1, 1],
-  ["proc", "Processo n.º", "Ex.: Proc. 123/26.0T8CLD", 0, 1], ["court", "Tribunal / Entidade", "Ex.: Juízo Local Cível das Caldas da Rainha", 0, 1],
+  ["proc", "Processo n.º / NIG / NUIPC", "Ex.: Proc. 123/26.0T8CLD ou NUIPC 456/26.1PBCLD", 0, 1], ["court", "Tribunal / Entidade", "Ex.: Juízo Local Cível das Caldas da Rainha", 0, 1],
   ["client", "Cliente", "", 0, 1], ["adv", "Parte contrária", "", 0, 2],
   ["people", "Intervenientes", "Nomes e qualidade, separados por vírgulas", 1, 2],
   ["kind", "Tipo de diligência", "", 0, 0], ["place", "Local", "", 0, 0], ["ref", "Referência interna", "", 0, 0]
@@ -1351,7 +1351,7 @@ function renderDetail() {
   renderState();
   const has = !!r.min;
   $("#dContent").hidden = !has;
-  ["#mailBtn", "#docxBtn", "#pdfBtn"].forEach(s => $(s).disabled = !has || busy.has(r.id));
+  ["#mailBtn", "#docxBtn", "#pdfBtn", "#txtBtn"].forEach(s => $(s).disabled = !has || busy.has(r.id));
   if (has) renderMin();
 }
 function renderIdent() {
@@ -1511,7 +1511,7 @@ const actLine = a => a.text + (a.who ? " (responsável: " + a.who + ")" : "") + 
 const prazoLine = p => (p.date || "s/ data") + " — " + p.desc + (p.time ? " [" + p.time + "]" : "");
 const titleFor = d => [d.client, d.proc].filter(Boolean).join(" — ") || d.subject || "Diligência";
 function identRows(d) {
-  const rows = [["Advogado / Cédula", d.id.lawyer], ["Processo n.º", d.id.proc], ["Tribunal / Entidade", d.id.court], ["Cliente", d.id.client], ["Parte contrária", d.id.adv], ["Intervenientes", d.id.people], ["Tipo de diligência", d.id.kind], ["Local", d.id.place], ["Data", d.longDate + ", " + d.hour], ["Duração", d.dur], ["Referência interna", d.id.ref]];
+  const rows = [["Advogado / Cédula", d.id.lawyer], ["Processo n.º / NIG / NUIPC", d.id.proc], ["Tribunal / Entidade", d.id.court], ["Cliente", d.id.client], ["Parte contrária", d.id.adv], ["Intervenientes", d.id.people], ["Tipo de diligência", d.id.kind], ["Local", d.id.place], ["Data", d.longDate + ", " + d.hour], ["Duração", d.dur], ["Referência interna", d.id.ref]];
   return rows.filter(r => r[1]);
 }
 function safeName(s) { return ("Minuta - " + (s || "diligencia")).replace(/[\\/:*?"<>|]+/g, "").replace(/\s+/g, " ").trim().slice(0, 90); }
@@ -1536,7 +1536,7 @@ function mailBody(d, full) {
 }
 $("#mailBtn").addEventListener("click", async () => {
   if (!cur || !cur.min || !requireIdent()) return;
-  const d = docData(), subject = "Minuta de Reunião - Proc. " + d.proc.replace(/^\s*proc(esso)?\.?\s*(n\.?\s*º?)?\s*/i, "");
+  const d = docData(), subject = "Minuta - " + (/^\s*(nig|nuipc)\b/i.test(d.proc) ? d.proc.trim() : "Proc. " + d.proc.replace(/^\s*proc(esso)?\.?\s*(n\.?\s*º?)?\s*/i, ""));
   let body = mailBody(d, true), url = "mailto:" + encodeURIComponent(conf.mailTo || "") + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
   if (url.length > 15000) { body = mailBody(d, false); url = "mailto:" + encodeURIComponent(conf.mailTo || "") + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body); toast("A transcrição é longa: anexe o Word ou PDF ao email.", 4000); }
   const a = document.createElement("a"); a.href = url; a.rel = "noopener"; document.body.append(a); a.click(); a.remove();
@@ -1603,11 +1603,17 @@ async function exportDocx() {
   zip.file("[Content_Types].xml", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/><Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/></Types>');
   zip.file("_rels/.rels", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/></Relationships>');
   zip.file("word/_rels/document.xml.rels", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/></Relationships>');
-  zip.file("docProps/core.xml", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>' + xe("Minuta - " + titleFor(d)) + "</dc:title><dc:creator>" + xe(d.office || "CG VERTEX") + '</dc:creator><dcterms:created xsi:type="dcterms:W3CDTF">' + new Date(cur.created).toISOString().replace(/\.\d+Z$/, "Z") + "</dcterms:created></cp:coreProperties>");
+  zip.file("docProps/core.xml", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>' + xe("Minuta - " + titleFor(d)) + "</dc:title><dc:creator>" + xe(d.office || "CJ-Vertex") + '</dc:creator><dcterms:created xsi:type="dcterms:W3CDTF">' + new Date(cur.created).toISOString().replace(/\.\d+Z$/, "Z") + "</dcterms:created></cp:coreProperties>");
   zip.file("word/document.xml", doc); zip.file("word/header1.xml", header); zip.file("word/footer1.xml", footer);
   const out = await zip.generateAsync({ type: "arraybuffer", mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
   if (await saveFile(safeName(titleFor(d)) + ".docx", out, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")) afterExport();
 }
+$("#txtBtn").addEventListener("click", async () => {
+  if (!cur || !cur.min || !requireIdent()) return;
+  const d = docData(), body = mailBody(d, true);
+  const txt = d.office && d.letter.length ? body.replace(d.office + "\n", d.office + "\n" + d.letter.join("\n") + "\n\n") : body;
+  if (await saveFile(safeName(titleFor(d)) + ".txt", new TextEncoder().encode("\ufeff" + txt.replace(/\n/g, "\r\n")), "text/plain;charset=utf-8")) afterExport();
+});
 $("#docxBtn").addEventListener("click", () => exportDocx().catch(() => toast("Não foi possível criar o documento Word.")));
 
 /* PDF timbrado */
@@ -1931,7 +1937,7 @@ $("#syncCopy").addEventListener("click", async () => {
   catch { $("#syncCode").value = t; toast("Copie o link no campo de código."); }
 });
 $("#syncShare").addEventListener("click", async () => {
-  try { await navigator.share({ title: "Ligar ao CG VERTEX Minutas", text: "Abra este link no outro aparelho para sincronizar as minutas:", url: pairLink() }); } catch {}
+  try { await navigator.share({ title: "Ligar ao CJ-Vertex Minutas", text: "Abra este link no outro aparelho para sincronizar as minutas:", url: pairLink() }); } catch {}
 });
 armed($("#syncOffBtn"), "Desligar este aparelho", "Confirmar", async () => { await Sync.disable(); paintSync(); toast("Este aparelho deixou de sincronizar. As minutas ficam no aparelho."); });
 armed($("#syncWipe"), "Apagar a cópia na nuvem", "Toque de novo para apagar", async () => { try { await Sync.wipeRemote(); paintSync(); toast("Cópia na nuvem apagada. As minutas ficam nos aparelhos."); } catch (e) { toast(e.message, 4500); } });
@@ -1966,7 +1972,7 @@ $("#instBtn").addEventListener("click", doInstall);
 $("#instBtn2").addEventListener("click", doInstall);
 
 /* ================= Arranque ================= */
-function renderBrand() { const b = $("#brand"); b.textContent = conf.office || ""; b.hidden = !conf.office; document.title = "CG VERTEX Minutas"; }
+function renderBrand() { const b = $("#brand"); b.textContent = conf.office || ""; b.hidden = !conf.office; document.title = "CJ-Vertex Minutas"; }
 async function afterUnlock() {
   try { const c = await sget("conf", "main"); if (c) conf = Object.assign(conf, c); } catch {}
   RECS.clear();
@@ -1990,7 +1996,7 @@ function makeIcon() {
   try {
     const c = document.createElement("canvas"); c.width = c.height = 512; const g = c.getContext("2d");
     g.fillStyle = "#14213D"; g.fillRect(0, 0, 512, 512);
-    g.fillStyle = "#E47A2A"; g.font = "bold 215px Arial, Helvetica, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("CG", 256, 232);
+    g.fillStyle = "#E47A2A"; g.font = "bold 215px Arial, Helvetica, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("CJ", 256, 232);
     g.fillRect(138, 368, 236, 13);
     const url = c.toDataURL("image/png");
     [["apple-touch-icon", url], ["icon", url]].forEach(([rel, href]) => { const l = document.createElement("link"); l.rel = rel; l.href = href; document.head.append(l); });
