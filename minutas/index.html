@@ -262,6 +262,7 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--text2) 50%),
     <div class="rec-l">DILIGÊNCIA EM CURSO</div>
     <div class="clock" id="clock">0:00</div>
     <div class="recinfo" id="recinfo"></div>
+    <div class="recinfo" style="margin-top:6px;opacity:.75">Pode bloquear o ecrã: a gravação continua.</div>
     <canvas class="wave" id="wave"></canvas>
     <div class="rctl">
       <button class="soft" id="pauseBtn">Pausar</button>
@@ -284,7 +285,7 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--text2) 50%),
       <h2 class="doc-h" id="dTitle"></h2>
       <div class="meta" id="dMeta"></div>
       <section class="ident" aria-label="Identificação do processo">
-        <div class="ident-h"><span>IDENTIFICAÇÃO</span><button class="link" id="pickBtn" hidden>Escolher processo do CG VERTEX</button></div>
+        <div class="ident-h"><span>IDENTIFICAÇÃO</span><button class="link" id="pickBtn" hidden>Escolher processo do CJ-Vertex</button></div>
         <div class="pick" id="pick" hidden>
           <input class="in" id="pickQ" placeholder="Procurar por número, cliente ou assunto" autocomplete="off">
           <div class="pick-l" id="pickL"></div>
@@ -724,7 +725,7 @@ function startSegment() {
   let i = 0;
   mr.ondataavailable = e => { if (e.data && e.data.size) persistChunk(seg, i++, e.data); };
   mr.onstop = () => { st.active--; if (st.finishing && st.active <= 0) finishRec(); };
-  mr.onerror = () => { if (st.recording) stopRec("Ocorreu um erro no gravador. O áudio até este momento foi guardado."); };
+  mr.onerror = () => { if (st.recording && !st.finishing) resumeCapture("erro"); };
   mr.start(5000); st.active++; st.curMr = mr; st.mrs.push(mr);
   saveSession();
 }
@@ -745,6 +746,38 @@ function persistChunk(seg, i, blob) {
   }).catch(() => {});
 }
 
+/* Standby e interrupções: se o sistema cortar o microfone (chamada, poupança de bateria),
+   a gravação retoma sozinha num novo bloco, sem perder o que já foi salvaguardado. */
+function watchTrack() {
+  const track = st.stream && st.stream.getAudioTracks()[0];
+  if (track) track.addEventListener("ended", () => { if (st.recording && !st.finishing) resumeCapture("ended"); });
+}
+function captureLost() {
+  const track = st.stream && st.stream.getAudioTracks()[0];
+  return !track || track.readyState === "ended" || !st.curMr || st.curMr.state === "inactive";
+}
+async function resumeCapture(reason) {
+  if (!st.recording || st.finishing || st.resuming) return;
+  st.resuming = true;
+  try {
+    st.mrs.forEach(m => { try { if (m.state !== "inactive") m.stop(); } catch {} });
+    try { st.stream && st.stream.getTracks().forEach(t => t.stop()); } catch {}
+    const s = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 } });
+    if (!st.recording || st.finishing) { s.getTracks().forEach(t => t.stop()); return; }
+    st.stream = s;
+    if (st.ctx) { try { if (st.ctx.state === "suspended") await st.ctx.resume(); const src = st.ctx.createMediaStreamSource(s); st.an = st.ctx.createAnalyser(); st.an.fftSize = 1024; st.an.smoothingTimeConstant = .7; src.connect(st.an); } catch {} }
+    watchTrack(); startSegment(); st.resumes = (st.resumes || 0) + 1;
+    if (document.visibilityState === "visible") toast("O microfone foi interrompido e a gravação retomou sozinha.", 3500);
+  } catch {
+    if (document.visibilityState === "visible") toast("O microfone está ocupado (por exemplo, numa chamada). A gravação retoma assim que ficar livre.", 4000);
+  } finally { st.resuming = false; }
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible" || !st.recording || st.paused) return;
+  if (captureLost()) resumeCapture("visible");
+  if (navigator.wakeLock && !st.wake) navigator.wakeLock.request("screen").then(w => { st.wake = w; w.addEventListener("release", () => { st.wake = null; }); }).catch(() => {});
+});
+if (location.hostname === "localhost") window.__mxTest = { stopMic: () => st.stream.getAudioTracks()[0].stop(), info: () => ({ segs: st.segs.length, resumes: st.resumes || 0, rec: st.recording }) };
 async function startRec() {
   if (!cryptoOk) { toast("A gravação protegida só funciona em https (por exemplo, no Netlify)."); return; }
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) { toast("Este browser não permite gravar áudio."); return; }
@@ -756,11 +789,11 @@ async function startRec() {
   if (st.ctx) { try { const src = st.ctx.createMediaStreamSource(st.stream); st.an = st.ctx.createAnalyser(); st.an.fftSize = 1024; st.an.smoothingTimeConstant = .7; src.connect(st.an); } catch { st.an = null; } }
   Object.assign(st, { sid: uid(), started: Date.now(), acc: 0, segs: [], mrs: [], active: 0, finishing: false, discard: false, mime: pickMime(), levels: [], tick: 0, lastSave: 0, recording: true, paused: false });
   st.startedAt = performance.now();
-  const track = st.stream.getAudioTracks()[0];
-  if (track) track.addEventListener("ended", () => { if (st.recording) stopRec("A gravação foi interrompida pelo sistema. O áudio foi guardado."); });
+  watchTrack();
   startSegment();
   st.timer = setInterval(() => {
     if (!st.recording || st.paused) return;
+    if (captureLost()) { resumeCapture("watchdog"); return; }
     const segStart = st.segs[st.segs.length - 1].start;
     if (elapsed() - segStart >= SEG_SEC) { const old = st.curMr; startSegment(); setTimeout(() => { try { if (old.state !== "inactive") old.stop(); } catch {} }, 1500); }
   }, 1000);
@@ -940,7 +973,7 @@ function identMissing(r) {
   return out;
 }
 const recTitle = r => { const i = ident(r); return [i.client, i.proc].filter(s => s && s.trim()).join(" — ") || (r.min && r.min.assunto) || "Diligência sem identificação"; };
-/* Processos existentes na app CG VERTEX (mesmo endereço, só leitura) */
+/* Processos existentes na app CJ-Vertex (mesmo endereço, só leitura) */
 function vertexCases() {
   try {
     const db = JSON.parse(localStorage.getItem("lexvortex-v2") || "null");
@@ -1037,15 +1070,32 @@ async function ensureModel() {
   if (!list.length) throw appErr("A chave não tem modelos de texto disponíveis.", "nomodel");
   conf.model = list[0]; await saveConf();
 }
-async function chat(prompt, opts) {
-  opts = opts || {};
-  await ensureModel();
-  const body = { model: conf.model, messages: [{ role: "user", content: prompt }], temperature: .2, max_completion_tokens: opts.max || 4096 };
+/* Cada modelo tem o seu limite diário gratuito: quando um se esgota, passa ao seguinte */
+let modelCache = null;
+const exhausted = {};
+const today = () => new Date().toISOString().slice(0, 10);
+async function chatWith(model, prompt, opts) {
+  const body = { model, messages: [{ role: "user", content: prompt }], temperature: .2, max_completion_tokens: opts.max || 4096 };
   if (opts.json) body.response_format = { type: "json_object" };
   const j = await gq("/chat/completions", { method: "POST", signal: opts.signal, headers: Object.assign({ "content-type": "application/json" }, authH()), body: JSON.stringify(body) }, opts.onWait);
   const ch = j.choices && j.choices[0];
   if (ch && ch.finish_reason === "length") throw appErr("Resposta demasiado longa para um só bloco.", "toolarge");
   return String((ch && ch.message && ch.message.content) || "").replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+}
+async function chat(prompt, opts) {
+  opts = opts || {};
+  await ensureModel();
+  for (let tries = 0; tries < 8; tries++) {
+    const order = [conf.model].concat((modelCache || []).filter(m => m !== conf.model && !/llama-3\.1-8b/.test(m)));
+    const model = order.find(m => exhausted[m] !== today());
+    if (!model) {
+      if (!modelCache) { try { modelCache = await listModels(); } catch { modelCache = []; } continue; }
+      break;
+    }
+    try { return await chatWith(model, prompt, opts); }
+    catch (e) { if (e.code === "daily") { exhausted[model] = today(); continue; } throw e; }
+  }
+  throw appErr("Atingiu o limite diário gratuito do serviço. Amanhã pode continuar do ponto onde parou.", "daily");
 }
 async function whisper(blob, name, prompt, signal, onWait) {
   const fd = new FormData();
