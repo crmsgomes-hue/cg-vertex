@@ -1,6 +1,6 @@
 // CG VERTEX Minutas: abre sempre a versão mais recente quando há internet; sem internet usa a última cópia.
 // Não guarda nada dos clientes: só a página e as bibliotecas de exportação.
-const VERSION = 'minutas-v7';
+const VERSION = 'minutas-v8';
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(VERSION).then((c) => c.addAll(CORE)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', (e) => {
