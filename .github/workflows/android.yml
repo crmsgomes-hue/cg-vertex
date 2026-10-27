@@ -1,4 +1,4 @@
-name: App Android CG VERTEX
+name: App Android CJ-Vertex
 
 on:
   push:
@@ -49,8 +49,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cp android-app/android/app/build/outputs/apk/release/app-release.apk CG-VERTEX.apk
-          gh release create "app-${{ github.run_number }}" CG-VERTEX.apk \
-            --title "CG VERTEX para Android — versão 1.0.${{ github.run_number }}" \
-            --notes "Instalar no telemóvel: abra o ficheiro CG-VERTEX.apk e permita a instalação. A app abre sempre a versão mais recente da CG VERTEX: não é preciso reinstalar a cada atualização." \
+          cp android-app/android/app/build/outputs/apk/release/app-release.apk CJ-Vertex.apk
+          gh release create "app-${{ github.run_number }}" CJ-Vertex.apk \
+            --title "CJ-Vertex para Android — versão 1.0.${{ github.run_number }}" \
+            --notes "Instalar no telemóvel: abra o ficheiro CJ-Vertex.apk e permita a instalação. A app abre sempre a versão mais recente da CJ-Vertex: não é preciso reinstalar a cada atualização." \
             --latest
