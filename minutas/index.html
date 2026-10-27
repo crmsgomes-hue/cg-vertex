@@ -390,8 +390,8 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--text2) 50%),
       <div class="grp"><h2>LICENÇA</h2>
         <div class="card">
           <p class="note" id="licNote"></p>
-          <div class="row"><input class="in" id="licCode" autocapitalize="characters" spellcheck="false" placeholder="Código de ativação (ex.: CJ-10-A1B2C3D4E5)"><button class="btn ghost sm" id="licApply">Ativar</button></div>
           <button class="btn sm" id="licAsk">Pedir mais créditos / Ativar licença</button>
+          <button class="btn ghost sm" id="licApply">Atualizar créditos</button>
         </div>
       </div>
       <div class="grp"><h2>APLICAÇÃO</h2>
@@ -503,42 +503,53 @@ function armed(btn, label, armedLabel, fn) {
   });
 }
 
-/* ================= Testes gratuitos por dispositivo =================
-   Contador local (localStorage). Serve para controlar o período de teste e saber quem quer continuar;
-   não é uma proteção forte: quem apagar os dados do site recomeça o contador. */
+/* ================= Testes gratuitos e créditos (controlados no servidor) =================
+   Cada aparelho tem um ID e um token secreto. O contador de transcrições fica no Supabase do CJ-Vertex:
+   apagar os dados do browser não recomeça os testes, porque o servidor reconhece o mesmo ID.
+   O servidor só recebe o ID, o token e o nome/cédula indicados nas Definições; nunca recebe conteúdo das diligências. */
 const TRIAL_FREE = 3;
-const CREATOR_EMAIL = "crmsgomes@mc.pt";
-const LIC_SALT = "cj-vertex-minutas-2026-licenca";
+const CREATOR_EMAIL = "crmsgomes@gmail.com";
+const LIC_URL = "https://mnbtfatkdllhsekmnpzk.supabase.co/functions/v1/minutas-license";
 function deviceId() {
   let d = lsGet("mx.device", "");
   if (!d) { const a = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", r = crypto.getRandomValues(new Uint8Array(8)); d = "CJ-" + [...r].map(x => a[x % a.length]).join("").replace(/(.{4})/, "$1-"); lsSet("mx.device", d); }
   return d;
 }
-const trialState = () => Object.assign({ used: 0, extra: 0, unlimited: false, codes: [] }, lsGet("mx.trial", {}));
-const trialSave = t => lsSet("mx.trial", t);
-function trialLeft() { const t = trialState(); return t.unlimited ? Infinity : Math.max(0, TRIAL_FREE + t.extra - t.used); }
+function licToken() {
+  let t = lsGet("mx.lictoken", "");
+  if (!t) { t = [...crypto.getRandomValues(new Uint8Array(32))].map(x => x.toString(16).padStart(2, "0")).join(""); lsSet("mx.lictoken", t); }
+  return t;
+}
+const licCache = () => lsGet("mx.lic", null);
+function trialState() { const c = licCache(); return c ? c : { used: 0, extra: 0, unlimited: false, free: TRIAL_FREE, total: TRIAL_FREE, left: TRIAL_FREE }; }
+function trialLeft() { const c = trialState(); return c.unlimited ? Infinity : Math.max(0, (c.left == null ? c.total - c.used : c.left)); }
 function trialLabel() {
-  const t = trialState();
-  if (t.unlimited) return "Licença ativa";
-  const total = TRIAL_FREE + t.extra;
-  return (t.extra ? "Créditos restantes: " : "Testes restantes: ") + trialLeft() + "/" + total;
+  const c = trialState();
+  if (c.unlimited) return "Licença ativa";
+  return (c.extra ? "Créditos restantes: " : "Testes restantes: ") + trialLeft() + "/" + c.total;
 }
-function trialUse() { const t = trialState(); if (!t.unlimited) { t.used++; trialSave(t); } }
-async function licHash(dev, amt) {
-  const h = await crypto.subtle.digest("SHA-256", enc.encode(dev + "|" + amt + "|" + LIC_SALT));
-  return [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 10).toUpperCase();
+async function licCall(op) {
+  const label = [conf.lawyerName, conf.cedula ? "Cédula " + conf.cedula : "", conf.office].filter(x => x && String(x).trim()).join(", ");
+  const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 15000);
+  try {
+    const res = await fetch(LIC_URL, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ op, device: deviceId(), token: licToken(), label }), signal: ctl.signal });
+    const j = await res.json().catch(() => ({}));
+    if (j && j.device) lsSet("mx.lic", { used: j.used, extra: j.extra, unlimited: j.unlimited, free: j.free, total: j.total, left: j.left, at: Date.now() });
+    return { status: res.status, j };
+  } finally { clearTimeout(to); }
 }
-async function licApply(code) {
-  const c = String(code || "").trim().toUpperCase().replace(/\s+/g, "");
-  const m = c.match(/^CJ-(\d{1,4}|ILIM)-([0-9A-F]{10})$/);
-  if (!m) return { ok: false, msg: "Código inválido. Confirme que o copiou por inteiro." };
-  const t = trialState();
-  if (t.codes.includes(c)) return { ok: false, msg: "Este código já foi usado neste dispositivo." };
-  if (await licHash(deviceId(), m[1]) !== m[2]) return { ok: false, msg: "Este código não corresponde a este dispositivo (" + deviceId() + ")." };
-  t.codes.push(c);
-  if (m[1] === "ILIM") t.unlimited = true; else t.extra += +m[1];
-  trialSave(t);
-  return { ok: true, msg: m[1] === "ILIM" ? "Licença ativada sem limite." : "Foram acrescentados " + m[1] + " créditos." };
+/* Atualiza os créditos; primeiro envia as transcrições que não puderam ser contadas por falta de rede */
+async function licRefresh() {
+  let pend = lsGet("mx.licpend", 0);
+  while (pend > 0) { const r = await licCall("consume"); if (r.status !== 200 && r.status !== 402) throw new Error("net"); pend--; lsSet("mx.licpend", pend); }
+  const r = await licCall("status");
+  if (r.status === 401) throw new Error("auth");
+  if (r.status !== 200) throw new Error("net");
+  return r.j;
+}
+async function licConsume() {
+  try { const r = await licCall("consume"); if (r.status === 200 || r.status === 402) return; } catch {}
+  lsSet("mx.licpend", lsGet("mx.licpend", 0) + 1);
 }
 function licMailto() {
   const t = trialState(), who = [conf.lawyerName, conf.cedula ? "Cédula " + conf.cedula : "", conf.office].filter(x => x && String(x).trim()).join(", ");
@@ -1431,7 +1442,12 @@ async function processRec(id, opts) {
   if (!rec || busy.has(id)) return;
   if (!conf.key) { if (cur && cur.id === id) renderDetail(); return; }
   const txDone = rec.tx && rec.tx.plan && rec.tx.done >= rec.tx.plan.length;
-  if (!opts.fromText && !txDone && !rec.counted && trialLeft() <= 0) { rec.trialBlocked = true; renderTrial(); if (cur && cur.id === id) renderDetail(); return; }
+  if (!opts.fromText && !txDone && !rec.counted) {
+    try { await licRefresh(); }
+    catch (e) { rec.notice = e && e.message === "auth" ? "Este dispositivo não foi reconhecido pelo servidor de créditos. Contacte a CJ-Vertex." : "Não foi possível confirmar os créditos. Verifique a ligação à internet e tente de novo."; renderTrial(); if (cur && cur.id === id) renderDetail(); return; }
+    renderTrial();
+    if (trialLeft() <= 0) { rec.trialBlocked = true; if (cur && cur.id === id) renderDetail(); return; }
+  }
   rec.trialBlocked = false;
   const ctl = new AbortController(); busy.set(id, ctl);
   rec.status = "busy"; rec.error = ""; rec.notice = ""; rec.prog = { label: "A preparar", frac: 0 };
@@ -1441,7 +1457,7 @@ async function processRec(id, opts) {
     if (opts.fromText) transcript = rec.turns ? turnsText(rec.turns) : rec.transcript;
     else {
       await stepTranscribe(rec, ctl.signal);
-      if (!rec.counted) { rec.counted = true; trialUse(); renderTrial(); await saveRec(rec); }
+      if (!rec.counted) { rec.counted = true; await saveRec(rec); await licConsume(); renderTrial(); }
       if (!rec.tx.segments.length) throw appErr("Não foi detetada fala nesta gravação.", "empty");
       rec.turns = await stepDiarize(rec, ctl.signal); transcript = turnsText(rec.turns); await saveRec(rec);
     }
@@ -1620,12 +1636,12 @@ function renderState() {
     $("#goOn").onclick = () => processRec(r.id); return;
   }
   if (trialLeft() <= 0 && !r.counted && !(r.tx && r.tx.plan && r.tx.done >= r.tx.plan.length)) {
-    box.innerHTML = '<div class="state trialbox"><b>O período de teste terminou</b>Já usou as ' + TRIAL_FREE + ' transcrições gratuitas deste dispositivo. A gravação está guardada e pode ser elaborada assim que tiver mais créditos.' +
+    box.innerHTML = '<div class="state trialbox"><b>O período de teste terminou</b>Já usou as transcrições disponíveis neste dispositivo. A gravação está guardada e pode ser elaborada assim que tiver mais créditos.' +
       '<br><button class="btn" id="askMore" style="margin-top:14px">Pedir Mais Créditos / Ativar Licença</button>' +
-      '<div class="row"><input class="in" id="codeIn" autocapitalize="characters" spellcheck="false" placeholder="Já tenho um código"><button class="btn ghost sm" id="codeGo">Ativar</button></div>' +
-      '<p class="note" style="margin-top:8px">ID deste dispositivo: <b>' + esc(deviceId()) + "</b></p></div>";
+      '<br><button class="btn ghost sm" id="checkMore" style="margin-top:10px">Já recebi créditos: verificar</button>' +
+      '<p class="note" style="margin-top:10px">ID deste dispositivo: <b>' + esc(deviceId()) + "</b></p></div>";
     $("#askMore").onclick = () => openMail(licMailto());
-    $("#codeGo").onclick = async () => { const res = await licApply($("#codeIn").value); toast(res.msg, 3500); if (res.ok) { renderTrial(); renderDetail(); } };
+    $("#checkMore").onclick = async () => { try { await licRefresh(); } catch { toast("Sem ligação ao servidor de créditos. Tente de novo."); return; } renderTrial(); toast(trialLeft() > 0 ? "Créditos disponíveis: " + (trialLeft() === Infinity ? "sem limite" : trialLeft()) : "Ainda não há créditos atribuídos a este dispositivo.", 3500); renderDetail(); };
     return;
   }
   const miss = identMissing(r);
@@ -2174,16 +2190,40 @@ $("#syncShare").addEventListener("click", async () => {
 armed($("#syncOffBtn"), "Desligar este aparelho", "Confirmar", async () => { await Sync.disable(); paintSync(); toast("Este aparelho deixou de sincronizar. As minutas ficam no aparelho."); });
 armed($("#syncWipe"), "Apagar a cópia na nuvem", "Toque de novo para apagar", async () => { try { await Sync.wipeRemote(); paintSync(); toast("Cópia na nuvem apagada. As minutas ficam nos aparelhos."); } catch (e) { toast(e.message, 4500); } });
 
+/* ================= Botão «voltar» do telemóvel =================
+   Mantém sempre uma entrada extra no histórico: o «voltar» fecha o ecrã aberto em vez de sair da app.
+   No ecrã principal, é preciso tocar duas vezes seguidas para sair. */
+let backArmed = 0;
+function backTrap() { try { history.pushState({ mxTrap: Date.now() }, ""); } catch {} }
+window.addEventListener("popstate", () => {
+  const open = id => $(id).classList.contains("open");
+  if (!$("#lock").hidden) {
+    if (["verify", "new1", "new2"].includes(lockMode)) $("#lkCancel").click();
+    backTrap(); return;
+  }
+  if (open("#recSheet")) { backTrap(); toast("A gravação continua. Para terminar, toque no botão central.", 3000); return; }
+  if (!$("#pick").hidden && open("#docSheet")) { $("#pick").hidden = true; backTrap(); return; }
+  if (open("#setSheet")) { $("#setBack").click(); backTrap(); return; }
+  if (open("#docSheet")) { closeDoc(); backTrap(); return; }
+  if (Date.now() - backArmed < 2500) { history.back(); return; }
+  backArmed = Date.now(); backTrap(); toast("Toque outra vez em voltar para sair da app.", 2500);
+});
+
 /* ================= Testes e licença ================= */
 function renderTrial() {
-  const tag = $("#trialTag"), t = trialState(), left = trialLeft();
+  const tag = $("#trialTag"), c = trialState(), left = trialLeft();
   tag.hidden = false;
-  tag.innerHTML = t.unlimited ? "Licença ativa" : esc(trialLabel().split(":")[0]) + ": <b>" + (left === Infinity ? "" : left) + "</b>/" + (TRIAL_FREE + t.extra);
+  tag.innerHTML = c.unlimited ? "Licença ativa" : esc(trialLabel().split(":")[0]) + ": <b>" + left + "</b>/" + c.total;
   const n = $("#licNote");
-  if (n) n.innerHTML = (t.unlimited ? "Licença ativa sem limite." : esc(trialLabel()) + ". Cada gravação ou áudio carregado conta uma vez, quando é transcrito. Traduzir ou elaborar de novo não gasta créditos.") + "<br>ID deste dispositivo: <b>" + esc(deviceId()) + "</b>";
+  if (n) n.innerHTML = (c.unlimited ? "Licença ativa sem limite." : esc(trialLabel()) + ". Cada gravação ou áudio carregado gasta 1 crédito quando é transcrito. Traduzir ou elaborar de novo não gasta.") + "<br>ID deste dispositivo: <b>" + esc(deviceId()) + "</b>";
 }
 $("#licAsk").addEventListener("click", () => openMail(licMailto()));
-$("#licApply").addEventListener("click", async () => { const res = await licApply($("#licCode").value); toast(res.msg, 3500); if (res.ok) { $("#licCode").value = ""; renderTrial(); if (cur) renderDetail(); } });
+$("#licApply").addEventListener("click", async () => {
+  const b = $("#licApply"); b.disabled = true;
+  try { await licRefresh(); renderTrial(); toast("Créditos atualizados: " + trialLabel().split(": ").pop(), 3000); }
+  catch { toast("Sem ligação ao servidor de créditos. Tente de novo."); }
+  finally { b.disabled = false; if (cur) renderDetail(); }
+});
 
 /* ================= Instalação no telemóvel e no computador ================= */
 let installEvt = null;
@@ -2225,7 +2265,7 @@ async function afterUnlock() {
   }
   if (pendingKey) { conf.key = pendingKey; conf.model = ""; pendingKey = ""; await saveConf(); setTimeout(() => toast("Serviço de transcrição configurado.", 3000), 600); }
   if (conf.key && /^Gsk_/.test(conf.key)) { conf.key = normKey(conf.key); await saveConf(); }
-  unlocked = true; renderBrand(); renderList(); renderTrial();
+  unlocked = true; renderBrand(); renderList(); renderTrial(); licRefresh().then(renderTrial).catch(() => {});
   $("#lock").hidden = true; $("#home").setAttribute("aria-hidden", "false");
   endLock(true);
   checkRecovery();
@@ -2246,6 +2286,8 @@ function makeIcon() {
   } catch {}
 }
 (async function init() {
+  try { history.replaceState({ mxBase: 1 }, ""); } catch {}
+  backTrap();
   makeIcon();
   if ("serviceWorker" in navigator && window.isSecureContext && location.protocol === "https:") {
     navigator.serviceWorker.register("sw.js", { scope: "./" }).then(reg => { try { reg.update(); } catch {} }).catch(() => {});
