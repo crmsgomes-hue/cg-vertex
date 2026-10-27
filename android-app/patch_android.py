@@ -12,14 +12,14 @@ add = ''.join(f'\n    <uses-permission android:name="{p}" />' for p in perms if 
 s = re.sub(r'(<manifest[^>]*>)', r'\1' + add, s, count=1)
 open(mf, 'w').write(s)
 
-# Ícones e ecrã inicial com o logótipo CG VERTEX
+# Ícones e ecrã inicial com o logótipo CJ-Vertex
 fp = next((f for f in glob.glob('/usr/share/fonts/**/*.ttf', recursive=True) if re.search(r'(DejaVuSans|LiberationSans)-Bold\.ttf$', f)), None)
 def logo(size, bg=True, scale=1.0):
     im = Image.new('RGBA', (size, size), (20, 33, 61, 255) if bg else (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
     f = ImageFont.truetype(fp, int(size * 0.42 * scale)) if fp else ImageFont.load_default()
-    bb = d.textbbox((0, 0), 'CG', font=f); w, h = bb[2] - bb[0], bb[3] - bb[1]
-    d.text(((size - w) / 2 - bb[0], (size - h) / 2 - bb[1] - size * 0.05 * scale), 'CG', font=f, fill=(228, 122, 42, 255))
+    bb = d.textbbox((0, 0), 'CJ', font=f); w, h = bb[2] - bb[0], bb[3] - bb[1]
+    d.text(((size - w) / 2 - bb[0], (size - h) / 2 - bb[1] - size * 0.05 * scale), 'CJ', font=f, fill=(228, 122, 42, 255))
     m = size * (1 - 0.46 * scale) / 2
     d.rectangle([m, size * (0.5 + 0.25 * scale), size - m, size * (0.5 + 0.275 * scale)], fill=(228, 122, 42, 255))
     return im
