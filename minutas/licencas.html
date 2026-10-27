@@ -4,70 +4,125 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#0B1326">
-<title>CJ-Vertex Minutas: códigos de créditos</title>
+<title>CJ-Vertex Minutas: créditos</title>
 <style>
-:root{--bg:#0B1326;--panel:#14213D;--line:rgba(255,255,255,.08);--text:#E9E6DF;--text2:#9097A3;--gold:#E47A2A;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+:root{--bg:#0B1326;--panel:#14213D;--panel2:#1B2B4F;--line:rgba(255,255,255,.08);--text:#E9E6DF;--text2:#9097A3;--gold:#E47A2A;--ok:#7FC79A;--bad:#E07A6E;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 *,*::before,*::after{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
-main{max-width:520px;margin:0 auto;padding:28px 20px 40px}
+main{max-width:760px;margin:0 auto;padding:26px 16px 48px}
 .brand{font-weight:700;font-size:13px;letter-spacing:.05em}.brand span{color:var(--gold)}
 h1{font-family:Georgia,"Noto Serif",serif;font-weight:400;font-size:28px;margin:6px 0 4px}
-p{color:var(--text2);font-size:14px;margin:0 0 18px}
+h2{font-size:13px;letter-spacing:.12em;color:var(--gold);font-weight:600;margin:24px 0 8px}
+p{color:var(--text2);font-size:14px;margin:0 0 14px}
 .card{background:var(--panel);border-radius:14px;padding:16px}
 label{display:block;font-size:13px;color:var(--text2);margin:0 0 6px}
-input,select{width:100%;min-height:48px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--text);padding:0 12px;font-size:16px;margin-bottom:14px;-webkit-appearance:none;appearance:none}
-button{width:100%;min-height:50px;border:0;border-radius:12px;background:var(--gold);color:#fff;font-size:16px;font-weight:600;cursor:pointer}
-button.ghost{background:none;border:1px solid var(--line);color:var(--text);margin-top:10px}
-.out{margin-top:16px;padding:14px;border:1px dashed var(--gold);border-radius:12px;text-align:center;font-size:22px;font-weight:700;letter-spacing:.04em;color:var(--gold);word-break:break-all;min-height:58px}
-.msg{font-size:13px;color:var(--text2);margin-top:10px;min-height:18px;text-align:center}
+input{width:100%;min-height:48px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--text);padding:0 12px;font-size:16px;margin-bottom:12px}
+button{min-height:48px;border:0;border-radius:12px;background:var(--gold);color:#fff;font-size:15px;font-weight:600;cursor:pointer;padding:0 16px}
+button.ghost{background:none;border:1px solid var(--line);color:var(--text)}
+button:disabled{opacity:.4}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row>*{flex:1 1 auto}
+.msg{font-size:14px;margin-top:10px;min-height:20px}
+.msg.ok{color:var(--ok)}.msg.bad{color:var(--bad)}
+.tw{overflow-x:auto;border-radius:12px;border:1px solid var(--line)}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:560px}
+th{background:var(--gold);color:#fff;text-align:left;font-weight:600;padding:10px;white-space:nowrap}
+td{padding:10px;border-top:1px solid var(--line);vertical-align:top}
+tr.sel td{background:var(--panel2)}
+tbody tr{cursor:pointer}
+.pos{color:var(--ok);font-weight:600}.neg{color:var(--bad);font-weight:600}
+.dev{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
+.small{font-size:12px;color:var(--text2)}
 </style>
 </head>
 <body>
 <main>
   <div class="brand">CJ-<span>Vertex</span></div>
-  <h1>Códigos de créditos</h1>
-  <p>Cole o ID do dispositivo que vem no email de pedido, escolha os créditos e envie o código à pessoa. O código só funciona nesse dispositivo e só pode ser usado uma vez.</p>
-  <div class="card">
-    <label for="dev">ID do dispositivo</label>
-    <input id="dev" autocapitalize="characters" spellcheck="false" placeholder="Ex.: CJ-AB7K-29QX">
-    <label for="amt">Créditos a atribuir</label>
-    <select id="amt"><option value="5">5 transcrições</option><option value="10" selected>10 transcrições</option><option value="20">20 transcrições</option><option value="50">50 transcrições</option><option value="100">100 transcrições</option><option value="ILIM">Sem limite (licença)</option></select>
-    <button id="gen">Gerar código</button>
-    <div class="out" id="out"></div>
-    <button class="ghost" id="copy" hidden>Copiar código</button>
-    <button class="ghost" id="mail" hidden>Responder por email</button>
-    <div class="msg" id="msg"></div>
-  </div>
+  <h1>Créditos das Minutas</h1>
+  <p>Cada aparelho tem 3 testes gratuitos. Aqui vê quem usou a app e atribui mais créditos. A pessoa não precisa de fazer nada: os créditos aparecem na app dela da próxima vez que a abrir.</p>
+
+  <section id="login" class="card">
+    <label for="pw">Palavra-passe de administração</label>
+    <input id="pw" type="password" autocomplete="current-password">
+    <button id="enter" style="width:100%">Entrar</button>
+    <div class="msg" id="lmsg"></div>
+  </section>
+
+  <section id="admin" hidden>
+    <h2>ATRIBUIR CRÉDITOS</h2>
+    <div class="card">
+      <label for="dev">ID do dispositivo (vem no email de pedido, ou toque numa linha da tabela)</label>
+      <input id="dev" autocapitalize="characters" spellcheck="false" placeholder="CJ-XXXX-XXXX">
+      <div class="row">
+        <button data-c="3">+3</button><button data-c="10">+10</button><button data-c="50">+50</button>
+        <button class="ghost" id="unl">Sem limite</button><button class="ghost" id="unlOff">Retirar licença</button>
+      </div>
+      <div class="msg" id="gmsg"></div>
+      <button class="ghost" id="reply" hidden style="width:100%;margin-top:6px">Avisar a pessoa por email</button>
+    </div>
+    <h2>DISPOSITIVOS</h2>
+    <div class="row" style="margin-bottom:10px"><button class="ghost" id="reload">Atualizar lista</button><button class="ghost" id="out">Sair</button></div>
+    <div class="tw"><table><thead><tr><th>Dispositivo</th><th>Nome / escritório</th><th>Usadas</th><th>Restantes</th><th>Último uso</th></tr></thead><tbody id="list"></tbody></table></div>
+    <p class="small" id="count" style="margin-top:8px"></p>
+  </section>
 </main>
 <script>
 (() => {
   "use strict";
-  const SALT = "cj-vertex-minutas-2026-licenca";
-  const $ = s => document.querySelector(s);
-  async function hash(dev, amt) {
-    const h = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(dev + "|" + amt + "|" + SALT));
-    return [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 10).toUpperCase();
+  const URL_ = "https://mnbtfatkdllhsekmnpzk.supabase.co/functions/v1/minutas-license";
+  const $ = s => document.querySelector(s), esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  let pass = "", lastGrant = null;
+  try { pass = sessionStorage.getItem("cj.admin") || ""; } catch {}
+  async function call(body) {
+    const r = await fetch(URL_, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(Object.assign({ admin: pass }, body)) });
+    const j = await r.json().catch(() => ({})); return { s: r.status, j };
   }
-  let code = "";
-  $("#gen").addEventListener("click", async () => {
-    const dev = $("#dev").value.trim().toUpperCase().replace(/\s+/g, "");
-    if (!/^CJ-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(dev)) { $("#msg").textContent = "O ID deve ter o formato CJ-XXXX-XXXX."; return; }
-    if (!window.crypto || !crypto.subtle) { $("#msg").textContent = "Abra esta página em https."; return; }
-    const amt = $("#amt").value;
-    code = "CJ-" + amt + "-" + await hash(dev, amt);
-    $("#out").textContent = code; $("#copy").hidden = false; $("#mail").hidden = false;
-    $("#msg").textContent = "Código para o dispositivo " + dev + ".";
+  const fmt = t => t ? new Intl.DateTimeFormat("pt-PT", { dateStyle: "short", timeStyle: "short" }).format(new Date(t)) : "";
+  async function load() {
+    const { s, j } = await call({ op: "admin_list" });
+    if (s === 401) { logout("Palavra-passe incorreta."); return false; }
+    if (s !== 200) { $("#gmsg").className = "msg bad"; $("#gmsg").textContent = "Não foi possível obter a lista."; return true; }
+    const rows = j.devices || [];
+    $("#list").innerHTML = rows.length ? rows.map(d => '<tr data-d="' + esc(d.device) + '"><td class="dev">' + esc(d.device) + "</td><td>" + (esc(d.label) || '<span class="small">por identificar</span>') + "</td><td>" + d.used + "</td><td>" + (d.unlimited ? '<span class="pos">sem limite</span>' : '<span class="' + (d.left > 0 ? "pos" : "neg") + '">' + d.left + "</span> / " + d.total) + '</td><td class="small">' + esc(fmt(d.last_seen)) + "</td></tr>").join("") : '<tr><td colspan="5" class="small">Ainda nenhum dispositivo usou a app.</td></tr>';
+    $("#count").textContent = rows.length + (rows.length === 1 ? " dispositivo" : " dispositivos") + ", " + rows.reduce((a, d) => a + d.used, 0) + " transcrições no total.";
+    return true;
+  }
+  function logout(msg) { pass = ""; try { sessionStorage.removeItem("cj.admin"); } catch {} $("#admin").hidden = true; $("#login").hidden = false; $("#lmsg").className = "msg bad"; $("#lmsg").textContent = msg || ""; }
+  async function enter() {
+    pass = $("#pw").value.trim(); if (!pass) return;
+    $("#enter").disabled = true; $("#lmsg").className = "msg"; $("#lmsg").textContent = "A verificar…";
+    try { $("#login").hidden = true; $("#admin").hidden = false; if (await load()) { try { sessionStorage.setItem("cj.admin", pass); } catch {} $("#pw").value = ""; } }
+    catch { logout("Sem ligação ao servidor."); }
+    finally { $("#enter").disabled = false; }
+  }
+  async function grant(body, label) {
+    const dev = $("#dev").value.trim().toUpperCase();
+    if (!/^CJ-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(dev)) { $("#gmsg").className = "msg bad"; $("#gmsg").textContent = "Indique um ID no formato CJ-XXXX-XXXX."; return; }
+    $("#gmsg").className = "msg"; $("#gmsg").textContent = "A atribuir…";
+    const { s, j } = await call(Object.assign({ op: "admin_grant", device: dev }, body));
+    if (s === 401) { logout("Sessão expirada. Entre de novo."); return; }
+    if (s === 404) { $("#gmsg").className = "msg bad"; $("#gmsg").textContent = "Este dispositivo ainda não abriu a app ligado à internet."; return; }
+    if (s !== 200) { $("#gmsg").className = "msg bad"; $("#gmsg").textContent = "Não foi possível atribuir. Tente de novo."; return; }
+    lastGrant = { dev, label, j };
+    $("#gmsg").className = "msg ok"; $("#gmsg").textContent = label + " para " + dev + ". " + (j.unlimited ? "Fica sem limite." : "Ficam " + j.left + " disponíveis.");
+    $("#reply").hidden = false; load();
+  }
+  $("#enter").addEventListener("click", enter);
+  $("#pw").addEventListener("keydown", e => { if (e.key === "Enter") enter(); });
+  document.querySelectorAll("[data-c]").forEach(b => b.addEventListener("click", () => grant({ credits: +b.dataset.c }, "+" + b.dataset.c + " créditos atribuídos")));
+  $("#unl").addEventListener("click", () => grant({ unlimited: true }, "Licença sem limite ativada"));
+  $("#unlOff").addEventListener("click", () => grant({ unlimited: false }, "Licença retirada"));
+  $("#reload").addEventListener("click", load);
+  $("#out").addEventListener("click", () => logout(""));
+  $("#list").addEventListener("click", e => { const tr = e.target.closest("tr[data-d]"); if (!tr) return; $("#dev").value = tr.dataset.d; document.querySelectorAll("#list tr").forEach(x => x.classList.toggle("sel", x === tr)); window.scrollTo({ top: 0, behavior: "smooth" }); });
+  $("#reply").addEventListener("click", () => {
+    if (!lastGrant) return;
+    const what = lastGrant.j.unlimited ? "uma licença sem limite" : "mais créditos (ficam " + lastGrant.j.left + " disponíveis)";
+    location.href = "mailto:?subject=" + encodeURIComponent("CJ-Vertex Minutas: créditos atribuídos") + "&body=" + encodeURIComponent("Olá,\n\nJá atribuí " + what + " ao seu dispositivo " + lastGrant.dev + ".\n\nBasta abrir a CJ-Vertex Minutas com internet: os créditos aparecem sozinhos. Se a app já estiver aberta, toque em «Já recebi créditos: verificar».\n\nCumprimentos.");
   });
-  $("#copy").addEventListener("click", async () => {
-    try { await navigator.clipboard.writeText(code); $("#msg").textContent = "Código copiado."; }
-    catch { const t = document.createElement("textarea"); t.value = code; document.body.append(t); t.select(); document.execCommand("copy"); t.remove(); $("#msg").textContent = "Código copiado."; }
-  });
-  $("#mail").addEventListener("click", () => {
-    const amt = $("#amt").value, what = amt === "ILIM" ? "uma licença sem limite" : amt + " transcrições";
-    const body = "Olá,\n\nSegue o código de ativação da CJ-Vertex Minutas, com " + what + ":\n\n" + code + "\n\nPara ativar: abra a app, toque em Definições, depois em Licença, cole o código e toque em Ativar.\n\nCumprimentos.";
-    location.href = "mailto:?subject=" + encodeURIComponent("CJ-Vertex Minutas: código de ativação") + "&body=" + encodeURIComponent(body);
-  });
+  if (pass) { $("#login").hidden = true; $("#admin").hidden = false; load().catch(() => logout("Sem ligação ao servidor.")); }
 })();
 </script>
 </body>
