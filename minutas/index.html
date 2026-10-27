@@ -1,0 +1,1457 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="CG VERTEX">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="../icon-192.png">
+<meta name="theme-color" content="#0E1729">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<title>CG VERTEX, Minutas</title>
+<style>
+:root{
+  --bg:#0E1729; --panel:#15213A; --panel2:#1C2A47; --panel3:#263759; --line:rgba(255,255,255,.07);
+  --text:#E9E6DF; --text2:#9097A3; --text3:#646B78; --gold:#E47A2A; --gold2:#F0995A; --gold-soft:rgba(228,122,42,.13);
+  --red:#C9605A; --ok:#7FA88A;
+  --serif:"Iowan Old Style","Palatino Linotype","Book Antiqua",Palatino,Georgia,"Noto Serif",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  color-scheme:dark; box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 var(--sans);-webkit-font-smoothing:antialiased;overscroll-behavior-y:none}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none;padding:0;touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:1.5px solid var(--gold);outline-offset:2px}
+[hidden]{display:none!important}
+::selection{background:var(--gold-soft)}
+.wrap{max-width:720px;margin:0 auto;padding:0 20px}
+
+/* Ecrã principal */
+.home{min-height:100vh;padding-bottom:170px}
+.top{display:flex;align-items:flex-end;justify-content:space-between;padding:22px 0 18px;border-bottom:1px solid var(--line)}
+.brand{font-family:var(--sans);font-weight:700;font-size:12px;letter-spacing:.16em;color:var(--text);margin:0 0 6px}
+.brand span{color:var(--gold)}
+.office{font-size:13px;color:var(--text2);margin:6px 0 0}
+h1{font-family:var(--serif);font-weight:400;font-size:34px;line-height:1.05;margin:0;letter-spacing:-.01em}
+.ib{width:44px;height:44px;border-radius:22px;display:grid;place-items:center;color:var(--text2)}
+.ib:active{background:var(--panel)}
+.ib svg{width:22px;height:22px}
+.banner{margin-top:16px;border:1px solid var(--gold-soft);background:var(--panel);border-radius:14px;padding:14px 16px;font-size:14px;color:var(--text2)}
+.banner b{color:var(--text);font-weight:600;display:block;margin-bottom:2px}
+.banner .acts{display:flex;gap:10px;margin-top:12px}
+.list{margin-top:10px}
+.item{display:flex;gap:14px;align-items:center;width:100%;text-align:left;padding:16px 2px;border-bottom:1px solid var(--line);min-height:76px}
+.item:active{background:rgba(255,255,255,.02)}
+.item .main{flex:1;min-width:0}
+.item .t{font-family:var(--serif);font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .m{font-size:13px;color:var(--text2);margin-top:3px}
+.item .r{text-align:right;font-size:13px;color:var(--text2);font-variant-numeric:tabular-nums;flex:none}
+.badge{display:inline-block;margin-top:4px;color:var(--gold);font-size:12px;font-weight:600}
+.st{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--text3);margin-right:7px;vertical-align:2px}
+.st.ready{background:var(--ok)} .st.busy{background:var(--gold);animation:pulse 1.4s infinite} .st.error{background:var(--red)}
+@keyframes pulse{50%{opacity:.25}}
+.empty{padding:60px 10px;text-align:center;color:var(--text2);font-size:15px}
+.empty .serif{font-family:var(--serif);font-size:22px;color:var(--text);display:block;margin-bottom:6px}
+.dock{position:fixed;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;gap:10px;padding:18px 0 calc(22px + env(safe-area-inset-bottom,0px));background:linear-gradient(to bottom,rgba(14,23,41,0),var(--bg) 40%);z-index:5}
+.recmain{width:84px;height:84px;border-radius:50%;border:1.5px solid var(--gold);display:grid;place-items:center;background:var(--panel);transition:transform .15s}
+.recmain:active{transform:scale(.95)}
+.recmain span{width:26px;height:26px;border-radius:50%;background:var(--red)}
+.dock small{font-size:13px;color:var(--text2);letter-spacing:.02em}
+
+/* Folhas em ecrã inteiro */
+.sheet{position:fixed;inset:0;z-index:20;background:var(--bg);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);transform:translateY(100%);transition:transform .42s cubic-bezier(.32,.72,0,1);visibility:hidden}
+.sheet.side{transform:translateX(100%)}
+.sheet.open{transform:none;visibility:visible}
+.bar{display:flex;align-items:center;justify-content:space-between;min-height:54px;padding:4px 10px;border-bottom:1px solid var(--line)}
+.bar button{min-height:44px;padding:0 10px;color:var(--gold2);font-size:16px}
+.bar .ttl{font-size:15px;color:var(--text2)}
+.bar .danger{color:var(--red);font-size:15px}
+.back::before{content:"‹";font-size:28px;line-height:0;margin-right:4px;position:relative;top:3px}
+.body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+/* Gravação */
+.recview{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.rec-l{font-family:var(--serif);font-size:15px;letter-spacing:.12em;color:var(--gold)}
+.clock{font-size:64px;font-weight:200;font-variant-numeric:tabular-nums;letter-spacing:-.02em;margin:10px 0 2px}
+.recinfo{font-size:13px;color:var(--text2);min-height:20px}
+.recinfo .ok{color:var(--ok)}
+.wave{width:100%;max-width:560px;height:72px;margin:34px 0 46px;display:block}
+.rctl{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;width:100%;max-width:400px}
+.soft{justify-self:center;min-width:96px;min-height:50px;border-radius:25px;border:1px solid var(--line);color:var(--text);font-size:15px;padding:0 16px}
+.soft:active{background:var(--panel)}
+.soft.warn{color:var(--red)}
+.stopbtn{width:84px;height:84px;border-radius:50%;border:1.5px solid var(--gold);display:grid;place-items:center;background:var(--panel)}
+.stopbtn span{width:26px;height:26px;border-radius:6px;background:var(--red)}
+.stopbtn:active{transform:scale(.95)}
+
+/* Minuta */
+.doc{max-width:720px;margin:0 auto;padding:22px 20px 40px}
+.doc-k{font-family:var(--serif);font-size:12px;letter-spacing:.16em;color:var(--gold)}
+.doc-h{display:block;width:100%;border:0;background:none;outline:none;font-family:var(--serif);font-size:28px;line-height:1.2;padding:6px 0 4px;border-bottom:1px solid var(--line)}
+.doc-h::placeholder{color:var(--text3)}
+.meta{display:flex;flex-wrap:wrap;gap:4px 18px;margin:10px 0 4px;font-size:14px;color:var(--text2)}
+.meta b{color:var(--text);font-weight:500}
+.audio{margin:14px 0 4px;display:flex;align-items:center;gap:10px}
+.audio audio{flex:1;height:40px;min-width:0}
+.link{color:var(--gold2);font-size:14px;min-height:40px;padding:0 4px}
+.link.danger{color:var(--red)}
+.state{margin:18px 0 4px;border:1px solid var(--line);border-radius:14px;padding:16px;font-size:14px;color:var(--text2);background:var(--panel)}
+.state b{display:block;color:var(--text);font-weight:600;font-size:15px;margin-bottom:4px}
+.prog{height:3px;background:var(--panel3);border-radius:2px;overflow:hidden;margin:12px 0 8px}
+.prog i{display:block;height:100%;background:var(--gold);transition:width .5s}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:0 20px;border-radius:12px;background:var(--gold);color:#14213D;font-weight:600;font-size:15px;margin-top:12px}
+.btn:active{opacity:.85}
+.btn.ghost{background:none;border:1px solid var(--line);color:var(--text)}
+.btn.sm{min-height:40px;padding:0 14px;font-size:14px;margin-top:0}
+.btn:disabled{opacity:.4}
+.sec{margin-top:28px}
+.sec>h2{font-family:var(--serif);font-weight:400;font-size:13px;letter-spacing:.16em;color:var(--gold);margin:0 0 10px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.sec h3{font-size:13px;color:var(--text2);font-weight:600;margin:16px 0 4px}
+.crit{background:var(--gold-soft);border-left:2px solid var(--gold);border-radius:0 12px 12px 0;padding:6px 14px 8px}
+.crit .row{display:grid;grid-template-columns:100px minmax(0,1fr) auto;gap:12px;align-items:start;padding:10px 0;border-bottom:1px solid rgba(228,122,42,.18)}
+.crit .row:last-of-type{border-bottom:0}
+.crit .d{font-variant-numeric:tabular-nums;font-weight:600;color:var(--gold2);min-width:0;width:100%}
+.crit .o{font-size:13px;color:var(--text2);margin-top:2px}
+.none{color:var(--text3);font-size:14px;padding:8px 0}
+.li{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line)}
+.li:last-of-type{border-bottom:0}
+.li>i{font-style:normal;color:var(--gold);padding-top:1px;width:12px;flex:none}
+.li .b{flex:1;min-width:0}
+.ed{width:100%;border:0;background:none;resize:none;outline:none;font-size:16px;line-height:1.5;padding:0;overflow:hidden;display:block}
+.in2{width:100%;border:0;background:none;outline:none;font-size:16px;padding:0}
+.x{flex:none;width:34px;height:34px;margin-top:-6px;color:var(--text3);font-size:20px;border-radius:50%}
+.add{color:var(--gold2);font-size:14px;min-height:40px;margin-top:4px}
+.ck{flex:none;width:24px;height:24px;border-radius:6px;border:1.5px solid var(--text3);display:grid;place-items:center;margin-top:1px}
+.ck.on{background:var(--gold);border-color:var(--gold)}
+.ck.on::after{content:"";width:9px;height:5px;border-left:2px solid #14213D;border-bottom:2px solid #14213D;transform:rotate(-45deg) translate(1px,-1px)}
+.li.done .ed{color:var(--text3);text-decoration:line-through}
+.sub2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.sub2 input{min-height:34px;border-radius:8px;border:1px solid var(--line);background:none;padding:0 10px;font-size:14px;width:100%;outline:none}
+.tr{width:100%;border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:14px;font-size:15px;line-height:1.6;resize:none;outline:none;overflow:hidden;font-family:var(--serif)}
+.foot{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:10px 16px 12px;border-top:1px solid var(--line);background:var(--bg)}
+.foot button{min-height:50px;border-radius:12px;border:1px solid var(--line);font-size:14px;font-weight:500;color:var(--text)}
+.foot button:first-child{background:var(--gold);color:#14213D;border-color:var(--gold);font-weight:600}
+.foot button:disabled{opacity:.35}
+.foot button:active{opacity:.8}
+
+/* Definições */
+.set{max-width:720px;margin:0 auto;padding:10px 20px 40px}
+.grp{margin-top:26px}
+.grp>h2{font-family:var(--serif);font-weight:400;font-size:13px;letter-spacing:.16em;color:var(--gold);margin:0 0 8px}
+.card{background:var(--panel);border-radius:14px;padding:14px}
+.card>*+*{margin-top:12px}
+.fld>span{display:block;font-size:13px;color:var(--text2);margin:0 0 5px 2px}
+.in,.ta,select{width:100%;min-height:46px;border-radius:10px;border:1px solid var(--line);background:var(--bg);padding:0 12px;font-size:16px;outline:none;-webkit-appearance:none;appearance:none}
+.ta{padding:11px 12px;min-height:84px;resize:vertical;line-height:1.4}
+select{background-image:linear-gradient(45deg,transparent 50%,var(--text2) 50%),linear-gradient(135deg,var(--text2) 50%,transparent 50%);background-position:calc(100% - 18px) 20px,calc(100% - 13px) 20px;background-size:5px 5px;background-repeat:no-repeat;padding-right:30px}
+.row{display:flex;gap:8px}
+.row .in{flex:1}
+.tg{display:flex;justify-content:space-between;align-items:center;min-height:46px;gap:12px}
+.sw{width:51px;height:31px;border-radius:16px;background:var(--panel3);position:relative;transition:background .25s;flex:none}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#E9E6DF;transition:transform .25s}
+.sw[aria-checked="true"]{background:var(--gold)}
+.sw[aria-checked="true"]::after{transform:translateX(20px)}
+.sw:disabled{opacity:.35}
+.note{font-size:13px;color:var(--text2);line-height:1.5;margin:0}
+.note a{color:var(--gold2)}
+.note.warn{color:#D9B38C}
+
+/* Bloqueio */
+.lock{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:calc(20px + env(safe-area-inset-top,0px)) 20px calc(20px + env(safe-area-inset-bottom,0px))}
+.lockin{width:100%;max-width:340px;text-align:center}
+.seal{width:64px;height:64px;margin:0 auto;border-radius:16px;background:#14213D;border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--sans);font-weight:700;color:var(--gold);font-size:24px;line-height:1}
+.seal::after{content:"";width:30px;height:2.5px;background:var(--gold);margin-top:5px}
+.wm{font-weight:700;letter-spacing:.16em;font-size:12px;color:var(--text);margin-top:14px}
+.wm span{color:var(--gold)}
+.lockin h2{font-family:var(--serif);font-weight:400;font-size:24px;margin:18px 0 6px}
+.lockin p.s{font-size:14px;color:var(--text2);margin:0 0 22px;min-height:20px}
+.dots{display:flex;justify-content:center;gap:16px;margin-bottom:10px}
+.dots span{width:12px;height:12px;border-radius:50%;border:1.5px solid var(--gold);transition:background .15s}
+.dots span.f{background:var(--gold)}
+.dots.shake{animation:shake .4s}
+@keyframes shake{20%,60%{transform:translateX(-10px)}40%,80%{transform:translateX(10px)}}
+.lkmsg{min-height:22px;font-size:14px;color:var(--red);margin:0 0 12px}
+.pad{display:grid;grid-template-columns:repeat(3,76px);gap:16px 24px;justify-content:center}
+.pad button{width:76px;height:76px;border-radius:50%;border:1px solid var(--line);font-size:28px;font-weight:300}
+.pad button:active{background:var(--panel2)}
+.pad .fn{border:0;font-size:14px;color:var(--gold2);font-weight:500}
+.forgot{margin-top:22px;min-height:40px;font-size:14px;color:var(--text3)}
+.toast{position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom,0px));transform:translate(-50%,16px);opacity:0;background:var(--panel3);color:var(--text);padding:12px 18px;border-radius:12px;font-size:14px;z-index:90;pointer-events:none;transition:opacity .25s,transform .25s;max-width:88vw;text-align:center;border:1px solid var(--line)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+@media (min-width:760px){ .crit .row{grid-template-columns:140px minmax(0,1fr) auto} .doc{padding-top:34px} h1{font-size:40px} }
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<!-- Ecrã principal -->
+<main class="home" id="home" aria-hidden="true">
+  <div class="wrap">
+    <header class="top">
+      <div><p class="brand">CG <span>VERTEX</span></p><h1>Minutas</h1><p class="office" id="brand" hidden></p></div>
+      <div style="display:flex">
+        <button class="ib" id="lockBtn" aria-label="Bloquear"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></button>
+        <button class="ib" id="setBtn" aria-label="Definições"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button>
+      </div>
+    </header>
+    <div id="banners"></div>
+    <div class="list" id="list"></div>
+  </div>
+  <div class="dock">
+    <button class="recmain" id="startBtn" aria-label="Iniciar gravação"><span></span></button>
+    <small>Iniciar diligência</small>
+  </div>
+</main>
+
+<!-- Gravação -->
+<section class="sheet" id="recSheet" aria-hidden="true">
+  <div class="recview">
+    <div class="rec-l">DILIGÊNCIA EM CURSO</div>
+    <div class="clock" id="clock">0:00</div>
+    <div class="recinfo" id="recinfo"></div>
+    <canvas class="wave" id="wave"></canvas>
+    <div class="rctl">
+      <button class="soft" id="pauseBtn">Pausar</button>
+      <button class="stopbtn" id="stopBtn" aria-label="Terminar gravação"><span></span></button>
+      <button class="soft warn" id="discardBtn">Descartar</button>
+    </div>
+  </div>
+</section>
+
+<!-- Minuta -->
+<section class="sheet side" id="docSheet" aria-hidden="true">
+  <div class="bar">
+    <button class="back" id="docBack">Minutas</button>
+    <span class="ttl" id="docStatus"></span>
+    <button class="danger" id="docDel">Eliminar</button>
+  </div>
+  <div class="body" id="docBody">
+    <article class="doc">
+      <div class="doc-k">MINUTA DE DILIGÊNCIA</div>
+      <input class="doc-h" id="dClient" placeholder="Cliente / Processo" aria-label="Cliente ou processo" autocomplete="off">
+      <div class="meta" id="dMeta"></div>
+      <div class="audio" id="dAudio"><audio id="player" controls preload="metadata"></audio><button class="link danger" id="delAudio">Apagar áudio</button></div>
+      <div id="dState"></div>
+      <div id="dContent" hidden>
+        <section class="sec"><h2>PRAZOS &amp; DATAS CRÍTICAS</h2><div class="crit" id="dCrit"></div><button class="add" data-add="prazos">Adicionar prazo</button></section>
+        <section class="sec"><h2>SUMÁRIO EXECUTIVO</h2>
+          <h3>Factos relevantes</h3><div id="dFactos"></div><button class="add" data-add="factos">Adicionar facto</button>
+          <h3>Posicionamento</h3><div id="dPos"></div><button class="add" data-add="posicionamento">Adicionar ponto</button>
+        </section>
+        <section class="sec"><h2>PLANO DE AÇÃO</h2>
+          <h3>Tarefas</h3><div id="dAcoes"></div><button class="add" data-add="acoes">Adicionar tarefa</button>
+          <h3>Diligências futuras</h3><div id="dDilig"></div><button class="add" data-add="diligencias">Adicionar diligência</button>
+        </section>
+        <section class="sec"><h2>TRANSCRIÇÃO INTEGRAL</h2><textarea class="tr" id="dTr" aria-label="Transcrição integral"></textarea>
+          <button class="add" id="redo">Elaborar novamente a minuta a partir da transcrição</button>
+        </section>
+      </div>
+    </article>
+  </div>
+  <div class="foot">
+    <button id="mailBtn">Enviar por email</button>
+    <button id="docxBtn">Word</button>
+    <button id="pdfBtn">PDF</button>
+  </div>
+</section>
+
+<!-- Definições -->
+<section class="sheet side" id="setSheet" aria-hidden="true">
+  <div class="bar"><button class="back" id="setBack">Minutas</button><span class="ttl">Definições</span><span style="width:60px"></span></div>
+  <div class="body">
+    <div class="set">
+      <div class="grp"><h2>ESCRITÓRIO</h2>
+        <div class="card">
+          <label class="fld"><span>Nome do escritório ou do advogado</span><input class="in" id="sOffice" autocomplete="organization"></label>
+          <label class="fld"><span>Linhas do timbre (morada, contactos, cédula)</span><textarea class="ta" id="sLetter" placeholder="Uma informação por linha"></textarea></label>
+          <label class="fld"><span>Email habitual de envio (opcional)</span><input class="in" id="sMailTo" type="email" autocomplete="email" autocapitalize="off"></label>
+        </div>
+      </div>
+      <div class="grp"><h2>SERVIÇO DE TRANSCRIÇÃO</h2>
+        <div class="card">
+          <label class="fld"><span>Chave do serviço (Groq)</span>
+            <div class="row"><input class="in" id="sKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="gsk_..."><button class="btn ghost sm" data-show="sKey">Ver</button></div>
+          </label>
+          <button class="btn sm" id="checkKey">Verificar chave</button>
+          <p class="note" id="keyNote"></p>
+          <label class="fld"><span>Modelo de redação</span><select id="sModel"><option value="">Escolhido automaticamente</option></select></label>
+          <div class="tg"><span style="font-size:15px">Retenção zero ativa na conta</span><button class="sw" role="switch" id="sZdr" aria-checked="false" aria-label="Retenção zero ativa"></button></div>
+          <p class="note warn" id="zdrNote"></p>
+          <p class="note">Chave gratuita em <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a>. Retenção zero em <a href="https://console.groq.com/settings/data-controls" target="_blank" rel="noopener">console.groq.com/settings/data-controls</a>. A chave fica guardada encriptada neste dispositivo.</p>
+        </div>
+      </div>
+      <div class="grp"><h2>SEGURANÇA</h2>
+        <div class="card">
+          <div class="tg"><span style="font-size:15px" id="bioLabel">Desbloqueio biométrico</span><button class="sw" role="switch" id="sBio" aria-checked="false" aria-label="Desbloqueio biométrico"></button></div>
+          <p class="note" id="bioNote"></p>
+          <label class="fld"><span>Bloquear ao sair da app após</span><select id="sAuto"><option value="0">Imediatamente</option><option value="1">1 minuto</option><option value="5">5 minutos</option><option value="15">15 minutos</option></select></label>
+          <button class="btn ghost sm" id="chPin">Alterar PIN</button>
+          <p class="note">Todas as minutas, transcrições e áudios são guardados encriptados (AES-256) neste dispositivo, com uma chave protegida pelo seu PIN. Sem o PIN não é possível lê-los.</p>
+        </div>
+      </div>
+      <div class="grp"><h2>ARMAZENAMENTO</h2>
+        <div class="card">
+          <label class="fld"><span>Áudio depois de exportar ou enviar</span><select id="sRetain"><option value="keep">Manter o áudio</option><option value="delete">Apagar o áudio e manter só o texto</option></select></label>
+          <p class="note" id="usage"></p>
+          <button class="btn ghost sm" id="wipe" style="color:var(--red)">Apagar todos os dados</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Bloqueio -->
+<div class="lock" id="lock">
+  <div class="lockin">
+    <div class="seal" id="seal">CG</div><div class="wm">CG <span>VERTEX</span></div>
+    <h2 id="lkTitle">Minutas</h2>
+    <p class="s" id="lkSub"></p>
+    <div class="dots" id="dots"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    <p class="lkmsg" id="lkMsg"></p>
+    <div class="pad" id="pad">
+      <button data-d="1">1</button><button data-d="2">2</button><button data-d="3">3</button>
+      <button data-d="4">4</button><button data-d="5">5</button><button data-d="6">6</button>
+      <button data-d="7">7</button><button data-d="8">8</button><button data-d="9">9</button>
+      <button class="fn" id="bioBtn" aria-label="Desbloqueio biométrico">Biometria</button><button data-d="0">0</button><button class="fn" id="padDel" aria-label="Apagar dígito">Apagar</button>
+    </div>
+    <button class="forgot" id="forgot">Esqueci o PIN</button>
+    <button class="forgot" id="lkCancel" hidden>Cancelar</button>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+(() => {
+"use strict";
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const enc = new TextEncoder(), dec = new TextDecoder();
+
+/* ================= Utilitários ================= */
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function fmtDur(s) { s = Math.max(0, Math.round(s || 0)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(x).padStart(2, "0"); }
+function fmtTs(s) { s = Math.max(0, Math.floor(s || 0)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + ":" : "") + String(m).padStart(2, "0") + ":" + String(x).padStart(2, "0"); }
+const fmtShort = t => new Intl.DateTimeFormat("pt-PT", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(t));
+const fmtLong = t => new Intl.DateTimeFormat("pt-PT", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date(t));
+const fmtHour = t => new Intl.DateTimeFormat("pt-PT", { hour: "2-digit", minute: "2-digit" }).format(new Date(t));
+const fmtNum = t => new Intl.DateTimeFormat("pt-PT", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(t));
+let toastT;
+function toast(msg, ms) { const el = $("#toast"); el.textContent = msg; el.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove("show"), ms || 2800); }
+function autoGrow(el) { el.style.height = "auto"; el.style.height = (el.scrollHeight + 2) + "px"; }
+function lsGet(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } }
+function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+function b64e(buf) { const b = new Uint8Array(buf); let s = ""; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(s); }
+function b64d(str) { const s = atob(str), b = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) b[i] = s.charCodeAt(i); return b; }
+const rnd = n => crypto.getRandomValues(new Uint8Array(n));
+function armed(btn, label, armedLabel, fn) {
+  let t = null;
+  btn.addEventListener("click", () => {
+    if (!btn.dataset.arm) { btn.dataset.arm = "1"; btn.textContent = armedLabel; t = setTimeout(() => { btn.dataset.arm = ""; btn.textContent = label; }, 3500); return; }
+    clearTimeout(t); btn.dataset.arm = ""; btn.textContent = label; fn();
+  });
+}
+
+/* Preferências não sensíveis (em claro) */
+const prefs = Object.assign({ autoLock: 1, retain: "keep", zdr: false }, lsGet("mx.prefs", {}));
+const savePrefs = () => lsSet("mx.prefs", prefs);
+
+/* ================= Cofre: AES-256-GCM com chave protegida pelo PIN ================= */
+const Vault = (() => {
+  let key = null;
+  const ITER = 310000;
+  const meta = () => lsGet("mx.vault", null);
+  async function kekFromPin(pin, salt, iter) {
+    const base = await crypto.subtle.importKey("raw", enc.encode(pin), "PBKDF2", false, ["deriveKey"]);
+    return crypto.subtle.deriveKey({ name: "PBKDF2", salt, iterations: iter, hash: "SHA-256" }, base, { name: "AES-KW", length: 256 }, false, ["wrapKey", "unwrapKey"]);
+  }
+  async function kekFromSecret(secret, salt) {
+    const base = await crypto.subtle.importKey("raw", secret, "HKDF", false, ["deriveKey"]);
+    return crypto.subtle.deriveKey({ name: "HKDF", hash: "SHA-256", salt, info: enc.encode("minutas-bio") }, base, { name: "AES-KW", length: 256 }, false, ["wrapKey", "unwrapKey"]);
+  }
+  const unwrap = (wrapped, kek) => crypto.subtle.unwrapKey("raw", wrapped, kek, "AES-KW", { name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
+  return {
+    get ready() { return !!key; },
+    get exists() { return !!meta(); },
+    async create(pin) {
+      key = await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
+      const salt = rnd(16), kek = await kekFromPin(pin, salt, ITER);
+      lsSet("mx.vault", { v: 1, iter: ITER, salt: b64e(salt), wPin: b64e(await crypto.subtle.wrapKey("raw", key, kek, "AES-KW")) });
+    },
+    async unlockPin(pin) {
+      const m = meta(); if (!m) return false;
+      try { key = await unwrap(b64d(m.wPin), await kekFromPin(pin, b64d(m.salt), m.iter)); return true; } catch { return false; }
+    },
+    async checkPin(pin) {
+      const m = meta(); if (!m) return false;
+      try { await unwrap(b64d(m.wPin), await kekFromPin(pin, b64d(m.salt), m.iter)); return true; } catch { return false; }
+    },
+    async changePin(pin) {
+      const m = meta(); const salt = rnd(16), kek = await kekFromPin(pin, salt, ITER);
+      m.salt = b64e(salt); m.iter = ITER; m.wPin = b64e(await crypto.subtle.wrapKey("raw", key, kek, "AES-KW")); lsSet("mx.vault", m);
+    },
+    async setBio(credId, prfSalt, secret) {
+      const m = meta(); const hs = rnd(16), kek = await kekFromSecret(secret, hs);
+      m.bio = { cred: b64e(credId), prf: b64e(prfSalt), hs: b64e(hs), w: b64e(await crypto.subtle.wrapKey("raw", key, kek, "AES-KW")) }; lsSet("mx.vault", m);
+    },
+    clearBio() { const m = meta(); if (m) { delete m.bio; lsSet("mx.vault", m); } },
+    bio() { const m = meta(); return m && m.bio ? m.bio : null; },
+    async unlockSecret(secret) {
+      const b = this.bio(); if (!b) return false;
+      try { key = await unwrap(b64d(b.w), await kekFromSecret(secret, b64d(b.hs))); return true; } catch { return false; }
+    },
+    lock() { key = null; },
+    async encObj(o) { const iv = rnd(12); return { iv, ct: await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, enc.encode(JSON.stringify(o))) }; },
+    async decObj(e) { return JSON.parse(dec.decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: e.iv }, key, e.ct))); },
+    async encBuf(buf) { const iv = rnd(12); return { iv, ct: await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, buf) }; },
+    async decBuf(e) { return crypto.subtle.decrypt({ name: "AES-GCM", iv: e.iv }, key, e.ct); },
+    reset() { key = null; try { localStorage.removeItem("mx.vault"); } catch {} }
+  };
+})();
+
+/* ================= IndexedDB ================= */
+const DB = (() => {
+  const STORES = ["recs", "audio", "chunks", "sessions", "conf"];
+  let dbp = null;
+  function open() {
+    if (dbp) return dbp;
+    dbp = new Promise((res, rej) => {
+      try {
+        const r = indexedDB.open("minutas", 1);
+        r.onupgradeneeded = () => { const db = r.result; STORES.forEach(s => { if (!db.objectStoreNames.contains(s)) db.createObjectStore(s); }); };
+        r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+      } catch (e) { rej(e); }
+    });
+    return dbp;
+  }
+  function run(store, mode, fn) {
+    return open().then(db => new Promise((res, rej) => {
+      const t = db.transaction(store, mode); const req = fn(t.objectStore(store));
+      t.oncomplete = () => res(req && "result" in req ? req.result : undefined);
+      t.onerror = () => rej(t.error); t.onabort = () => rej(t.error || new Error("abort"));
+    }));
+  }
+  const range = p => IDBKeyRange.bound(p, p + "\uffff");
+  return {
+    get: (s, k) => run(s, "readonly", o => o.get(k)),
+    put: (s, k, v) => run(s, "readwrite", o => o.put(v, k)),
+    del: (s, k) => run(s, "readwrite", o => o.delete(k)),
+    all: s => run(s, "readonly", o => o.getAll()),
+    keys: s => run(s, "readonly", o => o.getAllKeys()),
+    range: (s, p) => run(s, "readonly", o => o.getAll(range(p))),
+    delRange: (s, p) => run(s, "readwrite", o => o.delete(range(p))),
+    clear: s => run(s, "readwrite", o => o.clear()),
+    wipe: () => new Promise(res => { try { open().then(db => db.close()).catch(() => {}); dbp = null; const r = indexedDB.deleteDatabase("minutas"); r.onsuccess = r.onerror = r.onblocked = () => res(); } catch { res(); } })
+  };
+})();
+const sput = async (store, k, obj) => DB.put(store, k, await Vault.encObj(obj));
+const sget = async (store, k) => { const e = await DB.get(store, k); return e ? Vault.decObj(e) : null; };
+
+/* Configuração sensível (encriptada) */
+let conf = { office: "", letter: "", mailTo: "", key: "", model: "", modelOut: 0 };
+const saveConf = () => sput("conf", "main", conf).catch(() => {});
+
+/* Minutas em memória (só enquanto desbloqueado) */
+const RECS = new Map();
+const saveRec = r => sput("recs", r.id, r).catch(() => toast("Não foi possível guardar no dispositivo."));
+let saveT = null;
+function saveSoon(r) { clearTimeout(saveT); saveT = setTimeout(() => saveRec(r), 400); }
+
+/* ================= Bloqueio ================= */
+const PIN_LEN = 6;
+let pinBuf = "", lockMode = "", firstPin = "", lockResolve = null, hiddenAt = 0, bioAvail = false, prfOk = null, unlocked = false;
+const cryptoOk = !!(window.crypto && crypto.subtle && window.isSecureContext && window.indexedDB);
+
+function paintDots(shake) {
+  $$("#dots span").forEach((s, i) => s.classList.toggle("f", i < pinBuf.length));
+  if (shake) { const d = $("#dots"); d.classList.remove("shake"); void d.offsetWidth; d.classList.add("shake"); }
+}
+function lockUI(mode) {
+  lockMode = mode; pinBuf = ""; paintDots(); $("#lkMsg").textContent = "";
+  const T = {
+    setup1: ["Crie o seu PIN", "Primeira utilização: escolha 6 dígitos à sua escolha. Não existe PIN pré-definido."],
+    setup2: ["Confirme o PIN", "Introduza novamente o mesmo PIN."],
+    unlock: ["Minutas", "Introduza o PIN que escolheu"],
+    verify: ["PIN atual", "Introduza o PIN atual para continuar."],
+    new1: ["Novo PIN", "Escolha um novo PIN de 6 dígitos."],
+    new2: ["Confirme o novo PIN", "Introduza novamente o novo PIN."]
+  }[mode];
+  $("#lkTitle").textContent = T[0]; $("#lkSub").textContent = T[1];
+  const bio = mode === "unlock" && Vault.bio() && bioAvail;
+  $("#bioBtn").style.visibility = bio ? "visible" : "hidden";
+  $("#forgot").hidden = mode !== "unlock";
+  $("#lkCancel").hidden = !["verify", "new1", "new2"].includes(mode);
+  $("#lock").hidden = false; $("#home").setAttribute("aria-hidden", "true");
+}
+function askLock(mode) { lockUI(mode); return new Promise(r => lockResolve = r); }
+function endLock(v) { const r = lockResolve; lockResolve = null; if (r) r(v); }
+const failState = () => lsGet("mx.fail", { n: 0, until: 0 });
+const waitSec = () => { const f = failState(); return f.until > Date.now() ? Math.ceil((f.until - Date.now()) / 1000) : 0; };
+
+async function pinDone() {
+  const pin = pinBuf;
+  if (lockMode === "setup1" || lockMode === "new1") { firstPin = pin; lockUI(lockMode === "setup1" ? "setup2" : "new2"); return; }
+  if (lockMode === "setup2" || lockMode === "new2") {
+    if (pin !== firstPin) { lockUI(lockMode === "setup2" ? "setup1" : "new1"); paintDots(true); $("#lkMsg").textContent = "Os PIN não coincidem."; return; }
+    $("#lkSub").textContent = "A proteger…";
+    if (lockMode === "setup2") { await Vault.create(pin); firstPin = ""; await afterUnlock(); }
+    else { await Vault.changePin(pin); firstPin = ""; $("#lock").hidden = true; $("#home").setAttribute("aria-hidden", "false"); endLock(true); }
+    return;
+  }
+  const w = waitSec();
+  if (w) { pinBuf = ""; paintDots(true); $("#lkMsg").textContent = "Aguarde " + w + " s."; return; }
+  $("#lkSub").textContent = "A verificar…";
+  const ok = lockMode === "verify" ? await Vault.checkPin(pin) : await Vault.unlockPin(pin);
+  if (ok) {
+    lsSet("mx.fail", { n: 0, until: 0 });
+    if (lockMode === "verify") { endLock(true); return; }
+    await afterUnlock(); return;
+  }
+  const f = failState(); f.n++; if (f.n >= 5) f.until = Date.now() + 30000 * Math.pow(2, Math.min(f.n - 5, 6)); lsSet("mx.fail", f);
+  pinBuf = ""; paintDots(true);
+  $("#lkSub").textContent = lockMode === "verify" ? "Introduza o PIN atual para continuar." : "Introduza o PIN";
+  $("#lkMsg").textContent = f.until > Date.now() ? "Demasiadas tentativas. Aguarde " + waitSec() + " s." : "PIN incorreto.";
+}
+function typeDigit(d) {
+  if (pinBuf.length >= PIN_LEN || $("#lkSub").textContent === "A verificar…") return;
+  pinBuf += d; paintDots(); try { navigator.vibrate && navigator.vibrate(6); } catch {}
+  if (pinBuf.length === PIN_LEN) setTimeout(pinDone, 100);
+}
+$("#pad").addEventListener("click", e => { const b = e.target.closest("button[data-d]"); if (b) typeDigit(b.dataset.d); });
+$("#padDel").addEventListener("click", () => { pinBuf = pinBuf.slice(0, -1); paintDots(); });
+$("#lkCancel").addEventListener("click", () => { $("#lock").hidden = true; $("#home").setAttribute("aria-hidden", "false"); firstPin = ""; endLock(false); });
+document.addEventListener("keydown", e => { if ($("#lock").hidden) return; if (/^\d$/.test(e.key)) typeDigit(e.key); else if (e.key === "Backspace") { pinBuf = pinBuf.slice(0, -1); paintDots(); } });
+armed($("#forgot"), "Esqueci o PIN", "Toque de novo para apagar todos os dados e recomeçar", async () => {
+  await DB.wipe(); Vault.reset(); try { localStorage.removeItem("mx.fail"); } catch {} location.reload();
+});
+
+/* Biometria com WebAuthn PRF: a chave só é recuperável com a impressão digital ou o rosto */
+async function bioCreate() {
+  const prfSalt = rnd(32);
+  const cred = await navigator.credentials.create({ publicKey: {
+    challenge: rnd(32), rp: { name: "CG VERTEX", id: location.hostname },
+    user: { id: rnd(16), name: "minutas@" + location.hostname, displayName: "CG VERTEX Minutas" },
+    pubKeyCredParams: [{ type: "public-key", alg: -7 }, { type: "public-key", alg: -257 }],
+    authenticatorSelection: { authenticatorAttachment: "platform", userVerification: "required", residentKey: "preferred" },
+    timeout: 60000, attestation: "none", extensions: { prf: { eval: { first: prfSalt } } }
+  } });
+  if (!cred) throw new Error("cancel");
+  const ext = cred.getClientExtensionResults ? cred.getClientExtensionResults() : {};
+  let secret = ext.prf && ext.prf.results && ext.prf.results.first;
+  if (!secret) {
+    if (ext.prf && ext.prf.enabled === false) throw new Error("noprf");
+    secret = await bioSecret(new Uint8Array(cred.rawId), prfSalt);
+  }
+  if (!secret) throw new Error("noprf");
+  await Vault.setBio(new Uint8Array(cred.rawId), prfSalt, secret);
+}
+async function bioSecret(credId, prfSalt) {
+  const a = await navigator.credentials.get({ publicKey: {
+    challenge: rnd(32), rpId: location.hostname, allowCredentials: [{ type: "public-key", id: credId }],
+    userVerification: "required", timeout: 60000, extensions: { prf: { eval: { first: prfSalt } } }
+  } });
+  const ext = a && a.getClientExtensionResults ? a.getClientExtensionResults() : {};
+  return ext.prf && ext.prf.results && ext.prf.results.first || null;
+}
+async function bioUnlock() {
+  const b = Vault.bio(); if (!b || lockMode !== "unlock") return;
+  try {
+    const secret = await bioSecret(b64d(b.cred), b64d(b.prf));
+    if (secret && await Vault.unlockSecret(secret)) { lsSet("mx.fail", { n: 0, until: 0 }); await afterUnlock(); return; }
+    $("#lkMsg").textContent = "Não foi possível confirmar. Use o PIN.";
+  } catch { /* cancelado: mantém-se o PIN */ }
+}
+$("#bioBtn").addEventListener("click", bioUnlock);
+
+function lockNow() {
+  if (!Vault.ready) return;
+  if (st.recording || busy.size) return;
+  ["#docSheet", "#setSheet"].forEach(s => closeSheet($(s)));
+  try { $("#player").pause(); } catch {}
+  revokePlayer();
+  RECS.clear(); cur = null; unlocked = false;
+  conf = { office: "", letter: "", mailTo: "", key: "", model: "", modelOut: 0 };
+  Vault.lock(); $("#list").innerHTML = ""; $("#banners").innerHTML = "";
+  lockUI("unlock");
+}
+$("#lockBtn").addEventListener("click", lockNow);
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") {
+    hiddenAt = Date.now();
+    flushRec();
+    if (prefs.autoLock === 0) lockNow();
+    return;
+  }
+  if (Vault.ready && hiddenAt && Date.now() - hiddenAt > prefs.autoLock * 60000) lockNow();
+});
+
+/* ================= Gravação ================= */
+const SEG_SEC = 15 * 60;   // cada bloco de 15 min é um ficheiro completo e independente
+const st = { recording: false, paused: false, stream: null, ctx: null, an: null, wake: null, sid: null, started: 0, startedAt: 0, acc: 0,
+  segs: [], mrs: [], curMr: null, active: 0, finishing: false, discard: false, chain: Promise.resolve(), mime: "", timer: null, levels: [], tick: 0, lastSave: 0 };
+const elapsed = () => st.acc + (st.recording && !st.paused ? (performance.now() - st.startedAt) / 1000 : 0);
+const pad3 = n => String(n).padStart(3, "0"), pad6 = n => String(n).padStart(6, "0");
+
+function pickMime() {
+  if (!window.MediaRecorder || !MediaRecorder.isTypeSupported) return "";
+  return ["audio/webm;codecs=opus", "audio/mp4", "audio/webm", "audio/aac"].find(t => { try { return MediaRecorder.isTypeSupported(t); } catch { return false; } }) || "";
+}
+function micError(e) {
+  const n = e && e.name;
+  if (n === "NotAllowedError" || n === "SecurityError") return "Sem acesso ao microfone. Autorize o microfone para este site nas definições do browser.";
+  if (n === "NotFoundError") return "Não foi encontrado nenhum microfone.";
+  if (n === "NotReadableError") return "O microfone está ocupado por outra app ou chamada.";
+  return "Não foi possível iniciar o microfone.";
+}
+function paintRecInfo() {
+  const el = $("#recinfo");
+  if (!st.recording) { el.textContent = ""; return; }
+  el.innerHTML = (st.paused ? "Em pausa" : "A gravar") + (st.lastSave ? ', <span class="ok">salvaguarda encriptada ativa</span>' : "");
+}
+
+function startSegment() {
+  const seg = st.segs.length, opts = st.mime ? { mimeType: st.mime, audioBitsPerSecond: st.mime.includes("mp4") || st.mime.includes("aac") ? 48000 : 32000 } : undefined;
+  let mr; try { mr = new MediaRecorder(st.stream, opts); } catch { mr = new MediaRecorder(st.stream); }
+  if (!st.mime) st.mime = mr.mimeType || "audio/mp4";
+  st.segs.push({ start: elapsed() });
+  let i = 0;
+  mr.ondataavailable = e => { if (e.data && e.data.size) persistChunk(seg, i++, e.data); };
+  mr.onstop = () => { st.active--; if (st.finishing && st.active <= 0) finishRec(); };
+  mr.onerror = () => { if (st.recording) stopRec("Ocorreu um erro no gravador. O áudio até este momento foi guardado."); };
+  mr.start(5000); st.active++; st.curMr = mr; st.mrs.push(mr);
+  saveSession();
+}
+function saveSession() {
+  const s = { sid: st.sid, started: st.started, mime: st.mime, segs: st.segs.slice(), duration: elapsed() };
+  st.chain = st.chain.then(() => sput("sessions", st.sid, s)).catch(() => {});
+}
+function persistChunk(seg, i, blob) {
+  const sid = st.sid;
+  st.chain = st.chain.then(async () => {
+    if (!sid || !Vault.ready) return;
+    await DB.put("chunks", sid + ":" + pad3(seg) + ":" + pad6(i), await Vault.encBuf(await blob.arrayBuffer()));
+    if (st.sid === sid) {
+      const s = await sget("sessions", sid).catch(() => null);
+      if (s) { s.duration = elapsed(); s.segs = st.segs.slice(); await sput("sessions", sid, s); }
+      st.lastSave = Date.now(); paintRecInfo();
+    }
+  }).catch(() => {});
+}
+
+async function startRec() {
+  if (!cryptoOk) { toast("A gravação protegida só funciona em https (por exemplo, no Netlify)."); return; }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) { toast("Este browser não permite gravar áudio."); return; }
+  const btn = $("#startBtn"); btn.disabled = true;
+  const AC = window.AudioContext || window.webkitAudioContext;
+  try { st.ctx = new AC(); if (st.ctx.resume) st.ctx.resume(); } catch { st.ctx = null; }
+  try { st.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 } }); }
+  catch (e) { btn.disabled = false; try { st.ctx && st.ctx.close(); } catch {} st.ctx = null; toast(micError(e), 4500); return; }
+  if (st.ctx) { try { const src = st.ctx.createMediaStreamSource(st.stream); st.an = st.ctx.createAnalyser(); st.an.fftSize = 1024; st.an.smoothingTimeConstant = .7; src.connect(st.an); } catch { st.an = null; } }
+  Object.assign(st, { sid: uid(), started: Date.now(), acc: 0, segs: [], mrs: [], active: 0, finishing: false, discard: false, mime: pickMime(), levels: [], tick: 0, lastSave: 0, recording: true, paused: false });
+  st.startedAt = performance.now();
+  const track = st.stream.getAudioTracks()[0];
+  if (track) track.addEventListener("ended", () => { if (st.recording) stopRec("A gravação foi interrompida pelo sistema. O áudio foi guardado."); });
+  startSegment();
+  st.timer = setInterval(() => {
+    if (!st.recording || st.paused) return;
+    const segStart = st.segs[st.segs.length - 1].start;
+    if (elapsed() - segStart >= SEG_SEC) { const old = st.curMr; startSegment(); setTimeout(() => { try { if (old.state !== "inactive") old.stop(); } catch {} }, 1500); }
+  }, 1000);
+  try { if (navigator.wakeLock) st.wake = await navigator.wakeLock.request("screen"); } catch {}
+  $("#pauseBtn").textContent = "Pausar"; $("#discardBtn").textContent = "Descartar"; $("#discardBtn").dataset.arm = "";
+  openSheet($("#recSheet")); btn.disabled = false; paintRecInfo();
+}
+function togglePause() {
+  if (!st.recording) return;
+  if (!st.paused) { st.acc = elapsed(); st.paused = true; st.mrs.forEach(m => { try { if (m.state === "recording") { m.requestData(); m.pause(); } } catch {} }); $("#pauseBtn").textContent = "Retomar"; }
+  else { st.paused = false; st.startedAt = performance.now(); st.mrs.forEach(m => { try { if (m.state === "paused") m.resume(); } catch {} }); $("#pauseBtn").textContent = "Pausar"; }
+  paintRecInfo();
+}
+function stopRec(msg, discard) {
+  if (!st.recording || st.finishing) return;
+  st.acc = elapsed(); st.paused = true; st.recording = false; st.finishing = true; st.discard = !!discard;
+  clearInterval(st.timer);
+  if (msg) toast(msg, 4500);
+  const live = st.mrs.filter(m => m.state !== "inactive");
+  if (!live.length) { finishRec(); return; }
+  live.forEach(m => { try { m.stop(); } catch {} });
+}
+let finishing = false;
+async function finishRec() {
+  if (finishing) return; finishing = true;
+  try {
+    const sid = st.sid, duration = st.acc, discard = st.discard;
+    try { st.stream && st.stream.getTracks().forEach(t => t.stop()); } catch {}
+    try { st.ctx && st.ctx.close(); } catch {}
+    try { st.wake && st.wake.release(); } catch {}
+    Object.assign(st, { stream: null, ctx: null, an: null, wake: null, recording: false, mrs: [], curMr: null });
+    closeSheet($("#recSheet")); $("#clock").textContent = "0:00";
+    await st.chain;
+    st.sid = null; st.finishing = false;
+    if (discard) { await DB.delRange("chunks", sid + ":").catch(() => {}); await DB.del("sessions", sid).catch(() => {}); toast("Gravação descartada"); return; }
+    const s = await sget("sessions", sid).catch(() => null);
+    const rec = await assemble(sid, { started: st.started, mime: st.mime, segs: st.segs.slice(), duration: duration || (s && s.duration) || 0 });
+    if (!rec) { toast("A gravação ficou vazia."); return; }
+    renderList(); openDoc(rec.id);
+    if (conf.key && prefs.zdr) processRec(rec.id);
+  } finally { finishing = false; }
+}
+async function assemble(sid, info) {
+  const enc_ = await DB.range("chunks", sid + ":").catch(() => []);
+  const keys = (await DB.keys("chunks").catch(() => [])).filter(k => String(k).startsWith(sid + ":")).sort();
+  if (!enc_ || !enc_.length) { await DB.del("sessions", sid).catch(() => {}); return null; }
+  const bySeg = new Map();
+  for (let n = 0; n < keys.length; n++) {
+    const seg = +String(keys[n]).split(":")[1];
+    let buf; try { buf = await Vault.decBuf(enc_[n]); } catch { continue; }
+    if (!bySeg.has(seg)) bySeg.set(seg, []);
+    bySeg.get(seg).push(buf);
+  }
+  const segIdx = [...bySeg.keys()].sort((a, b) => a - b);
+  const total = info.duration || 0, segsMeta = info.segs || [];
+  const parts = [];
+  for (const k of segIdx) {
+    const buf = await new Blob(bySeg.get(k), { type: info.mime }).arrayBuffer();
+    const start = (segsMeta[k] && segsMeta[k].start) || 0;
+    parts.push({ start, mime: info.mime, buf });
+  }
+  parts.forEach((p, i) => { p.dur = Math.max(1, ((parts[i + 1] ? parts[i + 1].start : total) - p.start)); });
+  const id = uid(), size = parts.reduce((a, p) => a + p.buf.byteLength, 0);
+  await DB.put("audio", id, await Vault.encObj({ segs: parts.map(p => ({ start: p.start, dur: p.dur, mime: p.mime })) }));
+  for (let i = 0; i < parts.length; i++) await DB.put("audio", id + ":" + pad3(i), await Vault.encBuf(parts[i].buf));
+  const rec = { id, created: info.started || Date.now(), duration: total, client: "", status: "new", error: "", notice: "", hasAudio: true, size, nseg: parts.length, tx: null, transcript: "", min: null, consent: false };
+  RECS.set(id, rec); await saveRec(rec);
+  await DB.delRange("chunks", sid + ":").catch(() => {}); await DB.del("sessions", sid).catch(() => {});
+  return rec;
+}
+async function loadAudio(rec) {
+  const m = await sget("audio", rec.id).catch(() => null); if (!m) return null;
+  const out = [];
+  for (let i = 0; i < m.segs.length; i++) {
+    const e = await DB.get("audio", rec.id + ":" + pad3(i)); if (!e) return null;
+    out.push(Object.assign({}, m.segs[i], { buf: await Vault.decBuf(e) }));
+  }
+  return out;
+}
+async function deleteAudio(rec) {
+  await DB.del("audio", rec.id).catch(() => {});
+  for (let i = 0; i < (rec.nseg || 1) + 2; i++) await DB.del("audio", rec.id + ":" + pad3(i)).catch(() => {});
+  rec.hasAudio = false; rec.size = 0; await saveRec(rec);
+}
+
+$("#startBtn").addEventListener("click", () => { if (!st.recording && Vault.ready) startRec(); });
+$("#stopBtn").addEventListener("click", () => stopRec());
+$("#pauseBtn").addEventListener("click", togglePause);
+armed($("#discardBtn"), "Descartar", "Confirmar", () => stopRec("", true));
+function flushRec() { if (st.recording) st.mrs.forEach(m => { try { if (m.state === "recording") m.requestData(); } catch {} }); }
+window.addEventListener("pagehide", flushRec);
+window.addEventListener("beforeunload", e => { if (st.recording) { flushRec(); e.preventDefault(); e.returnValue = ""; } });
+
+/* Forma de onda discreta */
+const canvas = $("#wave"), g2 = canvas.getContext("2d");
+let tbuf = null;
+function sizeCanvas() { const d = window.devicePixelRatio || 1, r = canvas.getBoundingClientRect(); canvas.width = Math.max(1, Math.round(r.width * d)); canvas.height = Math.max(1, Math.round(r.height * d)); }
+window.addEventListener("resize", sizeCanvas);
+function draw() {
+  if (st.recording) {
+    if (canvas.width < 2) sizeCanvas();
+    const d = window.devicePixelRatio || 1, W = canvas.width, H = canvas.height, bw = 2 * d, step = bw + 3 * d, n = Math.floor(W / step);
+    if (!st.paused && st.an) {
+      if (!tbuf || tbuf.length !== st.an.fftSize) tbuf = new Uint8Array(st.an.fftSize);
+      st.an.getByteTimeDomainData(tbuf);
+      let sum = 0; for (let i = 0; i < tbuf.length; i++) { const v = (tbuf[i] - 128) / 128; sum += v * v; }
+      if (++st.tick % 4 === 0) { st.levels.push(Math.min(1, Math.sqrt(sum / tbuf.length) * 3.2)); if (st.levels.length > 400) st.levels.shift(); }
+    }
+    g2.clearRect(0, 0, W, H);
+    for (let i = 0; i < n; i++) {
+      const li = st.levels.length - (n - i), v = li >= 0 ? st.levels[li] : 0, h = Math.max(bw, v * H * .9);
+      g2.fillStyle = li >= 0 ? "rgba(228,122,42,.95)" : "rgba(228,122,42,.2)";
+      g2.fillRect(i * step, (H - h) / 2, bw, h);
+    }
+    $("#clock").textContent = fmtDur(elapsed());
+  }
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+
+/* ================= Lista ================= */
+const recTitle = r => r.client || (r.min && r.min.assunto) || "Diligência sem processo";
+function renderList() {
+  const recs = [...RECS.values()].sort((a, b) => b.created - a.created), box = $("#list");
+  if (!recs.length) { box.innerHTML = '<div class="empty"><span class="serif">Sem minutas</span>Toque no botão abaixo para registar a primeira diligência.</div>'; return; }
+  box.innerHTML = recs.map(r => {
+    const np = r.min ? r.min.prazos.length : 0;
+    const status = busy.has(r.id) ? "busy" : r.status;
+    const sub = busy.has(r.id) ? "A elaborar minuta" : r.status === "error" ? "Por concluir" : r.status === "new" ? "Por elaborar" : (r.hasAudio ? "Com áudio" : "Só texto");
+    return '<button class="item" data-id="' + r.id + '"><span class="main"><div class="t">' + esc(recTitle(r)) + '</div><div class="m"><span class="st ' + status + '"></span>' + esc(fmtShort(r.created)) + ", " + esc(sub) + "</div>" +
+      (np ? '<span class="badge">' + np + (np === 1 ? " prazo" : " prazos") + "</span>" : "") + '</span><span class="r">' + fmtDur(r.duration) + "</span></button>";
+  }).join("");
+}
+$("#list").addEventListener("click", e => { const b = e.target.closest(".item"); if (b) openDoc(b.dataset.id); });
+
+/* Recuperação de diligências interrompidas */
+async function checkRecovery() {
+  const keys = (await DB.keys("sessions").catch(() => [])) || [];
+  const box = $("#banners"); box.innerHTML = "";
+  for (const k of keys) {
+    if (k === st.sid) continue;
+    const s = await sget("sessions", k).catch(() => null); if (!s) continue;
+    const el = document.createElement("div"); el.className = "banner";
+    el.innerHTML = "<b>Diligência interrompida</b>Foram salvaguardados " + fmtDur(s.duration) + " de áudio de " + esc(fmtShort(s.started)) + '.<div class="acts"><button class="btn sm">Recuperar</button><button class="btn ghost sm">Descartar</button></div>';
+    const [ok, no] = el.querySelectorAll("button");
+    ok.onclick = async () => {
+      ok.disabled = true;
+      const rec = await assemble(s.sid, { started: s.started, mime: s.mime, segs: s.segs, duration: s.duration });
+      el.remove();
+      if (rec) { renderList(); openDoc(rec.id); toast("Diligência recuperada"); } else toast("Não havia áudio para recuperar.");
+    };
+    no.onclick = async () => { await DB.delRange("chunks", s.sid + ":").catch(() => {}); await DB.del("sessions", s.sid).catch(() => {}); el.remove(); };
+    box.append(el);
+  }
+}
+
+/* ================= Serviço de transcrição: Groq ================= */
+const GQ = "https://api.groq.com/openai/v1";
+const STT_MODEL = "whisper-large-v3";
+const PREFERRED = ["openai/gpt-oss-120b", "llama-3.3-70b-versatile", "moonshotai/kimi-k2-instruct-0905", "moonshotai/kimi-k2-instruct", "meta-llama/llama-4-maverick-17b-128e-instruct", "qwen/qwen3-32b", "openai/gpt-oss-20b", "meta-llama/llama-4-scout-17b-16e-instruct", "llama-3.1-8b-instant"];
+const LEGAL_HINT = "Diligência jurídica em português europeu. Advogado, cliente, réu, autor, contestação, petição inicial, citação, notificação, audiência prévia, acórdão, sentença, recurso, prazo, artigo, Código de Processo Civil, Código Civil, Código do Trabalho.";
+function appErr(message, code) { const e = new Error(message); e.code = code || "app"; return e; }
+const busy = new Map();
+
+async function gq(path, init, onWait) {
+  let last;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    let res;
+    try { res = await fetch(GQ + path, init); }
+    catch (e) {
+      if (e && e.name === "AbortError") throw appErr("Elaboração interrompida.", "cancelled");
+      last = appErr("Sem ligação à internet. Verifique a rede e toque em Continuar.", "network");
+      await sleep([2000, 5000, 10000, 15000][attempt] || 15000); continue;
+    }
+    const raw = await res.text(); let j = null; try { j = JSON.parse(raw); } catch {}
+    if (res.ok) return j || {};
+    const msg = (j && j.error && j.error.message) || raw.slice(0, 240) || ("erro " + res.status);
+    if (res.status === 401 || res.status === 403 || /invalid api key/i.test(msg)) throw appErr("A chave do serviço foi recusada. Verifique-a nas Definições.", "auth");
+    if (res.status === 413 || /request too large|reduce your message|context length|too many tokens/i.test(msg)) throw appErr(msg, "toolarge");
+    if (res.status === 429) {
+      if (/per day|\(TPD\)|\(RPD\)|\(ASD\)|per-day|daily/i.test(msg)) throw appErr("Atingiu o limite diário gratuito do serviço. Amanhã pode continuar do ponto onde parou.", "daily");
+      let wait = +(res.headers.get("retry-after") || 0);
+      const m = msg.match(/try again in\s*(?:(\d+)m)?\s*([\d.]+)\s*(ms|s)/i);
+      if (!wait && m) wait = (+(m[1] || 0)) * 60 + (m[3] === "ms" ? +m[2] / 1000 : +m[2]);
+      wait = Math.min(75, Math.ceil(wait || [10, 20, 40, 60][attempt] || 60) + 1);
+      last = appErr("Limite por minuto atingido. Toque em Continuar dentro de um minuto.", "busy");
+      if (onWait) onWait(wait);
+      await sleep(wait * 1000); continue;
+    }
+    if (res.status >= 500 || res.status === 498) { last = appErr("O serviço está ocupado (" + res.status + "). Toque em Continuar dentro de instantes.", "busy"); await sleep([3000, 8000, 15000, 20000][attempt] || 20000); continue; }
+    throw appErr("Serviço: " + msg, "api");
+  }
+  throw last || appErr("Falha de ligação.", "network");
+}
+const authH = () => ({ Authorization: "Bearer " + conf.key });
+
+async function listModels() {
+  if (!conf.key) throw appErr("Falta a chave do serviço nas Definições.", "nokey");
+  const j = await gq("/models", { headers: authH() });
+  const ids = (j.data || []).filter(m => m && m.id && m.active !== false).map(m => m.id)
+    .filter(id => !/whisper|guard|tts|playai|orpheus|compound|distil|safeguard|allam/i.test(id));
+  const ranked = PREFERRED.filter(id => ids.includes(id)).concat(ids.filter(id => !PREFERRED.includes(id)).sort());
+  return ranked;
+}
+async function ensureModel() {
+  if (conf.model) return;
+  const list = await listModels();
+  if (!list.length) throw appErr("A chave não tem modelos de texto disponíveis.", "nomodel");
+  conf.model = list[0]; await saveConf();
+}
+async function chat(prompt, opts) {
+  opts = opts || {};
+  await ensureModel();
+  const body = { model: conf.model, messages: [{ role: "user", content: prompt }], temperature: .2, max_completion_tokens: opts.max || 4096 };
+  if (opts.json) body.response_format = { type: "json_object" };
+  const j = await gq("/chat/completions", { method: "POST", signal: opts.signal, headers: Object.assign({ "content-type": "application/json" }, authH()), body: JSON.stringify(body) }, opts.onWait);
+  const ch = j.choices && j.choices[0];
+  if (ch && ch.finish_reason === "length") throw appErr("Resposta demasiado longa para um só bloco.", "toolarge");
+  return String((ch && ch.message && ch.message.content) || "").replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+}
+async function whisper(blob, name, prompt, signal, onWait) {
+  const fd = new FormData();
+  fd.append("file", blob, name); fd.append("model", STT_MODEL); fd.append("language", "pt");
+  fd.append("response_format", "verbose_json"); fd.append("temperature", "0");
+  if (prompt) fd.append("prompt", prompt);
+  const j = await gq("/audio/transcriptions", { method: "POST", signal, headers: authH(), body: fd }, onWait);
+  if (Array.isArray(j.segments)) return j.segments
+    .filter(s => !(s.no_speech_prob > .8 && s.avg_logprob < -1) && !(s.compression_ratio > 2.6))
+    .map(s => ({ start: +s.start || 0, text: String(s.text || "").trim() })).filter(s => s.text);
+  const t = String(j.text || "").trim(); return t ? [{ start: 0, text: t }] : [];
+}
+function parseJSON(text) {
+  let t = String(text || "").trim();
+  const fence = t.match(/```(?:json)?\s*([\s\S]*?)```/i); if (fence) t = fence[1].trim();
+  try { return JSON.parse(t); } catch {}
+  const a = t.indexOf("{"), b = t.lastIndexOf("}");
+  if (a >= 0 && b > a) { try { return JSON.parse(t.slice(a, b + 1)); } catch {} }
+  throw appErr("A resposta do serviço veio num formato inválido. Toque em Continuar para repetir.", "json");
+}
+function splitText(text, max) {
+  const out = []; let b = "";
+  String(text).split(/\n+/).forEach(par => {
+    const pieces = par.length > max ? (par.match(/[^.!?…]+[.!?…]+["»”]?\s*|[^.!?…]+$/g) || [par]) : [par];
+    pieces.forEach(p => {
+      const sep = par.length > max ? " " : "\n";
+      if ((b + sep + p).length > max && b) { out.push(b.trim()); b = ""; }
+      b += (b ? sep : "") + p.trim();
+    });
+  });
+  if (b.trim()) out.push(b.trim());
+  return out;
+}
+
+/* ================= Etapas ================= */
+function setProg(rec, label, frac) { rec.prog = { label, frac: Math.max(0, Math.min(1, frac || 0)) }; if (cur && cur.id === rec.id) renderState(); }
+const waitHook = (rec, frac) => s => setProg(rec, "Limite por minuto do plano gratuito: a retomar em " + s + " s", frac);
+
+async function stepTranscribe(rec, signal) {
+  if (rec.tx && rec.tx.parts && rec.tx.done >= rec.tx.parts) return;
+  if (!rec.hasAudio) throw appErr("O áudio desta diligência já foi apagado.", "noaudio");
+  const parts = await loadAudio(rec);
+  if (!parts || !parts.length) throw appErr("O áudio desta diligência não foi encontrado no dispositivo.", "noaudio");
+  if (!rec.tx || rec.tx.parts !== parts.length) rec.tx = { parts: parts.length, done: 0, segments: [] };
+  const ext = m => /webm/.test(m) ? "webm" : /mp4|m4a/.test(m) ? "m4a" : /ogg/.test(m) ? "ogg" : /aac/.test(m) ? "m4a" : /wav/.test(m) ? "wav" : "webm";
+  for (let i = rec.tx.done; i < parts.length; i++) {
+    if (signal.aborted) throw appErr("Elaboração interrompida.", "cancelled");
+    const p = parts[i], frac = .03 + .42 * (i / parts.length);
+    if (p.buf.byteLength > 24 * 1024 * 1024) throw appErr("Um bloco de áudio excede o limite de 25 MB do serviço.", "big");
+    setProg(rec, parts.length > 1 ? "A transcrever, bloco " + (i + 1) + " de " + parts.length : "A transcrever", frac);
+    const prev = rec.tx.segments.slice(-4).map(s => s.text).join(" ").slice(-300);
+    const segs = await whisper(new Blob([p.buf], { type: p.mime }), "bloco" + (i + 1) + "." + ext(p.mime), (prev || LEGAL_HINT).slice(-600), signal, waitHook(rec, frac));
+    segs.forEach(s => rec.tx.segments.push({ start: s.start + p.start, text: s.text }));
+    rec.tx.done = i + 1; await saveRec(rec);
+  }
+}
+
+async function stepClean(rec, signal) {
+  const raw = rec.tx.segments.map(s => s.text).join(" ").replace(/\s+/g, " ").trim();
+  if (!raw) throw appErr("Não foi detetada fala nesta gravação.", "empty");
+  if (!rec.clean || rec.clean.n !== rec.tx.segments.length) rec.clean = { n: rec.tx.segments.length, size: 6000, out: [] };
+  for (;;) {
+    const blocks = splitText(raw, rec.clean.size);
+    try {
+      for (let i = rec.clean.out.length; i < blocks.length; i++) {
+        if (signal.aborted) throw appErr("Elaboração interrompida.", "cancelled");
+        const frac = .45 + .3 * (i / blocks.length);
+        setProg(rec, "A rever a transcrição" + (blocks.length > 1 ? ", parte " + (i + 1) + " de " + blocks.length : ""), frac);
+        const tail = i ? rec.clean.out[i - 1].slice(-500) : "";
+        const out = await chat([
+          "Revês a transcrição automática de uma diligência jurídica em Portugal (reunião com cliente, audiência ou diligência). Parte " + (i + 1) + " de " + blocks.length + ".",
+          "Regras:",
+          "- Devolve o texto integral em português europeu, com pontuação, maiúsculas e parágrafos.",
+          "- Corrige apenas erros evidentes de reconhecimento, com especial rigor em termos jurídicos, nomes de diplomas e artigos (ex.: «artigo 569.º do Código de Processo Civil»).",
+          "- Separa as intervenções pelos indícios do próprio texto (perguntas e respostas, mudanças de interlocutor). Começa cada intervenção numa linha nova com «Interveniente 1:», «Interveniente 2:», etc. Sem indícios claros de várias pessoas, usa só «Interveniente 1:». Não inventes nomes.",
+          tail ? "- Mantém a numeração coerente com o fim da parte anterior:\n«" + tail + "»" : "",
+          "- O início pode repetir uma ou duas palavras do fim da parte anterior; não as dupliques.",
+          "- Não resumas, não acrescentes e não cortes conteúdo. Remove só hesitações e repetições acidentais.",
+          "- Responde só com o texto revisto.",
+          "", "<<<", blocks[i], ">>>"].filter(x => x !== "").join("\n"), { signal, max: Math.min(8000, Math.ceil(rec.clean.size / 2.2)), onWait: waitHook(rec, frac) });
+        if (!out) throw appErr("O serviço devolveu uma resposta vazia. Toque em Continuar.", "empty");
+        rec.clean.out.push(out.replace(/^<<<|>>>$/g, "").trim()); await saveRec(rec);
+      }
+      return rec.clean.out.join("\n\n");
+    } catch (e) {
+      if (e.code === "toolarge" && rec.clean.size > 1500) { rec.clean = { n: rec.clean.n, size: Math.floor(rec.clean.size / 2), out: [] }; await saveRec(rec); continue; }
+      throw e;
+    }
+  }
+}
+
+const SCHEMA = '{"assunto":"","cliente":"","prazos":[{"data":"","descricao":"","origem":""}],"factos":[""],"posicionamento":[""],"acoes":[{"tarefa":"","responsavel":"","prazo":""}],"diligencias":[""]}';
+function minutaRules(rec) {
+  return [
+    "A diligência ocorreu em " + fmtLong(rec.created) + " (" + fmtNum(rec.created) + ").",
+    "Regras:",
+    "- \"assunto\": até 8 palavras que identifiquem a matéria.",
+    "- \"cliente\": nome do cliente ou número de processo só se forem ditos claramente; senão \"\".",
+    "- \"prazos\": todos os prazos, datas e marcos temporais mencionados (audiências, prazos processuais, entregas, reuniões). Em \"data\" usa DD/MM/AAAA quando a data for determinável; converte datas relativas (por exemplo «próxima sexta») a partir da data da diligência. Para prazos em dias (por exemplo «10 dias para contestar») NÃO calcules o termo: escreve o prazo tal como dito (\"10 dias\"), porque a contagem depende das regras processuais. \"descricao\": o ato ou evento. \"origem\": frase curta do que foi dito que o suporta.",
+    "- \"factos\": factos relevantes relatados, em frases curtas e objetivas.",
+    "- \"posicionamento\": posição do cliente, estratégia ou entendimento jurídico manifestado.",
+    "- \"acoes\": tarefas a realizar; \"tarefa\" começa por um verbo no infinitivo; \"responsavel\" e \"prazo\" só se forem ditos, senão \"\".",
+    "- \"diligencias\": diligências futuras previstas (audiências, requerimentos, contactos, deslocações).",
+    "- Nunca inventes nomes, números, datas, artigos ou factos que não estejam no texto. Escreve em português europeu, em registo jurídico sóbrio."
+  ].join("\n");
+}
+function normMin(o) {
+  const arr = x => Array.isArray(x) ? x : [], str = x => String(x == null ? "" : x).trim();
+  return {
+    assunto: str(o.assunto), cliente: str(o.cliente),
+    prazos: arr(o.prazos).filter(p => p && (p.data || p.descricao)).map(p => ({ date: str(p.data), desc: str(p.descricao), src: str(p.origem) })),
+    factos: arr(o.factos).map(str).filter(Boolean),
+    posicionamento: arr(o.posicionamento).map(str).filter(Boolean),
+    acoes: arr(o.acoes).filter(a => a && a.tarefa).map(a => ({ text: str(a.tarefa), who: str(a.responsavel), due: str(a.prazo), done: false })),
+    diligencias: arr(o.diligencias).map(str).filter(Boolean)
+  };
+}
+async function stepMinuta(rec, transcript, signal) {
+  let size = (rec.clean && rec.clean.size) || 6000;
+  for (;;) {
+    try {
+      const blocks = splitText(transcript, Math.round(size * 1.4));
+      if (blocks.length === 1) {
+        setProg(rec, "A elaborar a minuta", .82);
+        return normMin(parseJSON(await chat("Elabora, a partir da transcrição seguinte, os elementos de uma minuta de diligência jurídica.\n" + minutaRules(rec) + "\n\nResponde apenas com JSON válido neste formato:\n" + SCHEMA + "\n\nTranscrição:\n<<<\n" + transcript + "\n>>>", { signal, json: true, max: 3000, onWait: waitHook(rec, .82) })));
+      }
+      const partials = [];
+      for (let i = 0; i < blocks.length; i++) {
+        if (signal.aborted) throw appErr("Elaboração interrompida.", "cancelled");
+        const frac = .78 + .14 * (i / blocks.length);
+        setProg(rec, "A analisar a transcrição, parte " + (i + 1) + " de " + blocks.length, frac);
+        partials.push(normMin(parseJSON(await chat("Extrai desta parte (" + (i + 1) + " de " + blocks.length + ") de uma transcrição de diligência jurídica os elementos de minuta.\n" + minutaRules(rec) + "\n\nResponde apenas com JSON válido neste formato:\n" + SCHEMA + "\n\nTexto:\n<<<\n" + blocks[i] + "\n>>>", { signal, json: true, max: 2500, onWait: waitHook(rec, frac) }))));
+      }
+      setProg(rec, "A consolidar a minuta", .94);
+      const merged = { assunto: partials.map(p => p.assunto).filter(Boolean), cliente: partials.map(p => p.cliente).filter(Boolean), prazos: [], factos: [], posicionamento: [], acoes: [], diligencias: [] };
+      partials.forEach(p => { merged.prazos.push(...p.prazos.map(x => ({ data: x.date, descricao: x.desc, origem: x.src }))); merged.factos.push(...p.factos); merged.posicionamento.push(...p.posicionamento); merged.acoes.push(...p.acoes.map(a => ({ tarefa: a.text, responsavel: a.who, prazo: a.due }))); merged.diligencias.push(...p.diligencias); });
+      return normMin(parseJSON(await chat("Consolida estes elementos de minuta extraídos de várias partes da mesma diligência jurídica: elimina repetições, junta o que for o mesmo facto ou tarefa, mantém todos os prazos distintos e escolhe um único assunto e cliente. Não acrescentes nada que não esteja nos dados.\n\nResponde apenas com JSON válido neste formato:\n" + SCHEMA + "\n\nDados:\n" + JSON.stringify(merged), { signal, json: true, max: 3000, onWait: waitHook(rec, .94) })));
+    } catch (e) {
+      if (e.code === "toolarge" && size > 1500) { size = Math.floor(size / 2); continue; }
+      throw e;
+    }
+  }
+}
+
+async function processRec(id, opts) {
+  opts = opts || {};
+  const rec = RECS.get(id);
+  if (!rec || busy.has(id)) return;
+  if (!conf.key) { if (cur && cur.id === id) renderDetail(); return; }
+  const ctl = new AbortController(); busy.set(id, ctl);
+  rec.status = "busy"; rec.error = ""; rec.notice = ""; rec.prog = { label: "A preparar", frac: 0 };
+  await saveRec(rec); renderList(); if (cur && cur.id === id) renderDetail();
+  try {
+    let transcript;
+    if (opts.fromText) transcript = rec.transcript;
+    else { await stepTranscribe(rec, ctl.signal); if (!rec.tx.segments.length) throw appErr("Não foi detetada fala nesta gravação.", "empty"); transcript = await stepClean(rec, ctl.signal); }
+    const min = await stepMinuta(rec, transcript, ctl.signal);
+    if (rec.min) min.acoes.forEach(a => { const o = rec.min.acoes.find(x => x.text === a.text); if (o) a.done = o.done; });
+    if (!rec.client && min.cliente) rec.client = min.cliente;
+    rec.transcript = transcript; rec.min = min; rec.status = "ready";
+  } catch (e) {
+    rec.status = rec.min ? "ready" : "error";
+    const msg = e && e.code === "cancelled" ? "Elaboração interrompida. Toque em Continuar para retomar do ponto onde parou." : ((e && e.message) || "Ocorreu um erro inesperado.");
+    if (rec.min) rec.notice = msg; else rec.error = msg;
+  } finally {
+    busy.delete(id); rec.prog = null;
+    if (Vault.ready) await saveRec(rec);
+    renderList(); if (cur && cur.id === id) renderDetail();
+  }
+}
+
+/* ================= Folhas ================= */
+function openSheet(el) { el.classList.add("open"); el.setAttribute("aria-hidden", "false"); }
+function closeSheet(el) { el.classList.remove("open"); el.setAttribute("aria-hidden", "true"); }
+
+/* ================= Minuta ================= */
+let cur = null, playerUrl = null, confT = null;
+const player = $("#player");
+function revokePlayer() { if (playerUrl) { try { URL.revokeObjectURL(playerUrl); } catch {} playerUrl = null; } player.removeAttribute("src"); }
+async function openDoc(id) {
+  const rec = RECS.get(id); if (!rec) return;
+  cur = rec; rec.notice = "";
+  revokePlayer();
+  $("#dAudio").hidden = !rec.hasAudio;
+  if (rec.hasAudio) loadAudio(rec).then(parts => {
+    if (!parts || !cur || cur.id !== id) return;
+    try { playerUrl = URL.createObjectURL(new Blob(parts.map(p => p.buf), { type: parts[0].mime })); player.src = playerUrl; } catch {}
+  }).catch(() => {});
+  $("#delAudio").textContent = "Apagar áudio"; $("#delAudio").dataset.arm = "";
+  $("#docDel").textContent = "Eliminar"; $("#docDel").dataset.arm = "";
+  openSheet($("#docSheet")); $("#docBody").scrollTop = 0;
+  renderDetail();
+}
+function closeDoc() { closeSheet($("#docSheet")); try { player.pause(); } catch {} revokePlayer(); if (cur) saveRec(cur); cur = null; renderList(); }
+$("#docBack").addEventListener("click", closeDoc);
+
+function renderDetail() {
+  const r = cur; if (!r) return;
+  const c = $("#dClient"); if (document.activeElement !== c) c.value = r.client || "";
+  c.placeholder = (r.min && r.min.assunto) || "Cliente / Processo";
+  $("#dMeta").innerHTML = "<span>Data <b>" + esc(fmtNum(r.created)) + "</b></span><span>Início <b>" + esc(fmtHour(r.created)) + "</b></span><span>Duração <b>" + fmtDur(r.duration) + "</b></span>";
+  $("#docStatus").textContent = busy.has(r.id) ? "A elaborar" : r.min ? (r.hasAudio ? "" : "Só texto") : "";
+  $("#dAudio").hidden = !r.hasAudio;
+  renderState();
+  const has = !!r.min;
+  $("#dContent").hidden = !has;
+  ["#mailBtn", "#docxBtn", "#pdfBtn"].forEach(s => $(s).disabled = !has || busy.has(r.id));
+  if (has) renderMin();
+}
+$("#dClient").addEventListener("input", e => { if (!cur) return; cur.client = e.target.value; saveSoon(cur); });
+
+function renderState() {
+  const r = cur, box = $("#dState"); if (!r) return;
+  if (busy.has(r.id)) {
+    const p = r.prog || { label: "A preparar", frac: 0 };
+    box.innerHTML = '<div class="state"><b>' + esc(p.label) + '</b><div class="prog"><i style="width:' + Math.round(p.frac * 100) + '%"></i></div>Pode sair deste ecrã. O trabalho continua e fica guardado a cada etapa.<br><button class="btn ghost sm" id="stopProc" style="margin-top:12px">Interromper</button></div>';
+    $("#stopProc").onclick = () => { const c = busy.get(r.id); if (c) c.abort(); };
+    return;
+  }
+  if (r.notice) { box.innerHTML = '<div class="state">' + esc(r.notice) + "</div>"; return; }
+  if (r.min) { box.innerHTML = ""; return; }
+  if (!conf.key) {
+    box.innerHTML = '<div class="state"><b>Serviço de transcrição por configurar</b>Cole a chave do serviço nas Definições para elaborar a minuta.<br><button class="btn sm" id="goSet" style="margin-top:12px">Abrir definições</button></div>';
+    $("#goSet").onclick = openSettings; return;
+  }
+  if (!prefs.zdr && !r.consent) {
+    box.innerHTML = '<div class="state"><b>Confirmação de sigilo</b>A retenção zero ainda não está indicada como ativa. Sem ela, o serviço pode guardar o pedido até 30 dias para monitorização de abusos. Ative-a em <a style="color:var(--gold2)" href="https://console.groq.com/settings/data-controls" target="_blank" rel="noopener">console.groq.com/settings/data-controls</a> e assinale-a nas Definições.<br><button class="btn sm" id="goOn" style="margin-top:12px">Elaborar minuta desta diligência</button></div>';
+    $("#goOn").onclick = () => { r.consent = true; saveRec(r); processRec(r.id); }; return;
+  }
+  if (r.status === "error") {
+    box.innerHTML = '<div class="state"><b>' + esc(r.error || "Ocorreu um erro.") + '</b>O que já foi feito está guardado.<br><button class="btn sm" id="goOn" style="margin-top:12px">Continuar</button></div>';
+    $("#goOn").onclick = () => processRec(r.id); return;
+  }
+  box.innerHTML = '<div class="state"><b>Pronta a elaborar</b>A gravação está guardada e encriptada neste dispositivo.<br><button class="btn sm" id="goOn" style="margin-top:12px">Elaborar minuta</button></div>';
+  $("#goOn").onclick = () => processRec(r.id);
+}
+
+function editor(value, onInput, ph, cls) {
+  const ta = document.createElement("textarea"); ta.className = cls || "ed"; ta.rows = 1; ta.value = value || ""; if (ph) ta.placeholder = ph;
+  ta.addEventListener("input", () => { onInput(ta.value); autoGrow(ta); saveSoon(cur); });
+  requestAnimationFrame(() => autoGrow(ta)); return ta;
+}
+function rmBtn(fn) { const x = document.createElement("button"); x.className = "x"; x.textContent = "×"; x.setAttribute("aria-label", "Remover"); x.onclick = () => { fn(); saveSoon(cur); renderMin(); }; return x; }
+function listEditor(host, arr, ph) {
+  host.innerHTML = "";
+  if (!arr.length) { host.innerHTML = '<div class="none">Nada registado.</div>'; return; }
+  arr.forEach((v, i) => {
+    const row = document.createElement("div"); row.className = "li";
+    const n = document.createElement("i"); n.textContent = "—";
+    const b = document.createElement("div"); b.className = "b"; b.append(editor(v, val => arr[i] = val, ph));
+    row.append(n, b, rmBtn(() => arr.splice(i, 1))); host.append(row);
+  });
+}
+function renderMin() {
+  const m = cur.min;
+  const crit = $("#dCrit"); crit.innerHTML = "";
+  if (!m.prazos.length) crit.innerHTML = '<div class="none">Não foram mencionados prazos ou datas.</div>';
+  m.prazos.forEach((p, i) => {
+    const row = document.createElement("div"); row.className = "row";
+    const d = document.createElement("input"); d.className = "in2 d"; d.value = p.date; d.placeholder = "Data"; d.setAttribute("aria-label", "Data ou prazo");
+    d.addEventListener("input", () => { p.date = d.value; saveSoon(cur); });
+    const b = document.createElement("div"); b.append(editor(p.desc, v => p.desc = v, "Ato ou evento"));
+    if (p.src) { const o = document.createElement("div"); o.className = "o"; o.textContent = "«" + p.src + "»"; b.append(o); }
+    row.append(d, b, rmBtn(() => m.prazos.splice(i, 1))); crit.append(row);
+  });
+  listEditor($("#dFactos"), m.factos, "Facto");
+  listEditor($("#dPos"), m.posicionamento, "Posicionamento");
+  listEditor($("#dDilig"), m.diligencias, "Diligência");
+  const acts = $("#dAcoes"); acts.innerHTML = "";
+  if (!m.acoes.length) acts.innerHTML = '<div class="none">Nada registado.</div>';
+  m.acoes.forEach((a, i) => {
+    const row = document.createElement("div"); row.className = "li" + (a.done ? " done" : "");
+    const ck = document.createElement("button"); ck.className = "ck" + (a.done ? " on" : ""); ck.setAttribute("aria-label", a.done ? "Marcar como por fazer" : "Marcar como feita");
+    ck.onclick = () => { a.done = !a.done; saveSoon(cur); renderMin(); };
+    const b = document.createElement("div"); b.className = "b"; b.append(editor(a.text, v => a.text = v, "Tarefa"));
+    const sub = document.createElement("div"); sub.className = "sub2";
+    [["who", "Responsável"], ["due", "Prazo"]].forEach(([k, ph]) => { const inp = document.createElement("input"); inp.value = a[k]; inp.placeholder = ph; inp.setAttribute("aria-label", ph); inp.addEventListener("input", () => { a[k] = inp.value; saveSoon(cur); }); sub.append(inp); });
+    b.append(sub); row.append(ck, b, rmBtn(() => m.acoes.splice(i, 1))); acts.append(row);
+  });
+  const tr = $("#dTr");
+  if (document.activeElement !== tr) { tr.value = cur.transcript || ""; requestAnimationFrame(() => autoGrow(tr)); }
+}
+$("#dTr").addEventListener("input", e => { if (!cur) return; cur.transcript = e.target.value; autoGrow(e.target); saveSoon(cur); });
+$$("[data-add]").forEach(b => b.addEventListener("click", () => {
+  if (!cur || !cur.min) return; const k = b.dataset.add, m = cur.min;
+  if (k === "prazos") m.prazos.push({ date: "", desc: "", src: "" });
+  else if (k === "acoes") m.acoes.push({ text: "", who: "", due: "", done: false });
+  else m[k].push("");
+  renderMin(); saveSoon(cur);
+}));
+$("#redo").addEventListener("click", () => { if (cur && cur.transcript && conf.key) processRec(cur.id, { fromText: true }); else toast("Configure primeiro o serviço nas Definições."); });
+armed($("#delAudio"), "Apagar áudio", "Confirmar", async () => { if (!cur) return; revokePlayer(); await deleteAudio(cur); renderDetail(); toast("Áudio apagado. A minuta foi mantida."); });
+armed($("#docDel"), "Eliminar", "Confirmar", async () => {
+  if (!cur) return; const r = cur, c = busy.get(r.id); if (c) c.abort();
+  await deleteAudio(r).catch(() => {}); await DB.del("recs", r.id).catch(() => {}); RECS.delete(r.id); cur = null; closeDoc(); toast("Minuta eliminada");
+});
+
+/* ================= Exportação ================= */
+function docData() {
+  const r = cur, m = r.min;
+  return {
+    office: conf.office.trim(), letter: conf.letter.split(/\n+/).map(s => s.trim()).filter(Boolean),
+    client: (r.client || "").trim(), subject: m.assunto,
+    date: fmtNum(r.created), longDate: fmtLong(r.created), hour: fmtHour(r.created), dur: fmtDur(r.duration),
+    prazos: m.prazos.filter(p => (p.date + p.desc).trim()), factos: m.factos.filter(s => s.trim()), pos: m.posicionamento.filter(s => s.trim()),
+    acoes: m.acoes.filter(a => a.text.trim()), dilig: m.diligencias.filter(s => s.trim()), transcript: r.transcript || ""
+  };
+}
+const actLine = a => a.text + (a.who ? " (responsável: " + a.who + ")" : "") + (a.due ? " (prazo: " + a.due + ")" : "");
+const prazoLine = p => (p.date || "s/ data") + " — " + p.desc;
+const titleFor = d => d.client || d.subject || "Diligência";
+function safeName(s) { return ("Minuta - " + (s || "diligencia")).replace(/[\\/:*?"<>|]+/g, "").replace(/\s+/g, " ").trim().slice(0, 90); }
+async function afterExport() {
+  if (prefs.retain === "delete" && cur && cur.hasAudio) { revokePlayer(); await deleteAudio(cur); renderDetail(); toast("Exportado. O áudio foi apagado e o texto mantido.", 3500); }
+}
+
+function mailBody(d, full) {
+  const L = [];
+  if (d.office) L.push(d.office);
+  L.push("MINUTA DE DILIGÊNCIA", "Cliente / Processo: " + (d.client || "—"), "Data: " + d.date + ", " + d.hour + "   Duração: " + d.dur, "");
+  L.push("PRAZOS E DATAS CRÍTICAS"); if (!d.prazos.length) L.push("Não foram mencionados prazos."); d.prazos.forEach(p => L.push("• " + prazoLine(p)));
+  L.push("", "SUMÁRIO EXECUTIVO", "Factos relevantes:"); (d.factos.length ? d.factos : ["—"]).forEach(s => L.push("• " + s));
+  L.push("Posicionamento:"); (d.pos.length ? d.pos : ["—"]).forEach(s => L.push("• " + s));
+  L.push("", "PLANO DE AÇÃO", "Tarefas:"); (d.acoes.length ? d.acoes : [{ text: "—" }]).forEach(a => L.push((a.done ? "☑ " : "☐ ") + actLine(a)));
+  L.push("Diligências futuras:"); (d.dilig.length ? d.dilig : ["—"]).forEach(s => L.push("• " + s));
+  L.push("", "TRANSCRIÇÃO INTEGRAL");
+  L.push(full ? d.transcript : "A transcrição integral segue no documento Word ou PDF em anexo.");
+  L.push("", "Documento confidencial, sujeito a sigilo profissional.");
+  return L.join("\n");
+}
+$("#mailBtn").addEventListener("click", async () => {
+  if (!cur || !cur.min) return;
+  const d = docData(), subject = "Minuta de Reunião - " + titleFor(d);
+  let body = mailBody(d, true), url = "mailto:" + encodeURIComponent(conf.mailTo || "") + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
+  if (url.length > 15000) { body = mailBody(d, false); url = "mailto:" + encodeURIComponent(conf.mailTo || "") + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body); toast("A transcrição é longa: anexe o Word ou PDF ao email.", 4000); }
+  const a = document.createElement("a"); a.href = url; a.rel = "noopener"; document.body.append(a); a.click(); a.remove();
+  setTimeout(afterExport, 1500);
+});
+
+async function saveFile(filename, data, mime) {
+  const blob = new Blob([data], { type: mime }), a = document.createElement("a");
+  if (!("download" in a)) {
+    try { const f = new File([blob], filename, { type: mime }); if (navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f], title: filename }); return true; } } catch (e) { if (e && e.name === "AbortError") return false; }
+  }
+  a.href = URL.createObjectURL(blob); a.download = filename; a.rel = "noopener"; document.body.append(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+  return true;
+}
+
+/* Word timbrado: cabeçalho e rodapé reais do Word, com numeração de páginas */
+const xe = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "");
+const GOLD = "D06A1F", GREY = "6B6F76", INK = "14213D";
+function run(t, o) {
+  o = o || {};
+  return '<w:r><w:rPr><w:rFonts w:ascii="' + (o.serif ? "Cambria" : "Calibri") + '" w:hAnsi="' + (o.serif ? "Cambria" : "Calibri") + '"/>' + (o.b ? "<w:b/>" : "") + (o.i ? "<w:i/>" : "") + (o.caps ? "<w:caps/>" : "") + (o.sp ? '<w:spacing w:val="' + o.sp + '"/>' : "") + '<w:color w:val="' + (o.color || INK) + '"/><w:sz w:val="' + (o.sz || 21) + '"/></w:rPr><w:t xml:space="preserve">' + xe(t) + "</w:t></w:r>";
+}
+function para(runs, o) {
+  o = o || {};
+  return "<w:p><w:pPr>" + (o.keep ? "<w:keepNext/>" : "") + (o.border ? '<w:pBdr><w:bottom w:val="single" w:sz="4" w:space="4" w:color="' + GOLD + '"/></w:pBdr>' : "") + (o.shade ? '<w:shd w:val="clear" w:color="auto" w:fill="FCF0E6"/>' : "") + (o.leftBar ? '<w:pBdr><w:left w:val="single" w:sz="18" w:space="8" w:color="' + GOLD + '"/></w:pBdr>' : "") +
+    '<w:spacing w:before="' + (o.before || 0) + '" w:after="' + (o.after == null ? 100 : o.after) + '" w:line="288" w:lineRule="auto"/>' + (o.ind ? '<w:ind w:left="' + o.ind + '" w:hanging="' + (o.hang || 260) + '"/>' : "") + (o.jc ? '<w:jc w:val="' + o.jc + '"/>' : "") + "</w:pPr>" + runs + "</w:p>";
+}
+const H2 = t => para(run(t, { serif: 1, caps: 1, sp: 30, color: GOLD, sz: 20, b: 1 }), { before: 320, after: 120, border: 1, keep: 1 });
+const H3 = t => para(run(t, { b: 1, color: GREY, sz: 19 }), { before: 140, after: 60, keep: 1 });
+const BUL = (t, mark) => para(run((mark || "—") + "  ", { color: GOLD }) + run(t), { ind: 360, after: 80 });
+async function exportDocx() {
+  if (!cur || !cur.min) return;
+  if (!window.JSZip) { toast("O exportador não carregou. Verifique a ligação e reabra a app."); return; }
+  const d = docData();
+  let body = "";
+  body += para(run("MINUTA DE DILIGÊNCIA", { serif: 1, sp: 40, color: GOLD, sz: 18, b: 1 }), { after: 60 });
+  body += para(run(titleFor(d), { serif: 1, sz: 36 }), { after: 60 });
+  if (d.client && d.subject) body += para(run(d.subject, { i: 1, color: GREY, sz: 21 }), { after: 60 });
+  body += para(run("Data: ", { color: GREY, sz: 19 }) + run(d.longDate + ", " + d.hour, { sz: 19 }) + run("     Duração: ", { color: GREY, sz: 19 }) + run(d.dur, { sz: 19 }), { after: 200, border: 1 });
+  body += H2("Prazos & Datas Críticas");
+  if (!d.prazos.length) body += para(run("Não foram mencionados prazos ou datas.", { color: GREY }), { leftBar: 1, shade: 1 });
+  d.prazos.forEach(p => body += para(run((p.date || "s/ data") + "   ", { b: 1, color: GOLD }) + run(p.desc) + (p.src ? run("   «" + p.src + "»", { i: 1, color: GREY, sz: 18 }) : ""), { leftBar: 1, shade: 1, after: 0 }));
+  body += H2("Sumário Executivo");
+  body += H3("Factos relevantes"); (d.factos.length ? d.factos : ["—"]).forEach(s => body += BUL(s));
+  body += H3("Posicionamento"); (d.pos.length ? d.pos : ["—"]).forEach(s => body += BUL(s));
+  body += H2("Plano de Ação");
+  body += H3("Tarefas"); (d.acoes.length ? d.acoes : [{ text: "—" }]).forEach(a => body += BUL(actLine(a), a.done ? "☑" : "☐"));
+  body += H3("Diligências futuras"); (d.dilig.length ? d.dilig : ["—"]).forEach(s => body += BUL(s));
+  body += H2("Transcrição Integral");
+  d.transcript.split(/\n+/).filter(x => x.trim()).forEach(p => {
+    const m = p.match(/^(Interveniente\s+\d+):\s*([\s\S]*)$/);
+    body += m ? para(run(m[1] + ": ", { b: 1, color: GOLD, serif: 1 }) + run(m[2], { serif: 1 }), { after: 120, jc: "both" }) : para(run(p.trim(), { serif: 1 }), { after: 120, jc: "both" });
+  });
+  const header = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
+    para(run((d.office || "Minuta de diligência").toUpperCase(), { serif: 1, sp: 40, color: INK, sz: 20, b: 1 }), { after: 20, jc: "center" }) +
+    (d.letter.length ? para(run(d.letter.join("   |   "), { color: GREY, sz: 15 }), { after: 0, jc: "center", border: 1 }) : para("", { border: 1, after: 0 })) + "</w:hdr>";
+  const footer = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:p><w:pPr><w:pBdr><w:top w:val="single" w:sz="4" w:space="4" w:color="' + GOLD + '"/></w:pBdr><w:tabs><w:tab w:val="right" w:pos="9070"/></w:tabs></w:pPr>' +
+    run("Documento confidencial, sujeito a sigilo profissional.", { color: GREY, sz: 15 }) + '<w:r><w:tab/></w:r>' + run("Página ", { color: GREY, sz: 15 }) +
+    '<w:r><w:rPr><w:color w:val="' + GREY + '"/><w:sz w:val="15"/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:rPr><w:color w:val="' + GREY + '"/><w:sz w:val="15"/></w:rPr><w:instrText xml:space="preserve"> PAGE </w:instrText></w:r><w:r><w:rPr><w:color w:val="' + GREY + '"/><w:sz w:val="15"/></w:rPr><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr><w:color w:val="' + GREY + '"/><w:sz w:val="15"/></w:rPr><w:t>1</w:t></w:r><w:r><w:rPr><w:color w:val="' + GREY + '"/><w:sz w:val="15"/></w:rPr><w:fldChar w:fldCharType="end"/></w:r></w:p></w:ftr>';
+  const doc = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>' + body +
+    '<w:sectPr><w:headerReference w:type="default" r:id="rId2"/><w:footerReference w:type="default" r:id="rId3"/><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1700" w:right="1418" w:bottom="1418" w:left="1418" w:header="600" w:footer="600" w:gutter="0"/></w:sectPr></w:body></w:document>';
+  const zip = new JSZip();
+  zip.file("[Content_Types].xml", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/><Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/></Types>');
+  zip.file("_rels/.rels", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/></Relationships>');
+  zip.file("word/_rels/document.xml.rels", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/></Relationships>');
+  zip.file("docProps/core.xml", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>' + xe("Minuta - " + titleFor(d)) + "</dc:title><dc:creator>" + xe(d.office || "CG VERTEX") + '</dc:creator><dcterms:created xsi:type="dcterms:W3CDTF">' + new Date(cur.created).toISOString().replace(/\.\d+Z$/, "Z") + "</dcterms:created></cp:coreProperties>");
+  zip.file("word/document.xml", doc); zip.file("word/header1.xml", header); zip.file("word/footer1.xml", footer);
+  const out = await zip.generateAsync({ type: "arraybuffer", mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+  if (await saveFile(safeName(titleFor(d)) + ".docx", out, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")) afterExport();
+}
+$("#docxBtn").addEventListener("click", () => exportDocx().catch(() => toast("Não foi possível criar o documento Word.")));
+
+/* PDF timbrado */
+async function exportPdf() {
+  if (!cur || !cur.min) return;
+  if (!window.jspdf || !window.jspdf.jsPDF) { toast("O exportador não carregou. Verifique a ligação e reabra a app."); return; }
+  const d = docData(), pdf = new window.jspdf.jsPDF({ unit: "mm", format: "a4" });
+  const M = 22, W = 210 - 2 * M, TOP = 38, BOTTOM = 297 - 22, gold = [208, 106, 31], grey = [107, 111, 118], ink = [20, 33, 61];
+  let y = TOP;
+  const clean = s => String(s).replace(/[☐☑]/g, "");
+  const ensure = h => { if (y + h > BOTTOM) { pdf.addPage(); y = TOP; } };
+  const text = (s, size, o) => {
+    o = o || {};
+    pdf.setFont(o.serif ? "times" : "helvetica", o.bold && o.italic ? "bolditalic" : o.bold ? "bold" : o.italic ? "italic" : "normal");
+    pdf.setFontSize(size); pdf.setTextColor.apply(pdf, o.color || ink);
+    const lh = size * .3528 * (o.lh || 1.45), x = M + (o.indent || 0);
+    pdf.splitTextToSize(clean(s), W - (o.indent || 0)).forEach(line => { ensure(lh); pdf.text(line, x, y + lh * .75); y += lh; });
+    y += o.after == null ? 1.5 : o.after;
+  };
+  const h2 = t => { y += 5; ensure(18); text(t.toUpperCase(), 9.5, { bold: 1, color: gold, after: 1 }); pdf.setDrawColor.apply(pdf, gold); pdf.setLineWidth(.25); pdf.line(M, y, M + W, y); y += 4; };
+  const h3 = t => { ensure(12); text(t, 9.5, { bold: 1, color: grey, after: 1 }); };
+  const bullet = (t, mark) => { ensure(6); pdf.setTextColor.apply(pdf, gold); pdf.setFont("helvetica", "normal"); pdf.setFontSize(10); pdf.text(mark || "—", M, y + 3.6); text(t, 10, { indent: 6 }); };
+  text("MINUTA DE DILIGÊNCIA", 8.5, { bold: 1, color: gold, after: 1.5 });
+  text(titleFor(d), 19, { serif: 1, after: 1 });
+  if (d.client && d.subject) text(d.subject, 10.5, { italic: 1, color: grey, after: 1 });
+  text("Data: " + d.longDate + ", " + d.hour + "     Duração: " + d.dur, 9, { color: grey, after: 2 });
+  pdf.setDrawColor.apply(pdf, gold); pdf.setLineWidth(.25); pdf.line(M, y, M + W, y); y += 3;
+  h2("Prazos & Datas Críticas");
+  const pz = d.prazos.length ? d.prazos : [{ date: "", desc: "Não foram mencionados prazos ou datas.", src: "" }];
+  pz.forEach(p => {
+    pdf.setFont("helvetica", "normal"); pdf.setFontSize(10);
+    const desc = pdf.splitTextToSize(p.desc, W - 40), src = p.src ? pdf.splitTextToSize("«" + p.src + "»", W - 40) : [];
+    const h = (desc.length + src.length) * 5.1 + 4; ensure(h);
+    pdf.setFillColor(252, 240, 230); pdf.rect(M, y, W, h, "F"); pdf.setFillColor.apply(pdf, gold); pdf.rect(M, y, .9, h, "F");
+    pdf.setFont("helvetica", "bold"); pdf.setTextColor.apply(pdf, gold); pdf.text(p.date || (d.prazos.length ? "s/ data" : ""), M + 4, y + 5.6);
+    pdf.setFont("helvetica", "normal"); pdf.setTextColor.apply(pdf, ink); desc.forEach((l, i) => pdf.text(l, M + 36, y + 5.6 + i * 5.1));
+    pdf.setFont("helvetica", "italic"); pdf.setFontSize(8.5); pdf.setTextColor.apply(pdf, grey); src.forEach((l, i) => pdf.text(l, M + 36, y + 5.6 + (desc.length + i) * 5.1));
+    y += h + 1;
+  });
+  h2("Sumário Executivo");
+  h3("Factos relevantes"); (d.factos.length ? d.factos : ["—"]).forEach(s => bullet(s));
+  y += 2; h3("Posicionamento"); (d.pos.length ? d.pos : ["—"]).forEach(s => bullet(s));
+  h2("Plano de Ação");
+  h3("Tarefas");
+  (d.acoes.length ? d.acoes : [{ text: "—" }]).forEach(a => {
+    ensure(6); pdf.setDrawColor.apply(pdf, gold); pdf.setLineWidth(.3); pdf.rect(M, y + 1.2, 3.2, 3.2, "S");
+    if (a.done) { pdf.setLineWidth(.5); pdf.line(M + .6, y + 2.9, M + 1.4, y + 3.8); pdf.line(M + 1.4, y + 3.8, M + 2.7, y + 1.8); }
+    text(actLine(a), 10, { indent: 6 });
+  });
+  y += 2; h3("Diligências futuras"); (d.dilig.length ? d.dilig : ["—"]).forEach(s => bullet(s));
+  h2("Transcrição Integral");
+  d.transcript.split(/\n+/).filter(x => x.trim()).forEach(p => text(p.trim(), 10.5, { serif: 1, after: 2.5, lh: 1.5 }));
+  const n = pdf.getNumberOfPages();
+  for (let i = 1; i <= n; i++) {
+    pdf.setPage(i);
+    pdf.setFont("times", "bold"); pdf.setFontSize(10); pdf.setTextColor.apply(pdf, ink); pdf.setCharSpace(.6);
+    pdf.text((d.office || "Minuta de diligência").toUpperCase(), 105, 16, { align: "center" }); pdf.setCharSpace(0);
+    if (d.letter.length) { pdf.setFont("helvetica", "normal"); pdf.setFontSize(7.5); pdf.setTextColor.apply(pdf, grey); pdf.text(pdf.splitTextToSize(d.letter.join("   |   "), W)[0], 105, 21, { align: "center" }); }
+    pdf.setDrawColor.apply(pdf, gold); pdf.setLineWidth(.3); pdf.line(M, 25, 210 - M, 25);
+    pdf.line(M, 297 - 15, 210 - M, 297 - 15);
+    pdf.setFont("helvetica", "normal"); pdf.setFontSize(7.5); pdf.setTextColor.apply(pdf, grey);
+    pdf.text("Documento confidencial, sujeito a sigilo profissional.", M, 297 - 10.5);
+    pdf.text("Página " + i + " de " + n, 210 - M, 297 - 10.5, { align: "right" });
+  }
+  if (await saveFile(safeName(titleFor(d)) + ".pdf", pdf.output("arraybuffer"), "application/pdf")) afterExport();
+}
+$("#pdfBtn").addEventListener("click", () => exportPdf().catch(() => toast("Não foi possível criar o PDF.")));
+
+/* ================= Definições ================= */
+const setEl = $("#setSheet");
+function paintModels(list) {
+  const sel = $("#sModel"), items = list || (conf.model ? [conf.model] : []);
+  sel.innerHTML = items.length ? items.map(id => '<option value="' + esc(id) + '">' + esc(id) + "</option>").join("") : '<option value="">Escolhido automaticamente</option>';
+  sel.value = conf.model || "";
+}
+function paintSec() {
+  $("#sZdr").setAttribute("aria-checked", prefs.zdr ? "true" : "false");
+  $("#zdrNote").textContent = prefs.zdr ? "" : "Sem retenção zero, o serviço pode guardar os pedidos até 30 dias para monitorização de abusos. Recomenda-se ativá-la antes de usar com clientes.";
+  const hasBio = !!Vault.bio();
+  $("#sBio").setAttribute("aria-checked", hasBio ? "true" : "false");
+  $("#sBio").disabled = !bioAvail;
+  $("#bioNote").textContent = !bioAvail ? "Este dispositivo ou browser não disponibiliza biometria para sites." : hasBio ? "A chave dos dados também fica protegida pela biometria deste dispositivo." : "";
+}
+async function paintUsage() {
+  let t = RECS.size + (RECS.size === 1 ? " minuta" : " minutas") + " neste dispositivo, " + [...RECS.values()].filter(r => r.hasAudio).length + " com áudio.";
+  try { if (navigator.storage && navigator.storage.estimate) { const e = await navigator.storage.estimate(); t += " Espaço usado: " + (e.usage / 1048576).toFixed(1) + " MB."; } } catch {}
+  $("#usage").textContent = t;
+}
+function openSettings() {
+  $("#sOffice").value = conf.office; $("#sLetter").value = conf.letter; $("#sMailTo").value = conf.mailTo; $("#sKey").value = conf.key;
+  $("#sAuto").value = String(prefs.autoLock); $("#sRetain").value = prefs.retain; $("#keyNote").textContent = "";
+  paintModels(null); paintSec(); paintUsage(); openSheet(setEl);
+}
+$("#setBtn").addEventListener("click", openSettings);
+$("#setBack").addEventListener("click", () => { closeSheet(setEl); saveConf(); renderBrand(); if (cur) renderDetail(); });
+[["#sOffice", "office"], ["#sLetter", "letter"], ["#sMailTo", "mailTo"]].forEach(([s, k]) => $(s).addEventListener("input", e => { conf[k] = e.target.value; clearTimeout(confT); confT = setTimeout(saveConf, 400); }));
+$("#sKey").addEventListener("input", e => { conf.key = e.target.value.trim(); conf.model = ""; clearTimeout(confT); confT = setTimeout(saveConf, 400); $("#keyNote").textContent = ""; });
+$("#sModel").addEventListener("change", e => { if (e.target.value) { conf.model = e.target.value; saveConf(); } });
+$("#checkKey").addEventListener("click", async () => {
+  const b = $("#checkKey"), note = $("#keyNote");
+  if (!conf.key) { note.textContent = "Cole primeiro a chave."; return; }
+  b.disabled = true; note.textContent = "A verificar…";
+  try {
+    const list = await listModels();
+    if (!conf.model || !list.includes(conf.model)) conf.model = list[0] || "";
+    await saveConf(); paintModels(list);
+    note.textContent = list.length ? "Chave válida. Transcrição: " + STT_MODEL + ". Texto: " + conf.model + "." : "A chave é válida, mas não tem modelos de texto disponíveis.";
+  } catch (e) { note.textContent = e.message || "Não foi possível verificar a chave."; }
+  finally { b.disabled = false; }
+});
+$$("[data-show]").forEach(b => b.addEventListener("click", e => { e.preventDefault(); const i = $("#" + b.dataset.show); const show = i.type === "password"; i.type = show ? "text" : "password"; b.textContent = show ? "Ocultar" : "Ver"; }));
+$("#sZdr").addEventListener("click", () => { prefs.zdr = !prefs.zdr; savePrefs(); paintSec(); });
+$("#sAuto").addEventListener("change", e => { prefs.autoLock = +e.target.value; savePrefs(); });
+$("#sRetain").addEventListener("change", e => { prefs.retain = e.target.value; savePrefs(); });
+$("#sBio").addEventListener("click", async () => {
+  if (!bioAvail) return;
+  if (Vault.bio()) { Vault.clearBio(); paintSec(); toast("Desbloqueio biométrico desativado"); return; }
+  try { await bioCreate(); toast("Desbloqueio biométrico ativado"); }
+  catch (e) { toast(e && e.message === "noprf" ? "Este dispositivo não permite proteger a chave com biometria. Continue a usar o PIN." : "A biometria não foi ativada.", 4500); }
+  paintSec();
+});
+$("#chPin").addEventListener("click", async () => { if (await askLock("verify")) { const ok = await askLock("new1"); if (ok) toast("PIN alterado"); } });
+armed($("#wipe"), "Apagar todos os dados", "Toque de novo para apagar tudo", async () => {
+  busy.forEach(c => c.abort()); await DB.wipe(); Vault.reset(); try { localStorage.removeItem("mx.fail"); localStorage.removeItem("mx.prefs"); } catch {} location.reload();
+});
+
+/* ================= Arranque ================= */
+function renderBrand() { const b = $("#brand"); b.textContent = conf.office || ""; b.hidden = !conf.office; document.title = "CG VERTEX, Minutas"; }
+async function afterUnlock() {
+  try { const c = await sget("conf", "main"); if (c) conf = Object.assign(conf, c); } catch {}
+  RECS.clear();
+  const keys = await DB.keys("recs").catch(() => []);
+  for (const k of keys) {
+    try { const r = await sget("recs", k); if (!r) continue; if (r.status === "busy") { r.status = r.min ? "ready" : "error"; r.error = "A elaboração foi interrompida. Toque em Continuar para retomar."; } RECS.set(r.id, r); } catch {}
+  }
+  unlocked = true; renderBrand(); renderList();
+  $("#lock").hidden = true; $("#home").setAttribute("aria-hidden", "false");
+  endLock(true);
+  checkRecovery();
+}
+function makeIcon() {
+  try {
+    const c = document.createElement("canvas"); c.width = c.height = 512; const g = c.getContext("2d");
+    g.fillStyle = "#14213D"; g.fillRect(0, 0, 512, 512);
+    g.fillStyle = "#E47A2A"; g.font = "bold 215px Arial, Helvetica, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("CG", 256, 232);
+    g.fillRect(138, 368, 236, 13);
+    const url = c.toDataURL("image/png");
+    [["apple-touch-icon", url], ["icon", url]].forEach(([rel, href]) => { const l = document.createElement("link"); l.rel = rel; l.href = href; document.head.append(l); });
+  } catch {}
+}
+(async function init() {
+  makeIcon();
+  if ("serviceWorker" in navigator && window.isSecureContext && location.protocol === "https:") {
+    navigator.serviceWorker.register("sw.js", { scope: "./" }).then(reg => { try { reg.update(); } catch {} }).catch(() => {});
+  }
+  if (!cryptoOk) {
+    lockUI("unlock"); $("#lkTitle").textContent = "Abra através de https"; $("#lkSub").textContent = "A proteção dos dados exige uma ligação segura. Publique a app no Netlify e abra o endereço https.";
+    $("#pad").hidden = true; $("#forgot").hidden = true; $("#dots").hidden = true; return;
+  }
+  try { if (window.PublicKeyCredential && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) bioAvail = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(); } catch { bioAvail = false; }
+  lockUI(Vault.exists ? "unlock" : "setup1");
+  if (Vault.exists && Vault.bio() && bioAvail) setTimeout(bioUnlock, 400);
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch {}
+})();
+})();
+</script>
+</body>
+</html>
