@@ -226,6 +226,12 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--text2) 50%),
 
 .instbtn{min-height:36px;padding:0 14px;border-radius:18px;border:1px solid var(--gold);color:var(--gold);font-size:14px;font-weight:600;margin-right:4px;align-self:center}
 .instbtn:active{background:var(--gold-soft)}
+
+.vbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:18px 0 0}
+.vb{min-height:36px;padding:0 14px;border-radius:18px;border:1px solid var(--line);font-size:14px;font-weight:600;color:var(--text2)}
+.vb.on{background:var(--gold);border-color:var(--gold);color:#fff}
+.vbar select{width:auto;min-height:36px;border-radius:18px;font-size:14px;font-weight:600;color:var(--gold);border-color:var(--gold-soft);background-color:transparent;padding:0 30px 0 14px;background-position:calc(100% - 17px) 15px,calc(100% - 12px) 15px}
+.vnote{flex-basis:100%;font-size:13px;color:var(--text2);margin:2px 2px 0}
 @media (min-width:760px){ .crit .row{grid-template-columns:140px minmax(0,1fr) auto} .doc{padding-top:34px} h1{font-size:40px} }
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 </style>
@@ -295,6 +301,7 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--text2) 50%),
       <div class="audio" id="dAudio"><audio id="player" controls preload="metadata"></audio><button class="link danger" id="delAudio">Apagar áudio</button></div>
       <div id="dState"></div>
       <div id="dContent" hidden>
+        <div class="vbar" id="vbar"></div>
         <section class="sec"><h2>PRAZOS &amp; DATAS CRÍTICAS</h2><div class="crit" id="dCrit"></div><button class="add" data-add="prazos">Adicionar prazo</button></section>
         <section class="sec"><h2>SUMÁRIO EXECUTIVO</h2>
           <h3>Factos relevantes</h3><div id="dFactos"></div><button class="add" data-add="factos">Adicionar facto</button>
@@ -430,6 +437,31 @@ const fmtShort = t => new Intl.DateTimeFormat("pt-PT", { day: "numeric", month: 
 const fmtLong = t => new Intl.DateTimeFormat("pt-PT", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date(t));
 const fmtHour = t => new Intl.DateTimeFormat("pt-PT", { hour: "2-digit", minute: "2-digit" }).format(new Date(t));
 const fmtNum = t => new Intl.DateTimeFormat("pt-PT", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(t));
+/* Idiomas das minutas: o original é sempre português; as traduções ficam guardadas na própria minuta */
+const LANGS = { pt: "Português", en: "Inglês", es: "Espanhol", fr: "Francês", de: "Alemão", it: "Italiano", nl: "Neerlandês" };
+const LOCALE = { pt: "pt-PT", en: "en-GB", es: "es-ES", fr: "fr-FR", de: "de-DE", it: "it-IT", nl: "nl-NL" };
+const LANG_NAME = { pt: "português europeu", en: "inglês (britânico)", es: "espanhol", fr: "francês", de: "alemão", it: "italiano", nl: "neerlandês" };
+const LB = {
+  pt: { kind: "MINUTA DE DILIGÊNCIA", crit: "Prazos & Datas Críticas", sum: "Sumário Executivo", fac: "Factos relevantes", pos: "Posicionamento", plan: "Plano de Ação", tasks: "Tarefas", dil: "Diligências futuras", tr: "Transcrição por Intervenientes", noDates: "Não foram mencionados prazos ou datas.", nodate: "s/ data", resp: "responsável", due: "prazo", attach: "A transcrição integral segue no documento Word ou PDF em anexo.", confid: "Documento confidencial, sujeito a sigilo profissional.", page: "Página", of: "de", file: "Minuta", proc: "Proc.",
+    lawyer: "Advogado / Cédula", procL: "Processo n.º / NIG / NUIPC", court: "Tribunal / Entidade", client: "Cliente", adv: "Parte contrária", people: "Intervenientes", kindL: "Tipo de diligência", place: "Local", date: "Data", dur: "Duração", ref: "Referência interna" },
+  en: { kind: "MINUTES OF PROCEEDINGS", crit: "Deadlines & Critical Dates", sum: "Executive Summary", fac: "Relevant facts", pos: "Position", plan: "Action Plan", tasks: "Tasks", dil: "Future steps", tr: "Transcript by Speaker", noDates: "No deadlines or dates were mentioned.", nodate: "no date", resp: "owner", due: "deadline", attach: "The full transcript is in the attached Word or PDF document.", confid: "Confidential document, subject to legal professional privilege.", page: "Page", of: "of", file: "Minutes", proc: "Case",
+    lawyer: "Lawyer / Bar number", procL: "Case no. / NIG / NUIPC", court: "Court / Entity", client: "Client", adv: "Opposing party", people: "Participants", kindL: "Type of proceeding", place: "Place", date: "Date", dur: "Duration", ref: "Internal reference" },
+  es: { kind: "ACTA DE DILIGENCIA", crit: "Plazos y Fechas Críticas", sum: "Resumen Ejecutivo", fac: "Hechos relevantes", pos: "Posicionamiento", plan: "Plan de Acción", tasks: "Tareas", dil: "Diligencias futuras", tr: "Transcripción por Intervinientes", noDates: "No se mencionaron plazos ni fechas.", nodate: "sin fecha", resp: "responsable", due: "plazo", attach: "La transcripción íntegra figura en el documento Word o PDF adjunto.", confid: "Documento confidencial, sujeto a secreto profesional.", page: "Página", of: "de", file: "Acta", proc: "Proc.",
+    lawyer: "Abogado / Colegiado n.º", procL: "Procedimiento n.º / NIG / NUIPC", court: "Tribunal / Entidad", client: "Cliente", adv: "Parte contraria", people: "Intervinientes", kindL: "Tipo de diligencia", place: "Lugar", date: "Fecha", dur: "Duración", ref: "Referencia interna" },
+  fr: { kind: "PROCÈS-VERBAL DE DILIGENCE", crit: "Délais & Dates Critiques", sum: "Synthèse", fac: "Faits pertinents", pos: "Position", plan: "Plan d’Action", tasks: "Tâches", dil: "Démarches à venir", tr: "Transcription par Intervenant", noDates: "Aucun délai ni aucune date n’ont été mentionnés.", nodate: "sans date", resp: "responsable", due: "échéance", attach: "La transcription intégrale figure dans le document Word ou PDF joint.", confid: "Document confidentiel, soumis au secret professionnel.", page: "Page", of: "sur", file: "Procès-verbal", proc: "Dossier",
+    lawyer: "Avocat / N.º d’inscription", procL: "Dossier n.º / NIG / NUIPC", court: "Juridiction / Entité", client: "Client", adv: "Partie adverse", people: "Intervenants", kindL: "Type de diligence", place: "Lieu", date: "Date", dur: "Durée", ref: "Référence interne" },
+  de: { kind: "PROTOKOLL DER BESPRECHUNG", crit: "Fristen & Wichtige Termine", sum: "Zusammenfassung", fac: "Relevante Tatsachen", pos: "Position", plan: "Maßnahmenplan", tasks: "Aufgaben", dil: "Weitere Schritte", tr: "Transkript nach Sprechern", noDates: "Es wurden keine Fristen oder Termine genannt.", nodate: "ohne Datum", resp: "verantwortlich", due: "Frist", attach: "Das vollständige Transkript befindet sich im beigefügten Word- oder PDF-Dokument.", confid: "Vertrauliches Dokument, unterliegt der anwaltlichen Schweigepflicht.", page: "Seite", of: "von", file: "Protokoll", proc: "Az.",
+    lawyer: "Rechtsanwalt / Zulassungs-Nr.", procL: "Aktenzeichen / NIG / NUIPC", court: "Gericht / Behörde", client: "Mandant", adv: "Gegenpartei", people: "Beteiligte", kindL: "Art des Termins", place: "Ort", date: "Datum", dur: "Dauer", ref: "Interne Referenz" },
+  it: { kind: "VERBALE DI ATTIVITÀ", crit: "Scadenze e Date Critiche", sum: "Sintesi", fac: "Fatti rilevanti", pos: "Posizione", plan: "Piano d’Azione", tasks: "Attività", dil: "Adempimenti futuri", tr: "Trascrizione per Interlocutore", noDates: "Non sono state menzionate scadenze né date.", nodate: "senza data", resp: "responsabile", due: "scadenza", attach: "La trascrizione integrale è nel documento Word o PDF allegato.", confid: "Documento riservato, soggetto al segreto professionale.", page: "Pagina", of: "di", file: "Verbale", proc: "Proc.",
+    lawyer: "Avvocato / N.º iscrizione", procL: "Procedimento n.º / NIG / NUIPC", court: "Tribunale / Ente", client: "Cliente", adv: "Controparte", people: "Partecipanti", kindL: "Tipo di attività", place: "Luogo", date: "Data", dur: "Durata", ref: "Riferimento interno" },
+  nl: { kind: "VERSLAG VAN BESPREKING", crit: "Termijnen & Kritieke Data", sum: "Samenvatting", fac: "Relevante feiten", pos: "Standpunt", plan: "Actieplan", tasks: "Taken", dil: "Vervolgstappen", tr: "Transcriptie per Spreker", noDates: "Er werden geen termijnen of data genoemd.", nodate: "geen datum", resp: "verantwoordelijk", due: "termijn", attach: "De volledige transcriptie staat in het bijgevoegde Word- of PDF-document.", confid: "Vertrouwelijk document, onderworpen aan het beroepsgeheim.", page: "Pagina", of: "van", file: "Verslag", proc: "Zaak",
+    lawyer: "Advocaat / Inschrijvingsnr.", procL: "Zaaknr. / NIG / NUIPC", court: "Rechtbank / Instantie", client: "Cliënt", adv: "Wederpartij", people: "Deelnemers", kindL: "Soort bespreking", place: "Plaats", date: "Datum", dur: "Duur", ref: "Interne referentie" }
+};
+const fmtLongL = (t, l) => new Intl.DateTimeFormat(LOCALE[l] || "pt-PT", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date(t));
+const fmtHourL = (t, l) => new Intl.DateTimeFormat(LOCALE[l] || "pt-PT", { hour: "2-digit", minute: "2-digit" }).format(new Date(t));
+/* Vista atual de uma minuta: original ou uma das traduções */
+const V = r => (r && r.view && r.view !== "pt" && r.translations && r.translations[r.view]) || r;
+const vLang = r => (V(r) === r ? "pt" : r.view);
 let toastT;
 function toast(msg, ms) { const el = $("#toast"); el.textContent = msg; el.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove("show"), ms || 2800); }
 function autoGrow(el) { el.style.height = "auto"; el.style.height = (el.scrollHeight + 2) + "px"; }
@@ -1352,11 +1384,72 @@ async function processRec(id, opts) {
     const min = await stepMinuta(rec, transcript, ctl.signal);
     if (rec.min) min.acoes.forEach(a => { const o = rec.min.acoes.find(x => x.text === a.text); if (o) a.done = o.done; });
     const idf = ident(rec); Object.keys(min.idn).forEach(k => { if (!(idf[k] || "").trim() && min.idn[k]) idf[k] = min.idn[k]; });
-    rec.transcript = transcript; rec.min = min; rec.status = "ready";
+    rec.transcript = transcript; rec.min = min; rec.status = "ready"; rec.translations = {}; rec.view = "pt";
   } catch (e) {
     rec.status = rec.min ? "ready" : "error";
     const msg = e && e.code === "cancelled" ? "Elaboração interrompida. Toque em Continuar para retomar do ponto onde parou." : ((e && e.message) || "Ocorreu um erro inesperado.");
     if (rec.min) rec.notice = msg; else rec.error = msg;
+  } finally {
+    busy.delete(id); rec.prog = null;
+    if (Vault.ready) await saveRec(rec);
+    renderList(); if (cur && cur.id === id) renderDetail();
+  }
+}
+
+/* ================= Tradução da minuta ================= */
+async function translateRec(id, lang) {
+  const rec = RECS.get(id);
+  if (!rec || !rec.min || busy.has(id) || !LB[lang] || lang === "pt") return;
+  if (!conf.key) { toast("Configure primeiro o serviço nas Definições."); return; }
+  const ctl = new AbortController(), signal = ctl.signal; busy.set(id, ctl);
+  rec.notice = ""; rec.prog = { label: "A traduzir para " + LANGS[lang].toLowerCase(), frac: .02 };
+  renderList(); if (cur && cur.id === id) renderDetail();
+  const name = LANG_NAME[lang];
+  try {
+    const m = rec.min, k = ident(rec).kind || "";
+    const src = { assunto: m.assunto, tipo: k, prazos: m.prazos.map(p => ({ data: p.date, descricao: p.desc, origem: p.src })), factos: m.factos, posicionamento: m.posicionamento, acoes: m.acoes.map(a => ({ tarefa: a.text, responsavel: a.who, prazo: a.due })), diligencias: m.diligencias };
+    setProg(rec, "A traduzir a minuta para " + LANGS[lang].toLowerCase(), .08);
+    const j = parseJSON(await chat("Traduz para " + name + ", com rigor jurídico e terminologia profissional, todos os valores de texto deste JSON de uma minuta de diligência jurídica portuguesa. Mantém exatamente a estrutura, as chaves e o número de elementos de cada lista. Mantém nomes de pessoas e empresas, números de processo, artigos e diplomas legais (podes acrescentar entre parênteses a tradução do nome do diploma). As datas no formato DD/MM/AAAA mantêm-se. Responde apenas com o JSON.\n\n" + JSON.stringify(src), { signal, json: true, max: 4000, onWait: waitHook(rec, .08) }));
+    const arr = x => Array.isArray(x) ? x : [], str = (x, d) => String(x == null || x === "" ? (d || "") : x).trim();
+    const tm = {
+      assunto: str(j.assunto, m.assunto),
+      prazos: m.prazos.map((p, i) => { const t = arr(j.prazos)[i] || {}; return { date: str(t.data, p.date), desc: str(t.descricao, p.desc), src: str(t.origem, p.src), time: p.time || "" }; }),
+      factos: m.factos.map((x, i) => str(arr(j.factos)[i], x)),
+      posicionamento: m.posicionamento.map((x, i) => str(arr(j.posicionamento)[i], x)),
+      acoes: m.acoes.map((a, i) => { const t = arr(j.acoes)[i] || {}; return { text: str(t.tarefa, a.text), who: str(t.responsavel, a.who), due: str(t.prazo, a.due), done: a.done }; }),
+      diligencias: m.diligencias.map((x, i) => str(arr(j.diligencias)[i], x))
+    };
+    let turns = null;
+    if (rec.turns && rec.turns.length) {
+      const map = {}; let size = 3500;
+      for (;;) {
+        const blocks = []; let b = [], len = 0;
+        rec.turns.forEach((t, i) => { const l = t.text.length + t.who.length + 10; if (len + l > size && b.length) { blocks.push(b); b = []; len = 0; } b.push(i); len += l; });
+        if (b.length) blocks.push(b);
+        try {
+          for (let n = 0; n < blocks.length; n++) {
+            if (blocks[n].every(i => map[i])) continue;
+            if (signal.aborted) throw appErr("Tradução interrompida.", "cancelled");
+            const frac = .2 + .75 * (n / blocks.length);
+            setProg(rec, "A traduzir a transcrição para " + LANGS[lang].toLowerCase() + (blocks.length > 1 ? ", parte " + (n + 1) + " de " + blocks.length : ""), frac);
+            const jj = parseJSON(await chat([
+              "Traduz para " + name + " estas falas de uma transcrição jurídica portuguesa, com fidelidade total (não resumas nem acrescentes).",
+              "Para cada fala devolve \"i\" (o mesmo número), \"o\" (quem fala: mantém nomes próprios e títulos; traduz apenas designações genéricas como «Cliente» ou «Interveniente 2») e \"t\" (o texto traduzido).",
+              "Responde apenas com JSON válido: {\"s\":[{\"i\":0,\"o\":\"\",\"t\":\"\"}]}", "",
+              blocks[n].map(i => "#" + i + " " + rec.turns[i].who + ": " + rec.turns[i].text).join("\n")
+            ].join("\n"), { signal, json: true, max: Math.min(8000, Math.ceil(size / 1.5) + 600), onWait: waitHook(rec, frac) }));
+            (Array.isArray(jj.s) ? jj.s : []).forEach(x => { const i = +x.i; if (blocks[n].includes(i) && x.t) map[i] = { o: String(x.o || rec.turns[i].who).trim(), t: String(x.t).trim() }; });
+          }
+          break;
+        } catch (e) { if ((e.code === "toolarge" || e.code === "json") && size > 900) { size = Math.floor(size / 2); continue; } throw e; }
+      }
+      turns = rec.turns.map((t, i) => ({ t: t.t, who: map[i] ? map[i].o : t.who, text: map[i] ? map[i].t : t.text }));
+    }
+    rec.translations = rec.translations || {};
+    rec.translations[lang] = { lang, min: tm, turns, kind: str(j.tipo, k), transcript: turns ? "" : rec.transcript, at: Date.now() };
+    rec.view = lang;
+  } catch (e) {
+    rec.notice = e && e.code === "cancelled" ? "Tradução interrompida." : "A tradução não ficou concluída. " + ((e && e.message) || "");
   } finally {
     busy.delete(id); rec.prog = null;
     if (Vault.ready) await saveRec(rec);
@@ -1402,7 +1495,7 @@ function renderDetail() {
   const has = !!r.min;
   $("#dContent").hidden = !has;
   ["#mailBtn", "#docxBtn", "#pdfBtn", "#txtBtn"].forEach(s => $(s).disabled = !has || busy.has(r.id));
-  if (has) renderMin();
+  if (has) { renderVbar(); renderMin(); }
 }
 function renderIdent() {
   const i = ident(cur), box = $("#dIdent"); box.innerHTML = "";
@@ -1485,8 +1578,21 @@ function listEditor(host, arr, ph) {
     row.append(n, b, rmBtn(() => arr.splice(i, 1))); host.append(row);
   });
 }
+function renderVbar() {
+  const r = cur, box = $("#vbar"), tr = r.translations || {}, on = vLang(r);
+  const done = Object.keys(tr).filter(l => LB[l]);
+  let h = '<button class="vb' + (on === "pt" ? " on" : "") + '" data-l="pt">Original PT</button>';
+  done.forEach(l => h += '<button class="vb' + (on === l ? " on" : "") + '" data-l="' + l + '">' + l.toUpperCase() + "</button>");
+  const avail = Object.keys(LANGS).filter(l => l !== "pt" && !done.includes(l));
+  if (avail.length && !busy.has(r.id)) h += '<select id="trSel" aria-label="Traduzir para"><option value="">Traduzir para…</option>' + avail.map(l => '<option value="' + l + '">' + LANGS[l] + "</option>").join("") + "</select>";
+  if (on !== "pt") h += '<p class="vnote">A ver a tradução em ' + LANGS[on].toLowerCase() + '. As exportações e o email saem neste idioma. As edições aqui só alteram a tradução.' + (busy.has(r.id) ? "" : ' <button class="link" id="trRedo" style="min-height:28px">Traduzir de novo</button>') + "</p>";
+  box.innerHTML = h;
+  box.querySelectorAll(".vb").forEach(b => b.onclick = () => { r.view = b.dataset.l; saveSoon(r); renderDetail(); });
+  const sel = $("#trSel"); if (sel) sel.onchange = () => { if (sel.value) translateRec(r.id, sel.value); };
+  const re = $("#trRedo"); if (re) re.onclick = () => { const l = on; delete r.translations[l]; r.view = "pt"; translateRec(r.id, l); };
+}
 function renderMin() {
-  const m = cur.min;
+  const m = V(cur).min;
   const crit = $("#dCrit"); crit.innerHTML = "";
   if (!m.prazos.length) crit.innerHTML = '<div class="none">Não foram mencionados prazos ou datas.</div>';
   m.prazos.forEach((p, i) => {
@@ -1514,8 +1620,9 @@ function renderMin() {
   const tr = $("#dTr");
   if (tr.contains(document.activeElement)) return;
   tr.innerHTML = "";
-  if (!cur.turns) { tr.append(editor(cur.transcript || "", v => cur.transcript = v, "", "tr")); return; }
-  cur.turns.forEach(t => {
+  const vw = V(cur);
+  if (!vw.turns) { tr.append(editor(vw.transcript || cur.transcript || "", v => vw.transcript = v, "", "tr")); return; }
+  vw.turns.forEach(t => {
     const row = document.createElement("div"); row.className = "turn";
     const ts = document.createElement("button"); ts.className = "ts"; ts.textContent = fmtTs(t.t); ts.setAttribute("aria-label", "Ouvir a partir de " + fmtTs(t.t));
     ts.onclick = () => { if (!cur.hasAudio || !player.src) { toast("O áudio desta diligência já não está disponível."); return; } try { player.currentTime = Math.max(0, t.t - 1); player.play().catch(() => {}); } catch {} };
@@ -1523,7 +1630,7 @@ function renderMin() {
     who.addEventListener("input", () => { t.who = who.value; saveSoon(cur); });
     who.addEventListener("change", () => {
       const from = who.dataset.prev || "", to = who.value.trim();
-      if (from && to && from !== to && cur.turns.filter(x => x.who === from).length) { cur.turns.forEach(x => { if (x.who === from) x.who = to; }); saveSoon(cur); renderMin(); toast("«" + from + "» passou a «" + to + "» em toda a transcrição"); }
+      if (from && to && from !== to && vw.turns.filter(x => x.who === from).length) { vw.turns.forEach(x => { if (x.who === from) x.who = to; }); saveSoon(cur); renderMin(); toast("«" + from + "» passou a «" + to + "» em toda a transcrição"); }
     });
     who.addEventListener("focus", () => { who.dataset.prev = t.who; });
     row.append(ts, who, document.createElement("span"), editor(t.text, v => t.text = v, "", "ed"));
@@ -1531,7 +1638,7 @@ function renderMin() {
   });
 }
 $$("[data-add]").forEach(b => b.addEventListener("click", () => {
-  if (!cur || !cur.min) return; const k = b.dataset.add, m = cur.min;
+  if (!cur || !cur.min) return; const k = b.dataset.add, m = V(cur).min;
   if (k === "prazos") m.prazos.push({ date: "", desc: "", src: "" });
   else if (k === "acoes") m.acoes.push({ text: "", who: "", due: "", done: false });
   else m[k].push("");
@@ -1546,47 +1653,49 @@ armed($("#docDel"), "Eliminar", "Confirmar", async () => {
 
 /* ================= Exportação ================= */
 function docData() {
-  const r = cur, m = r.min;
+  const r = cur, vw = V(r), m = vw.min, lang = vLang(r), T = LB[lang] || LB.pt;
   return {
+    lang, T,
     office: (conf.office || conf.lawyerName || "").trim(), letter: [conf.address || "", ...String(conf.letter || "").split(/\n+/)].map(s => s.trim()).filter(Boolean),
-    id: (() => { const i = ident(r); return { lawyer: i.lawyer.trim(), proc: i.proc.trim(), court: i.court.trim(), client: i.client.trim(), adv: i.adv.trim(), kind: i.kind.trim(), place: i.place.trim(), people: i.people.trim(), ref: i.ref.trim() }; })(),
+    id: (() => { const i = ident(r); return { lawyer: i.lawyer.trim(), proc: i.proc.trim(), court: i.court.trim(), client: i.client.trim(), adv: i.adv.trim(), kind: String((vw !== r && vw.kind) || i.kind).trim(), place: i.place.trim(), people: i.people.trim(), ref: i.ref.trim() }; })(),
     client: ident(r).client.trim(), proc: ident(r).proc.trim(), subject: m.assunto,
-    date: fmtNum(r.created), longDate: fmtLong(r.created), hour: fmtHour(r.created), dur: fmtDur(r.duration),
+    date: fmtNum(r.created), longDate: fmtLongL(r.created, lang), hour: fmtHourL(r.created, lang), dur: fmtDur(r.duration),
     prazos: m.prazos.filter(p => (p.date + p.desc).trim()), factos: m.factos.filter(s => s.trim()), pos: m.posicionamento.filter(s => s.trim()),
     acoes: m.acoes.filter(a => a.text.trim()), dilig: m.diligencias.filter(s => s.trim()),
-    turns: r.turns ? r.turns.filter(t => t.text.trim()) : null, transcript: r.turns ? turnsText(r.turns.filter(t => t.text.trim())) : (r.transcript || "")
+    turns: vw.turns ? vw.turns.filter(t => t.text.trim()) : null, transcript: vw.turns ? turnsText(vw.turns.filter(t => t.text.trim())) : (vw.transcript || r.transcript || "")
   };
 }
-const actLine = a => a.text + (a.who ? " (responsável: " + a.who + ")" : "") + (a.due ? " (prazo: " + a.due + ")" : "");
-const prazoLine = p => (p.date || "s/ data") + " — " + p.desc + (p.time ? " [" + p.time + "]" : "");
+const actLine = (a, T) => { T = T || LB.pt; return a.text + (a.who ? " (" + T.resp + ": " + a.who + ")" : "") + (a.due ? " (" + T.due + ": " + a.due + ")" : ""); };
+const prazoLine = (p, T) => (p.date || (T || LB.pt).nodate) + " — " + p.desc + (p.time ? " [" + p.time + "]" : "");
 const titleFor = d => [d.client, d.proc].filter(Boolean).join(" — ") || d.subject || "Diligência";
 function identRows(d) {
-  const rows = [["Advogado / Cédula", d.id.lawyer], ["Processo n.º / NIG / NUIPC", d.id.proc], ["Tribunal / Entidade", d.id.court], ["Cliente", d.id.client], ["Parte contrária", d.id.adv], ["Intervenientes", d.id.people], ["Tipo de diligência", d.id.kind], ["Local", d.id.place], ["Data", d.longDate + ", " + d.hour], ["Duração", d.dur], ["Referência interna", d.id.ref]];
+  const T = d.T;
+  const rows = [[T.lawyer, d.id.lawyer], [T.procL, d.id.proc], [T.court, d.id.court], [T.client, d.id.client], [T.adv, d.id.adv], [T.people, d.id.people], [T.kindL, d.id.kind], [T.place, d.id.place], [T.date, d.longDate + ", " + d.hour], [T.dur, d.dur], [T.ref, d.id.ref]];
   return rows.filter(r => r[1]);
 }
-function safeName(s) { return ("Minuta - " + (s || "diligencia")).replace(/[\\/:*?"<>|]+/g, "").replace(/\s+/g, " ").trim().slice(0, 90); }
+function safeName(s, T) { return (((T || LB.pt).file) + " - " + (s || "diligencia")).replace(/[\\/:*?"<>|]+/g, "").replace(/\s+/g, " ").trim().slice(0, 90); }
 async function afterExport() {
   if (prefs.retain === "delete" && cur && cur.hasAudio) { revokePlayer(); await deleteAudio(cur); renderDetail(); toast("Exportado. O áudio foi apagado e o texto mantido.", 3500); }
 }
 
 function mailBody(d, full) {
-  const L = [];
+  const L = [], T = d.T;
   if (d.office) L.push(d.office);
-  L.push("MINUTA DE DILIGÊNCIA"); if (d.subject) L.push(d.subject);
+  L.push(T.kind); if (d.subject) L.push(d.subject);
   identRows(d).forEach(r => L.push(r[0] + ": " + r[1])); L.push("");
-  L.push("PRAZOS E DATAS CRÍTICAS"); if (!d.prazos.length) L.push("Não foram mencionados prazos."); d.prazos.forEach(p => L.push("• " + prazoLine(p)));
-  L.push("", "SUMÁRIO EXECUTIVO", "Factos relevantes:"); (d.factos.length ? d.factos : ["—"]).forEach(s => L.push("• " + s));
-  L.push("Posicionamento:"); (d.pos.length ? d.pos : ["—"]).forEach(s => L.push("• " + s));
-  L.push("", "PLANO DE AÇÃO", "Tarefas:"); (d.acoes.length ? d.acoes : [{ text: "—" }]).forEach(a => L.push((a.done ? "☑ " : "☐ ") + actLine(a)));
-  L.push("Diligências futuras:"); (d.dilig.length ? d.dilig : ["—"]).forEach(s => L.push("• " + s));
-  L.push("", "TRANSCRIÇÃO POR INTERVENIENTES");
-  L.push(full ? d.transcript : "A transcrição integral segue no documento Word ou PDF em anexo.");
-  L.push("", "Documento confidencial, sujeito a sigilo profissional.");
+  L.push(T.crit.toUpperCase()); if (!d.prazos.length) L.push(T.noDates); d.prazos.forEach(p => L.push("• " + prazoLine(p, T)));
+  L.push("", T.sum.toUpperCase(), T.fac + ":"); (d.factos.length ? d.factos : ["—"]).forEach(s => L.push("• " + s));
+  L.push(T.pos + ":"); (d.pos.length ? d.pos : ["—"]).forEach(s => L.push("• " + s));
+  L.push("", T.plan.toUpperCase(), T.tasks + ":"); (d.acoes.length ? d.acoes : [{ text: "—" }]).forEach(a => L.push((a.done ? "☑ " : "☐ ") + actLine(a, T)));
+  L.push(T.dil + ":"); (d.dilig.length ? d.dilig : ["—"]).forEach(s => L.push("• " + s));
+  L.push("", T.tr.toUpperCase());
+  L.push(full ? d.transcript : T.attach);
+  L.push("", T.confid);
   return L.join("\n");
 }
 $("#mailBtn").addEventListener("click", async () => {
   if (!cur || !cur.min || !requireIdent()) return;
-  const d = docData(), subject = "Minuta - " + (/^\s*(nig|nuipc)\b/i.test(d.proc) ? d.proc.trim() : "Proc. " + d.proc.replace(/^\s*proc(esso)?\.?\s*(n\.?\s*º?)?\s*/i, ""));
+  const d = docData(), subject = d.T.file + " - " + (/^\s*(nig|nuipc)\b/i.test(d.proc) ? d.proc.trim() : d.T.proc + " " + d.proc.replace(/^\s*proc(esso)?\.?\s*(n\.?\s*º?)?\s*/i, ""));
   let body = mailBody(d, true), url = "mailto:" + encodeURIComponent(conf.mailTo || "") + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
   if (url.length > 15000) { body = mailBody(d, false); url = "mailto:" + encodeURIComponent(conf.mailTo || "") + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body); toast("A transcrição é longa: anexe o Word ou PDF ao email.", 4000); }
   const a = document.createElement("a"); a.href = url; a.rel = "noopener"; document.body.append(a); a.click(); a.remove();
@@ -1623,29 +1732,29 @@ async function exportDocx() {
   if (!window.JSZip) { toast("O exportador não carregou. Verifique a ligação e reabra a app."); return; }
   const d = docData();
   let body = "";
-  body += para(run("MINUTA DE DILIGÊNCIA", { serif: 1, sp: 40, color: GOLD, sz: 18, b: 1 }), { after: 60 });
+  body += para(run(d.T.kind, { serif: 1, sp: 40, color: GOLD, sz: 18, b: 1 }), { after: 60 });
   body += para(run(titleFor(d), { serif: 1, sz: 36 }), { after: 60 });
   if ((d.client || d.proc) && d.subject) body += para(run(d.subject, { i: 1, color: GREY, sz: 21 }), { after: 80 });
   const ir = identRows(d), cell = (t, o, w) => '<w:tc><w:tcPr><w:tcW w:w="' + w + '" w:type="dxa"/></w:tcPr>' + para(run(t, o), { after: 40 }) + "</w:tc>";
   body += '<w:tbl><w:tblPr><w:tblW w:w="9070" w:type="dxa"/><w:tblBorders><w:top w:val="single" w:sz="4" w:color="' + GOLD + '"/><w:bottom w:val="single" w:sz="4" w:color="' + GOLD + '"/><w:insideH w:val="single" w:sz="2" w:color="D9DDE5"/></w:tblBorders><w:tblCellMar><w:top w:w="50" w:type="dxa"/><w:left w:w="60" w:type="dxa"/><w:bottom w:w="30" w:type="dxa"/><w:right w:w="60" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid><w:gridCol w:w="2400"/><w:gridCol w:w="6670"/></w:tblGrid>' +
     ir.map(r => "<w:tr>" + cell(r[0], { color: GREY, sz: 18 }, 2400) + cell(r[1], { sz: 20 }, 6670) + "</w:tr>").join("") + "</w:tbl>" + para("", { after: 120 });
-  body += H2("Prazos & Datas Críticas");
-  if (!d.prazos.length) body += para(run("Não foram mencionados prazos ou datas.", { color: GREY }), { leftBar: 1, shade: 1 });
-  d.prazos.forEach(p => body += para(run((p.date || "s/ data") + "   ", { b: 1, color: GOLD }) + run(p.desc) + (p.src ? run("   «" + p.src + "»", { i: 1, color: GREY, sz: 18 }) : "") + (p.time ? run("  [" + p.time + "]", { color: GREY, sz: 18 }) : ""), { leftBar: 1, shade: 1, after: 0 }));
-  body += H2("Sumário Executivo");
-  body += H3("Factos relevantes"); (d.factos.length ? d.factos : ["—"]).forEach(s => body += BUL(s));
-  body += H3("Posicionamento"); (d.pos.length ? d.pos : ["—"]).forEach(s => body += BUL(s));
-  body += H2("Plano de Ação");
-  body += H3("Tarefas"); (d.acoes.length ? d.acoes : [{ text: "—" }]).forEach(a => body += BUL(actLine(a), a.done ? "☑" : "☐"));
-  body += H3("Diligências futuras"); (d.dilig.length ? d.dilig : ["—"]).forEach(s => body += BUL(s));
-  body += H2("Transcrição por Intervenientes");
+  body += H2(d.T.crit);
+  if (!d.prazos.length) body += para(run(d.T.noDates, { color: GREY }), { leftBar: 1, shade: 1 });
+  d.prazos.forEach(p => body += para(run((p.date || d.T.nodate) + "   ", { b: 1, color: GOLD }) + run(p.desc) + (p.src ? run("   «" + p.src + "»", { i: 1, color: GREY, sz: 18 }) : "") + (p.time ? run("  [" + p.time + "]", { color: GREY, sz: 18 }) : ""), { leftBar: 1, shade: 1, after: 0 }));
+  body += H2(d.T.sum);
+  body += H3(d.T.fac); (d.factos.length ? d.factos : ["—"]).forEach(s => body += BUL(s));
+  body += H3(d.T.pos); (d.pos.length ? d.pos : ["—"]).forEach(s => body += BUL(s));
+  body += H2(d.T.plan);
+  body += H3(d.T.tasks); (d.acoes.length ? d.acoes : [{ text: "—" }]).forEach(a => body += BUL(actLine(a, d.T), a.done ? "☑" : "☐"));
+  body += H3(d.T.dil); (d.dilig.length ? d.dilig : ["—"]).forEach(s => body += BUL(s));
+  body += H2(d.T.tr);
   if (d.turns) d.turns.forEach(t => { body += para(run("[" + fmtTs(t.t) + "]  ", { b: 1, color: GOLD, sz: 18 }) + run(t.who + ": ", { b: 1, serif: 1 }) + run(t.text, { serif: 1 }), { after: 110, jc: "both", ind: 1000, hang: 1000 }); });
   else d.transcript.split(/\n+/).filter(x => x.trim()).forEach(p => body += para(run(p.trim(), { serif: 1 }), { after: 120, jc: "both" }));
   const header = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
-    para(run((d.office || "Minuta de diligência").toUpperCase(), { serif: 1, sp: 40, color: INK, sz: 20, b: 1 }), { after: 20, jc: "center" }) +
+    para(run((d.office || d.T.kind).toUpperCase(), { serif: 1, sp: 40, color: INK, sz: 20, b: 1 }), { after: 20, jc: "center" }) +
     (d.letter.length ? para(run(d.letter.join("   |   "), { color: GREY, sz: 15 }), { after: 0, jc: "center", border: 1 }) : para("", { border: 1, after: 0 })) + "</w:hdr>";
   const footer = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:p><w:pPr><w:pBdr><w:top w:val="single" w:sz="4" w:space="4" w:color="' + GOLD + '"/></w:pBdr><w:tabs><w:tab w:val="right" w:pos="9070"/></w:tabs></w:pPr>' +
-    run("Documento confidencial, sujeito a sigilo profissional.", { color: GREY, sz: 15 }) + '<w:r><w:tab/></w:r>' + run("Página ", { color: GREY, sz: 15 }) +
+    run(d.T.confid, { color: GREY, sz: 15 }) + '<w:r><w:tab/></w:r>' + run(d.T.page + " ", { color: GREY, sz: 15 }) +
     '<w:r><w:rPr><w:color w:val="' + GREY + '"/><w:sz w:val="15"/></w:rPr><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:rPr><w:color w:val="' + GREY + '"/><w:sz w:val="15"/></w:rPr><w:instrText xml:space="preserve"> PAGE </w:instrText></w:r><w:r><w:rPr><w:color w:val="' + GREY + '"/><w:sz w:val="15"/></w:rPr><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:rPr><w:color w:val="' + GREY + '"/><w:sz w:val="15"/></w:rPr><w:t>1</w:t></w:r><w:r><w:rPr><w:color w:val="' + GREY + '"/><w:sz w:val="15"/></w:rPr><w:fldChar w:fldCharType="end"/></w:r></w:p></w:ftr>';
   const doc = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>' + body +
     '<w:sectPr><w:headerReference w:type="default" r:id="rId2"/><w:footerReference w:type="default" r:id="rId3"/><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1700" w:right="1418" w:bottom="1418" w:left="1418" w:header="600" w:footer="600" w:gutter="0"/></w:sectPr></w:body></w:document>';
@@ -1653,16 +1762,16 @@ async function exportDocx() {
   zip.file("[Content_Types].xml", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/><Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/></Types>');
   zip.file("_rels/.rels", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/></Relationships>');
   zip.file("word/_rels/document.xml.rels", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/></Relationships>');
-  zip.file("docProps/core.xml", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>' + xe("Minuta - " + titleFor(d)) + "</dc:title><dc:creator>" + xe(d.office || "CJ-Vertex") + '</dc:creator><dcterms:created xsi:type="dcterms:W3CDTF">' + new Date(cur.created).toISOString().replace(/\.\d+Z$/, "Z") + "</dcterms:created></cp:coreProperties>");
+  zip.file("docProps/core.xml", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>' + xe(d.T.file + " - " + titleFor(d)) + "</dc:title><dc:creator>" + xe(d.office || "CJ-Vertex") + '</dc:creator><dcterms:created xsi:type="dcterms:W3CDTF">' + new Date(cur.created).toISOString().replace(/\.\d+Z$/, "Z") + "</dcterms:created></cp:coreProperties>");
   zip.file("word/document.xml", doc); zip.file("word/header1.xml", header); zip.file("word/footer1.xml", footer);
   const out = await zip.generateAsync({ type: "arraybuffer", mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
-  if (await saveFile(safeName(titleFor(d)) + ".docx", out, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")) afterExport();
+  if (await saveFile(safeName(titleFor(d), d.T) + (d.lang !== "pt" ? " (" + d.lang.toUpperCase() + ")" : "") + ".docx", out, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")) afterExport();
 }
 $("#txtBtn").addEventListener("click", async () => {
   if (!cur || !cur.min || !requireIdent()) return;
   const d = docData(), body = mailBody(d, true);
   const txt = d.office && d.letter.length ? body.replace(d.office + "\n", d.office + "\n" + d.letter.join("\n") + "\n\n") : body;
-  if (await saveFile(safeName(titleFor(d)) + ".txt", new TextEncoder().encode("\ufeff" + txt.replace(/\n/g, "\r\n")), "text/plain;charset=utf-8")) afterExport();
+  if (await saveFile(safeName(titleFor(d), d.T) + (d.lang !== "pt" ? " (" + d.lang.toUpperCase() + ")" : "") + ".txt", new TextEncoder().encode("\ufeff" + txt.replace(/\n/g, "\r\n")), "text/plain;charset=utf-8")) afterExport();
 });
 $("#docxBtn").addEventListener("click", () => exportDocx().catch(() => toast("Não foi possível criar o documento Word.")));
 
@@ -1686,7 +1795,7 @@ async function exportPdf() {
   const h2 = t => { y += 5; ensure(18); text(t.toUpperCase(), 9.5, { bold: 1, color: gold, after: 1 }); pdf.setDrawColor.apply(pdf, gold); pdf.setLineWidth(.25); pdf.line(M, y, M + W, y); y += 4; };
   const h3 = t => { ensure(12); text(t, 9.5, { bold: 1, color: grey, after: 1 }); };
   const bullet = (t, mark) => { ensure(6); pdf.setTextColor.apply(pdf, gold); pdf.setFont("helvetica", "normal"); pdf.setFontSize(10); pdf.text(mark || "—", M, y + 3.6); text(t, 10, { indent: 6 }); };
-  text("MINUTA DE DILIGÊNCIA", 8.5, { bold: 1, color: gold, after: 1.5 });
+  text(d.T.kind, 8.5, { bold: 1, color: gold, after: 1.5 });
   text(titleFor(d), 19, { serif: 1, after: 1 });
   if ((d.client || d.proc) && d.subject) text(d.subject, 10.5, { italic: 1, color: grey, after: 2 });
   pdf.setDrawColor.apply(pdf, gold); pdf.setLineWidth(.3); pdf.line(M, y, M + W, y); y += 1;
@@ -1698,30 +1807,30 @@ async function exportPdf() {
     y += h; pdf.setDrawColor(217, 221, 229); pdf.setLineWidth(.15); pdf.line(M, y, M + W, y);
   });
   pdf.setDrawColor.apply(pdf, gold); pdf.setLineWidth(.3); pdf.line(M, y, M + W, y); y += 3;
-  h2("Prazos & Datas Críticas");
-  const pz = d.prazos.length ? d.prazos : [{ date: "", desc: "Não foram mencionados prazos ou datas.", src: "" }];
+  h2(d.T.crit);
+  const pz = d.prazos.length ? d.prazos : [{ date: "", desc: d.T.noDates, src: "" }];
   pz.forEach(p => {
     pdf.setFont("helvetica", "normal"); pdf.setFontSize(10);
     const desc = pdf.splitTextToSize(p.desc, W - 40), src = (p.src || p.time) ? pdf.splitTextToSize((p.src ? "«" + p.src + "»" : "") + (p.time ? "  [" + p.time + "]" : ""), W - 40) : [];
     const h = (desc.length + src.length) * 5.1 + 4; ensure(h);
     pdf.setFillColor(252, 240, 230); pdf.rect(M, y, W, h, "F"); pdf.setFillColor.apply(pdf, gold); pdf.rect(M, y, .9, h, "F");
-    pdf.setFont("helvetica", "bold"); pdf.setTextColor.apply(pdf, gold); pdf.text(p.date || (d.prazos.length ? "s/ data" : ""), M + 4, y + 5.6);
+    pdf.setFont("helvetica", "bold"); pdf.setTextColor.apply(pdf, gold); pdf.text(p.date || (d.prazos.length ? d.T.nodate : ""), M + 4, y + 5.6);
     pdf.setFont("helvetica", "normal"); pdf.setTextColor.apply(pdf, ink); desc.forEach((l, i) => pdf.text(l, M + 36, y + 5.6 + i * 5.1));
     pdf.setFont("helvetica", "italic"); pdf.setFontSize(8.5); pdf.setTextColor.apply(pdf, grey); src.forEach((l, i) => pdf.text(l, M + 36, y + 5.6 + (desc.length + i) * 5.1));
     y += h + 1;
   });
-  h2("Sumário Executivo");
-  h3("Factos relevantes"); (d.factos.length ? d.factos : ["—"]).forEach(s => bullet(s));
-  y += 2; h3("Posicionamento"); (d.pos.length ? d.pos : ["—"]).forEach(s => bullet(s));
-  h2("Plano de Ação");
-  h3("Tarefas");
+  h2(d.T.sum);
+  h3(d.T.fac); (d.factos.length ? d.factos : ["—"]).forEach(s => bullet(s));
+  y += 2; h3(d.T.pos); (d.pos.length ? d.pos : ["—"]).forEach(s => bullet(s));
+  h2(d.T.plan);
+  h3(d.T.tasks);
   (d.acoes.length ? d.acoes : [{ text: "—" }]).forEach(a => {
     ensure(6); pdf.setDrawColor.apply(pdf, gold); pdf.setLineWidth(.3); pdf.rect(M, y + 1.2, 3.2, 3.2, "S");
     if (a.done) { pdf.setLineWidth(.5); pdf.line(M + .6, y + 2.9, M + 1.4, y + 3.8); pdf.line(M + 1.4, y + 3.8, M + 2.7, y + 1.8); }
-    text(actLine(a), 10, { indent: 6 });
+    text(actLine(a, d.T), 10, { indent: 6 });
   });
-  y += 2; h3("Diligências futuras"); (d.dilig.length ? d.dilig : ["—"]).forEach(s => bullet(s));
-  h2("Transcrição por Intervenientes");
+  y += 2; h3(d.T.dil); (d.dilig.length ? d.dilig : ["—"]).forEach(s => bullet(s));
+  h2(d.T.tr);
   if (d.turns) d.turns.forEach(t => {
     pdf.setFont("times", "normal"); pdf.setFontSize(10.5);
     const lines = pdf.splitTextToSize(t.who + ": " + t.text, W - 18), lh = 10.5 * .3528 * 1.5; ensure(lh * Math.min(lines.length, 3) + 2);
@@ -1735,15 +1844,15 @@ async function exportPdf() {
   for (let i = 1; i <= n; i++) {
     pdf.setPage(i);
     pdf.setFont("times", "bold"); pdf.setFontSize(10); pdf.setTextColor.apply(pdf, ink); pdf.setCharSpace(.6);
-    pdf.text((d.office || "Minuta de diligência").toUpperCase(), 105, 16, { align: "center" }); pdf.setCharSpace(0);
+    pdf.text((d.office || d.T.kind).toUpperCase(), 105, 16, { align: "center" }); pdf.setCharSpace(0);
     if (d.letter.length) { pdf.setFont("helvetica", "normal"); pdf.setFontSize(7.5); pdf.setTextColor.apply(pdf, grey); pdf.text(pdf.splitTextToSize(d.letter.join("   |   "), W)[0], 105, 21, { align: "center" }); }
     pdf.setDrawColor.apply(pdf, gold); pdf.setLineWidth(.3); pdf.line(M, 25, 210 - M, 25);
     pdf.line(M, 297 - 15, 210 - M, 297 - 15);
     pdf.setFont("helvetica", "normal"); pdf.setFontSize(7.5); pdf.setTextColor.apply(pdf, grey);
-    pdf.text("Documento confidencial, sujeito a sigilo profissional.", M, 297 - 10.5);
-    pdf.text("Página " + i + " de " + n, 210 - M, 297 - 10.5, { align: "right" });
+    pdf.text(d.T.confid, M, 297 - 10.5);
+    pdf.text(d.T.page + " " + i + " " + d.T.of + " " + n, 210 - M, 297 - 10.5, { align: "right" });
   }
-  if (await saveFile(safeName(titleFor(d)) + ".pdf", pdf.output("arraybuffer"), "application/pdf")) afterExport();
+  if (await saveFile(safeName(titleFor(d), d.T) + (d.lang !== "pt" ? " (" + d.lang.toUpperCase() + ")" : "") + ".pdf", pdf.output("arraybuffer"), "application/pdf")) afterExport();
 }
 $("#pdfBtn").addEventListener("click", () => exportPdf().catch(() => toast("Não foi possível criar o PDF.")));
 
