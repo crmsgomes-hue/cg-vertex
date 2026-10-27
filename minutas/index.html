@@ -351,6 +351,27 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--text2) 50%),
           <p class="note">Todas as minutas, transcrições e áudios são guardados encriptados (AES-256) neste dispositivo, com uma chave protegida pelo seu PIN. Sem o PIN não é possível lê-los.</p>
         </div>
       </div>
+      <div class="grp"><h2>SINCRONIZAÇÃO</h2>
+        <div class="card">
+          <p class="note" id="syncNote"></p>
+          <div id="syncOff">
+            <button class="btn sm" id="syncOn">Ativar sincronização</button>
+            <label class="fld" style="margin-top:14px"><span>Ou ligar a um aparelho já sincronizado</span>
+              <div class="row"><input class="in" id="syncCode" placeholder="Cole o link ou o código de ligação" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="btn ghost sm" id="syncLink">Ligar</button></div>
+            </label>
+          </div>
+          <div id="syncOnBox" hidden>
+            <div class="tg"><span style="font-size:15px">Incluir os áudios</span><button class="sw" role="switch" id="sSyncAudio" aria-checked="true" aria-label="Incluir os áudios"></button></div>
+            <div class="row" style="flex-wrap:wrap"><button class="btn sm" id="syncNow">Sincronizar agora</button><button class="btn ghost sm" id="syncShow">Ligar outro aparelho</button></div>
+            <div id="syncPair" hidden>
+              <div id="qr" style="background:#fff;border-radius:12px;padding:12px;width:max-content;margin:4px 0 10px"></div>
+              <p class="note">Leia este código com a câmara do outro aparelho, ou envie-lhe o link e abra-o lá. Quem tiver este link consegue ler as minutas: envie-o só para si.</p>
+              <div class="row" style="flex-wrap:wrap;margin-top:10px"><button class="btn ghost sm" id="syncShare">Enviar link</button><button class="btn ghost sm" id="syncCopy">Copiar link</button></div>
+            </div>
+            <div class="row" style="flex-wrap:wrap;margin-top:6px"><button class="btn ghost sm" id="syncOffBtn">Desligar este aparelho</button><button class="btn ghost sm" id="syncWipe" style="color:var(--red)">Apagar a cópia na nuvem</button></div>
+          </div>
+        </div>
+      </div>
       <div class="grp"><h2>APLICAÇÃO</h2>
         <div class="card">
           <p class="note" id="instNote"></p>
@@ -390,6 +411,7 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--text2) 50%),
 <div class="toast" id="toast" role="status"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 (() => {
 "use strict";
@@ -417,11 +439,14 @@ function b64d(str) { const s = atob(str), b = new Uint8Array(s.length); for (let
 const rnd = n => crypto.getRandomValues(new Uint8Array(n));
 const normKey = k => String(k || "").trim().replace(/\s+/g, "").replace(/^gsk_/i, "gsk_");
 /* Link de configuração: #chave=gsk_... é lido uma vez, retirado do endereço e guardado encriptado depois do PIN */
-let pendingKey = "";
+let pendingKey = "", pendingLink = "";
 (function captureSetupLink() {
   try {
     const m = location.hash.match(/(?:^#|&)(?:chave|k)=([^&]+)/);
-    if (m) { pendingKey = normKey(decodeURIComponent(m[1])); history.replaceState(null, "", location.pathname + location.search); }
+    if (m) pendingKey = normKey(decodeURIComponent(m[1]));
+    const l = location.hash.match(/(?:^#|&)ligar=([^&]+)/);
+    if (l) pendingLink = decodeURIComponent(l[1]);
+    if (m || l) history.replaceState(null, "", location.pathname + location.search);
   } catch {}
 })();
 function armed(btn, label, armedLabel, fn) {
@@ -529,13 +554,14 @@ const sget = async (store, k) => { const e = await DB.get(store, k); return e ? 
 
 /* Configuração sensível (encriptada) */
 let conf = { office: "", lawyer: "", lawyerName: "", cedula: "", address: "", letter: "", mailTo: "", key: "", model: "", modelOut: 0 };
-const saveConf = () => sput("conf", "main", conf).catch(() => {});
+const saveConf = () => { conf.mtime = Date.now(); const p = sput("conf", "main", conf).catch(() => {}); try { Sync.soon(); } catch {} return p; };
 
 /* Minutas em memória (só enquanto desbloqueado) */
 const RECS = new Map();
-const saveRec = r => sput("recs", r.id, r).catch(() => toast("Não foi possível guardar no dispositivo."));
+const saveRec = r => { r.mtime = Date.now(); const p = sput("recs", r.id, r).catch(() => toast("Não foi possível guardar no dispositivo.")); try { if (!busy.has(r.id)) Sync.soon(); } catch {} return p; };
 let saveT = null;
-function saveSoon(r) { clearTimeout(saveT); saveT = setTimeout(() => saveRec(r), 400); }
+let pendingSave = null;
+function saveSoon(r) { clearTimeout(saveT); pendingSave = r; saveT = setTimeout(() => { pendingSave = null; saveRec(r); }, 400); }
 
 /* ================= Bloqueio ================= */
 const PIN_LEN = 6;
@@ -649,6 +675,7 @@ function lockNow() {
   ["#docSheet", "#setSheet"].forEach(s => closeSheet($(s)));
   try { $("#player").pause(); } catch {}
   revokePlayer();
+  Sync.stop(); syncCfg = null;
   RECS.clear(); cur = null; unlocked = false;
   conf = { office: "", lawyer: "", lawyerName: "", cedula: "", address: "", letter: "", mailTo: "", key: "", model: "", modelOut: 0 };
   Vault.lock(); $("#list").innerHTML = ""; $("#banners").innerHTML = "";
@@ -805,7 +832,9 @@ async function assemble(sid, info) {
   return rec;
 }
 async function loadAudio(rec) {
-  const m = await sget("audio", rec.id).catch(() => null); if (!m) return null;
+  let m = await sget("audio", rec.id).catch(() => null);
+  if (!m && rec.hasAudio && rec.audioRemote) { try { if (await Sync.downloadAudio(rec)) m = await sget("audio", rec.id).catch(() => null); } catch {} }
+  if (!m) return null;
   const out = [];
   for (let i = 0; i < m.segs.length; i++) {
     const e = await DB.get("audio", rec.id + ":" + pad3(i)); if (!e) return null;
@@ -816,6 +845,7 @@ async function loadAudio(rec) {
 async function deleteAudio(rec) {
   await DB.del("audio", rec.id).catch(() => {});
   for (let i = 0; i < (rec.nseg || 1) + 2; i++) await DB.del("audio", rec.id + ":" + pad3(i)).catch(() => {});
+  Sync.dropRemoteAudio(rec);
   rec.hasAudio = false; rec.size = 0; await saveRec(rec);
 }
 
@@ -1307,7 +1337,7 @@ async function openDoc(id) {
   openSheet($("#docSheet")); $("#docBody").scrollTop = 0;
   renderDetail();
 }
-function closeDoc() { closeSheet($("#docSheet")); try { player.pause(); } catch {} revokePlayer(); if (cur) saveRec(cur); cur = null; renderList(); }
+function closeDoc() { closeSheet($("#docSheet")); try { player.pause(); } catch {} revokePlayer(); if (pendingSave) { clearTimeout(saveT); const r = pendingSave; pendingSave = null; saveRec(r); } cur = null; renderList(); }
 $("#docBack").addEventListener("click", closeDoc);
 
 function renderDetail() {
@@ -1461,7 +1491,7 @@ $("#redo").addEventListener("click", () => { if (cur && (cur.turns || cur.transc
 armed($("#delAudio"), "Apagar áudio", "Confirmar", async () => { if (!cur) return; revokePlayer(); await deleteAudio(cur); renderDetail(); toast("Áudio apagado. A minuta foi mantida."); });
 armed($("#docDel"), "Eliminar", "Confirmar", async () => {
   if (!cur) return; const r = cur, c = busy.get(r.id); if (c) c.abort();
-  await deleteAudio(r).catch(() => {}); await DB.del("recs", r.id).catch(() => {}); RECS.delete(r.id); cur = null; closeDoc(); toast("Minuta eliminada");
+  Sync.tomb(r); await deleteAudio(r).catch(() => {}); await DB.del("recs", r.id).catch(() => {}); RECS.delete(r.id); cur = null; closeDoc(); toast(Sync.on() ? "Minuta eliminada em todos os aparelhos" : "Minuta eliminada");
 });
 
 /* ================= Exportação ================= */
@@ -1682,7 +1712,7 @@ async function paintUsage() {
 function openSettings() {
   $("#sOffice").value = conf.office; $("#sLawyerName").value = conf.lawyerName || ""; $("#sCedula").value = conf.cedula || ""; $("#sAddress").value = conf.address || ""; $("#sLetter").value = conf.letter; $("#sMailTo").value = conf.mailTo; $("#sKey").value = conf.key;
   $("#sAuto").value = String(prefs.autoLock); $("#sRetain").value = prefs.retain; $("#keyNote").textContent = "";
-  paintModels(null); paintSec(); paintUsage(); paintInstall(); openSheet(setEl);
+  paintModels(null); paintSec(); paintUsage(); paintInstall(); paintSync(); $("#syncPair").hidden = true; openSheet(setEl);
 }
 $("#setBtn").addEventListener("click", openSettings);
 $("#setBack").addEventListener("click", () => { closeSheet(setEl); saveConf(); renderBrand(); if (cur) renderDetail(); });
@@ -1715,6 +1745,196 @@ $("#chPin").addEventListener("click", async () => { if (await askLock("verify"))
 armed($("#wipe"), "Apagar todos os dados", "Toque de novo para apagar tudo", async () => {
   busy.forEach(c => c.abort()); await DB.wipe(); Vault.reset(); try { localStorage.removeItem("mx.fail"); localStorage.removeItem("mx.prefs"); } catch {} location.reload();
 });
+
+/* ================= Sincronização encriptada de ponta a ponta (Supabase) ================= */
+/* Tudo é cifrado neste aparelho com a chave do cofre de sincronização antes de sair. O servidor só guarda dados ilegíveis. */
+const SYNC_URL = "https://mnbtfatkdllhsekmnpzk.supabase.co/functions/v1/minutas-sync";
+const SHARED_CONF = ["office", "lawyer", "lawyerName", "cedula", "address", "letter", "mailTo", "key", "model"];
+let syncCfg = null;
+const Sync = (() => {
+  let key = null, timer = null, loop = null, running = false, again = false;
+  const state = { lastOk: 0, lastErr: "", busyMsg: "" };
+  const b64u = u => b64e(u).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const pushedMap = () => lsGet("mx.sync.p", {}), setPushed = m => lsSet("mx.sync.p", m);
+  const tombs = () => lsGet("mx.sync.del", []), setTombs = t => lsSet("mx.sync.del", t);
+  const on = () => !!(syncCfg && syncCfg.vault && Vault.ready);
+  async function k() { if (!key) key = await crypto.subtle.importKey("raw", b64d(syncCfg.key), "AES-GCM", false, ["encrypt", "decrypt"]); return key; }
+  async function encStr(o) { const iv = rnd(12); return b64e(iv) + "." + b64e(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, await k(), enc.encode(JSON.stringify(o)))); }
+  async function decStr(s) { const [a, b] = String(s).split("."); return JSON.parse(dec.decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64d(a) }, await k(), b64d(b)))); }
+  async function encBin(buf) { const iv = rnd(12), ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, await k(), buf)), out = new Uint8Array(12 + ct.length); out.set(iv); out.set(ct, 12); return out; }
+  async function decBin(buf) { const u = new Uint8Array(buf); return crypto.subtle.decrypt({ name: "AES-GCM", iv: u.slice(0, 12) }, await k(), u.slice(12)); }
+  async function call(op, extra, cfg) {
+    const c = cfg || syncCfg;
+    let r;
+    try { r = await fetch(SYNC_URL, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(Object.assign({ op, vault: c.vault, token: c.token }, extra || {})) }); }
+    catch { const e = new Error("Sem ligação à internet."); e.code = "net"; throw e; }
+    let j = {}; try { j = await r.json(); } catch {}
+    if (!r.ok) { const e = new Error(r.status === 401 ? "Este aparelho já não tem acesso à sincronização." : r.status === 409 ? "O código de ligação não é válido." : "O servidor de sincronização não respondeu (" + r.status + ")."); e.code = j.error || r.status; throw e; }
+    return j;
+  }
+  function paint() { if (typeof paintSync === "function") paintSync(state); }
+
+  /* Áudio: cada bloco é cifrado e guardado no armazenamento do Supabase com um link temporário */
+  async function uploadAudio(r) {
+    const m = await sget("audio", r.id).catch(() => null); if (!m) return;
+    const list = [];
+    for (let i = 0; i < m.segs.length; i++) {
+      const e = await DB.get("audio", r.id + ":" + pad3(i)); if (!e) return;
+      state.busyMsg = "A enviar áudio"; paint();
+      const body = await encBin(await Vault.decBuf(e)), name = r.id + "-" + i;
+      const u = await call("upurl", { name });
+      const up = await fetch(u.url, { method: "PUT", headers: { "content-type": "application/octet-stream", "x-upsert": "true" }, body });
+      if (!up.ok) throw new Error("Falha ao enviar o áudio (" + up.status + ").");
+      list.push(Object.assign({}, m.segs[i], { name }));
+    }
+    r.audioRemote = list; r.mtime = Date.now(); await sput("recs", r.id, r);
+  }
+  async function downloadAudio(r) {
+    if (!on() || !r.audioRemote || !r.audioRemote.length) return false;
+    toast("A transferir o áudio desta diligência…", 2500);
+    const segs = [];
+    for (let i = 0; i < r.audioRemote.length; i++) {
+      const s = r.audioRemote[i], u = await call("downurl", { name: s.name });
+      const res = await fetch(u.url); if (!res.ok) throw new Error("Áudio indisponível.");
+      const buf = await decBin(await res.arrayBuffer());
+      await DB.put("audio", r.id + ":" + pad3(i), await Vault.encBuf(buf));
+      segs.push({ start: s.start || 0, dur: s.dur || 0, mime: s.mime, ext: s.ext });
+    }
+    await DB.put("audio", r.id, await Vault.encObj({ segs }));
+    return true;
+  }
+  async function dropLocalAudio(id) { await DB.del("audio", id).catch(() => {}); for (let i = 0; i < 40; i++) await DB.del("audio", id + ":" + pad3(i)).catch(() => {}); }
+
+  async function push() {
+    const p = pushedMap(), items = [];
+    for (const r of RECS.values()) {
+      if (busy.has(r.id)) continue;
+      if (!r.mtime) r.mtime = r.created || Date.now();
+      if ((p[r.id] || 0) >= r.mtime) continue;
+      if (prefs.syncAudio !== false && r.hasAudio && !r.audioRemote) { try { await uploadAudio(r); } catch (e) { state.lastErr = e.message; } }
+      const copy = Object.assign({}, r); delete copy.prog;
+      items.push({ id: "rec:" + r.id, kind: "rec", mtime: r.mtime, data: await encStr(copy), _id: r.id });
+    }
+    tombs().forEach(t => items.push({ id: "rec:" + t.id, kind: "rec", mtime: t.t, deleted: true, _tomb: t.id }));
+    if ((conf.mtime || 0) > (p.__conf || 0)) { const c = {}; SHARED_CONF.forEach(f => c[f] = conf[f] || ""); items.push({ id: "conf", kind: "conf", mtime: conf.mtime, data: await encStr(c), _conf: 1 }); }
+    let batch = [], size = 0;
+    const flush = async () => {
+      if (!batch.length) return;
+      state.busyMsg = "A sincronizar"; paint();
+      await call("push", { items: batch.map(i => ({ id: i.id, kind: i.kind, mtime: i.mtime, deleted: !!i.deleted, data: i.data || null })) });
+      const pm = pushedMap(); let tb = tombs();
+      batch.forEach(i => { if (i._id) pm[i._id] = i.mtime; if (i._conf) pm.__conf = i.mtime; if (i._tomb) tb = tb.filter(t => t.id !== i._tomb); });
+      setPushed(pm); setTombs(tb); batch = []; size = 0;
+    };
+    for (const it of items) { const l = (it.data || "").length; if (batch.length && (size + l > 1500000 || batch.length >= 40)) await flush(); batch.push(it); size += l; }
+    await flush();
+  }
+  async function pull() {
+    let since = syncCfg.since || 0, more = true, changed = false;
+    while (more) {
+      const j = await call("pull", { since });
+      const pm = pushedMap();
+      for (const it of j.items || []) {
+        if (it.kind === "rec") {
+          const id = it.id.slice(4), local = RECS.get(id);
+          if (busy.has(id)) continue;
+          if (it.deleted) {
+            if (local) { RECS.delete(id); await DB.del("recs", id).catch(() => {}); await dropLocalAudio(id); if (cur && cur.id === id) closeDoc(); changed = true; }
+            continue;
+          }
+          if (local && (local.mtime || 0) >= Number(it.mtime)) continue;
+          const editing = cur && cur.id === id && $("#docSheet").classList.contains("open") && $("#docBody").contains(document.activeElement);
+          if (editing) continue;
+          let r; try { r = await decStr(it.data); } catch { continue; }
+          r.mtime = Number(it.mtime); if (r.status === "busy") r.status = r.min ? "ready" : "new";
+          if (!r.hasAudio) await dropLocalAudio(id);
+          RECS.set(id, r); await sput("recs", id, r); pm[id] = r.mtime; changed = true;
+          if (cur && cur.id === id) { cur = r; renderDetail(); }
+        } else if (it.kind === "conf" && !it.deleted && (conf.mtime || 0) < Number(it.mtime)) {
+          try { const c = await decStr(it.data); SHARED_CONF.forEach(f => { if (c[f] != null) conf[f] = c[f]; }); conf.mtime = Number(it.mtime); await sput("conf", "main", conf); pm.__conf = conf.mtime; renderBrand(); } catch {}
+        }
+      }
+      setPushed(pm);
+      since = j.next || since; more = !!j.more;
+    }
+    syncCfg.since = since; await sput("conf", "sync", syncCfg);
+    if (changed) renderList();
+  }
+  async function run() {
+    if (!on()) return;
+    if (running) { again = true; return; }
+    if (!navigator.onLine) { state.lastErr = "Sem internet: sincroniza quando a ligação voltar."; paint(); return; }
+    running = true; state.busyMsg = "A sincronizar"; paint();
+    try { await push(); await pull(); state.lastOk = Date.now(); state.lastErr = ""; }
+    catch (e) { state.lastErr = e.message || "Falha na sincronização."; }
+    finally { running = false; state.busyMsg = ""; paint(); if (again) { again = false; soon(1500); } }
+  }
+  function soon(ms) { if (!on()) return; clearTimeout(timer); timer = setTimeout(run, ms == null ? 2500 : ms); }
+  function start() { stop(); if (!on()) return; run(); loop = setInterval(() => { if (document.visibilityState === "visible") run(); }, 45000); }
+  function stop() { clearTimeout(timer); clearInterval(loop); loop = null; key = null; }
+  window.addEventListener("online", () => soon(500));
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") soon(800); });
+  return {
+    state, on, run, soon, start, stop, downloadAudio,
+    tomb(r) { if (!syncCfg) return; const t = tombs().filter(x => x.id !== r.id); t.push({ id: r.id, t: Date.now() }); setTombs(t); if (r.audioRemote && r.audioRemote.length) call("rmfiles", { names: r.audioRemote.map(s => s.name) }).catch(() => {}); soon(800); },
+    dropRemoteAudio(r) { if (on() && r.audioRemote && r.audioRemote.length) call("rmfiles", { names: r.audioRemote.map(s => s.name) }).catch(() => {}); r.audioRemote = null; },
+    async enable() {
+      const cfg = { vault: b64u(rnd(18)), token: b64u(rnd(32)), key: b64e(rnd(32)), since: 0 };
+      await call("init", {}, cfg);
+      syncCfg = cfg; key = null; await sput("conf", "sync", syncCfg); setPushed({}); setTombs([]); start();
+    },
+    async link(code) {
+      let o; try { o = JSON.parse(dec.decode(b64d(String(code).trim().replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(String(code).trim().length / 4) * 4, "=")))); } catch { throw new Error("O código de ligação não é válido."); }
+      if (!o || !o.v || !o.t || !o.k) throw new Error("O código de ligação não é válido.");
+      const cfg = { vault: o.v, token: o.t, key: o.k, since: 0 };
+      await call("init", {}, cfg);
+      syncCfg = cfg; key = null; await sput("conf", "sync", syncCfg); setPushed({}); setTombs([]); start();
+    },
+    code() { return b64u(enc.encode(JSON.stringify({ v: syncCfg.vault, t: syncCfg.token, k: syncCfg.key }))); },
+    async disable() { stop(); syncCfg = null; await DB.del("conf", "sync").catch(() => {}); setPushed({}); setTombs([]); },
+    async wipeRemote() { await call("wipe"); await this.disable(); }
+  };
+})();
+
+function paintSync(state) {
+  if (!$("#syncNote")) return;
+  const onn = Sync.on(); state = state || Sync.state;
+  $("#syncOff").hidden = onn; $("#syncOnBox").hidden = !onn;
+  $("#sSyncAudio").setAttribute("aria-checked", prefs.syncAudio === false ? "false" : "true");
+  $("#syncNote").textContent = !onn ? "Mantém as mesmas minutas, áudios e definições no telemóvel e no computador. Tudo é cifrado neste aparelho antes de sair: o servidor só guarda dados ilegíveis."
+    : state.busyMsg ? state.busyMsg + "…" : state.lastErr ? state.lastErr : state.lastOk ? "Sincronizado às " + fmtHour(state.lastOk) + "." : "Sincronização ativa.";
+}
+$("#syncOn").addEventListener("click", async () => {
+  const b = $("#syncOn"); b.disabled = true;
+  try { await Sync.enable(); toast("Sincronização ativada"); paintSync(); $("#syncShow").click(); } catch (e) { toast(e.message, 4500); }
+  finally { b.disabled = false; }
+});
+$("#syncLink").addEventListener("click", async () => {
+  let v = $("#syncCode").value.trim(); const m = v.match(/ligar=([^&\s]+)/); if (m) v = decodeURIComponent(m[1]);
+  if (!v) { toast("Cole o código ou o link de ligação."); return; }
+  const b = $("#syncLink"); b.disabled = true;
+  try { await Sync.link(v); $("#syncCode").value = ""; toast("Aparelho ligado. A sincronizar as minutas…", 3500); paintSync(); } catch (e) { toast(e.message, 4500); }
+  finally { b.disabled = false; }
+});
+$("#syncNow").addEventListener("click", () => Sync.run());
+$("#sSyncAudio").addEventListener("click", () => { prefs.syncAudio = prefs.syncAudio === false; savePrefs(); paintSync(); if (prefs.syncAudio !== false) Sync.soon(300); });
+const pairLink = () => location.origin + location.pathname + "#ligar=" + Sync.code();
+$("#syncShow").addEventListener("click", () => {
+  const box = $("#syncPair"); box.hidden = !box.hidden; if (box.hidden) return;
+  const q = $("#qr"); q.innerHTML = "";
+  try { new QRCode(q, { text: pairLink(), width: 196, height: 196, colorDark: "#14213D", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M }); }
+  catch { q.innerHTML = '<p class="note">Não foi possível desenhar o código QR. Use o botão para copiar o link.</p>'; }
+});
+$("#syncCopy").addEventListener("click", async () => {
+  const t = pairLink();
+  try { await navigator.clipboard.writeText(t); toast("Link copiado. Envie-o para o outro aparelho e abra-o lá."); }
+  catch { $("#syncCode").value = t; toast("Copie o link no campo de código."); }
+});
+$("#syncShare").addEventListener("click", async () => {
+  try { await navigator.share({ title: "Ligar ao CG VERTEX Minutas", text: "Abra este link no outro aparelho para sincronizar as minutas:", url: pairLink() }); } catch {}
+});
+armed($("#syncOffBtn"), "Desligar este aparelho", "Confirmar", async () => { await Sync.disable(); paintSync(); toast("Este aparelho deixou de sincronizar. As minutas ficam no aparelho."); });
+armed($("#syncWipe"), "Apagar a cópia na nuvem", "Toque de novo para apagar", async () => { try { await Sync.wipeRemote(); paintSync(); toast("Cópia na nuvem apagada. As minutas ficam nos aparelhos."); } catch (e) { toast(e.message, 4500); } });
 
 /* ================= Instalação no telemóvel e no computador ================= */
 let installEvt = null;
@@ -1760,6 +1980,11 @@ async function afterUnlock() {
   $("#lock").hidden = true; $("#home").setAttribute("aria-hidden", "false");
   endLock(true);
   checkRecovery();
+  try { syncCfg = await sget("conf", "sync"); } catch { syncCfg = null; }
+  if (pendingLink) {
+    const code = pendingLink; pendingLink = "";
+    try { await Sync.link(code); toast("Aparelho ligado. A sincronizar as minutas…", 3500); } catch (e) { toast(e.message, 4500); }
+  } else Sync.start();
 }
 function makeIcon() {
   try {
