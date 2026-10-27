@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Verbo">
+<meta name="apple-mobile-web-app-title" content="Minutas">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="../icon-192.png">
 <meta name="theme-color" content="#0E1729">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
-<title>CG VERTEX Verbo</title>
+<title>CG VERTEX Minutas</title>
 <style>
 :root{
   --bg:#0E1729; --panel:#15213A; --panel2:#1C2A47; --panel3:#263759; --line:rgba(255,255,255,.07);
@@ -233,7 +233,7 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--text2) 50%),
 <main class="home" id="home" aria-hidden="true">
   <div class="wrap">
     <header class="top">
-      <div><p class="brand">CG <span>VERTEX</span></p><h1>Verbo</h1><p class="office" id="brand" hidden></p></div>
+      <div><p class="brand">CG <span>VERTEX</span></p><h1>Minutas</h1><p class="office" id="brand" hidden></p></div>
       <div style="display:flex">
         <button class="ib" id="lockBtn" aria-label="Bloquear"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></button>
         <button class="ib" id="setBtn" aria-label="Definições"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button>
@@ -543,7 +543,7 @@ function lockUI(mode) {
   const T = {
     setup1: ["Crie o seu PIN", "Primeira utilização: escolha 6 dígitos à sua escolha. Não existe PIN pré-definido."],
     setup2: ["Confirme o PIN", "Introduza novamente o mesmo PIN."],
-    unlock: ["Verbo", "Introduza o PIN que escolheu"],
+    unlock: ["Minutas", "Introduza o PIN que escolheu"],
     verify: ["PIN atual", "Introduza o PIN atual para continuar."],
     new1: ["Novo PIN", "Escolha um novo PIN de 6 dígitos."],
     new2: ["Confirme o novo PIN", "Introduza novamente o novo PIN."]
@@ -602,7 +602,7 @@ async function bioCreate() {
   const prfSalt = rnd(32);
   const cred = await navigator.credentials.create({ publicKey: {
     challenge: rnd(32), rp: { name: "CG VERTEX", id: location.hostname },
-    user: { id: rnd(16), name: "minutas@" + location.hostname, displayName: "CG VERTEX Verbo" },
+    user: { id: rnd(16), name: "minutas@" + location.hostname, displayName: "CG VERTEX Minutas" },
     pubKeyCredParams: [{ type: "public-key", alg: -7 }, { type: "public-key", alg: -257 }],
     authenticatorSelection: { authenticatorAttachment: "platform", userVerification: "required", residentKey: "preferred" },
     timeout: 60000, attestation: "none", extensions: { prf: { eval: { first: prfSalt } } }
@@ -1716,7 +1716,7 @@ armed($("#wipe"), "Apagar todos os dados", "Toque de novo para apagar tudo", asy
 });
 
 /* ================= Arranque ================= */
-function renderBrand() { const b = $("#brand"); b.textContent = conf.office || ""; b.hidden = !conf.office; document.title = "CG VERTEX Verbo"; }
+function renderBrand() { const b = $("#brand"); b.textContent = conf.office || ""; b.hidden = !conf.office; document.title = "CG VERTEX Minutas"; }
 async function afterUnlock() {
   try { const c = await sget("conf", "main"); if (c) conf = Object.assign(conf, c); } catch {}
   RECS.clear();
