@@ -1,16 +1,16 @@
-# CG VERTEX — Plano para o lançamento comercial
+# CJ-Vertex — Plano para o lançamento comercial
 
 ## 1. Antes do primeiro cliente (obrigatório)
 
 - [ ] **Revisão jurídica**: um advogado confirma os 28 casos de `tests/prazos.test.js`, o catálogo de prazos e as bases legais citadas na app.
-- [ ] **Servidor próprio da CG VERTEX**: mudar as funções de transcrição e IA para um projeto Supabase só da CG VERTEX e criar uma chave Groq nova (a atual foi partilhada numa conversa e é a conta gratuita pessoal).
+- [ ] **Servidor próprio da CJ-Vertex**: mudar as funções de transcrição e IA para um projeto Supabase só da CJ-Vertex e criar uma chave Groq nova (a atual foi partilhada numa conversa e é a conta gratuita pessoal).
 - [ ] **Transcrição para clientes pagantes**: avaliar um fornecedor com contrato de subcontratação RGPD e processamento na UE; até lá, apresentar a transcrição como opcional e recomendar o modo sigilo para dados sensíveis.
 - [ ] **Termos de utilização e política de privacidade**: ferramenta de apoio, limitação de responsabilidade, dados guardados no aparelho do cliente.
-- [ ] **Faturação da própria CG VERTEX**: atividade aberta e programa de faturação certificado para emitir as faturas da instalação.
+- [ ] **Faturação da própria CJ-Vertex**: atividade aberta e programa de faturação certificado para emitir as faturas da instalação.
 
 ## 2. Em cada instalação (lista de verificação)
 
-- [ ] Instalar no computador (Chrome ou Edge → Instalar CG VERTEX) e no telemóvel (app Android ou app web instalada).
+- [ ] Instalar no computador (Chrome ou Edge → Instalar CJ-Vertex) e no telemóvel (app Android ou app web instalada).
 - [ ] Criar o perfil do advogado e o PIN de entrada.
 - [ ] Definir o **PIN de administrador** com o responsável do escritório.
 - [ ] Escolher o tempo de **bloqueio automático** (recomendado: 5 minutos).
