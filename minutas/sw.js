@@ -1,6 +1,6 @@
 // CG VERTEX Minutas: abre sempre a versão mais recente quando há internet; sem internet usa a última cópia.
 // Não guarda nada dos clientes: só a página e as bibliotecas de exportação.
-const VERSION = 'minutas-v10';
+const VERSION = 'minutas-v11';
 const CORE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(VERSION).then((c) => c.addAll(CORE)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', (e) => {
@@ -16,7 +16,7 @@ self.addEventListener('fetch', (e) => {
       .catch(() => caches.match('./index.html')));
     return;
   }
-  if (/cdnjs\.cloudflare\.com$/.test(url.hostname) || (url.origin === location.origin && url.pathname.includes('/minutas/'))) {
+  if (/cdnjs\.cloudflare\.com$|fonts\.googleapis\.com$|fonts\.gstatic\.com$/.test(url.hostname) || (url.origin === location.origin && url.pathname.includes('/minutas/'))) {
     e.respondWith(caches.match(req).then((hit) => hit || fetch(req).then((r) => { if (r.ok || r.type === 'opaque') { const cp = r.clone(); caches.open(VERSION).then((c) => c.put(req, cp)); } return r; })));
   }
 });
