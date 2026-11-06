@@ -241,6 +241,7 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--text2) 50%),
 .trialtag b{color:var(--gold);font-weight:600}
 .trialbox{border:1px solid var(--gold);background:linear-gradient(180deg,rgba(197,160,89,.10),rgba(197,160,89,.03))}
 .trialbox .row{margin-top:12px}
+.lkwarn{margin:-10px 0 16px;padding:10px 12px;border-radius:12px;background:var(--champ-soft);color:var(--text);font-size:13px;line-height:1.4}
 @media (min-width:760px){ .crit .row{grid-template-columns:140px minmax(0,1fr) auto} .doc{padding-top:34px} h1{font-size:40px} }
 
 /* ================= Estética clara editorial (Apple / Stripe) ================= */
@@ -517,6 +518,7 @@ h1,.item .t,.doc-h,.clock,.lockin h2{font-variant-numeric:lining-nums}
     <div class="seal" id="seal">CJ</div><div class="wm">CJ-<span>Vertex</span></div>
     <h2 id="lkTitle">Minutas</h2>
     <p class="s" id="lkSub"></p>
+    <p class="lkwarn" id="lkWarn" hidden></p>
     <div class="dots" id="dots"><span></span><span></span><span></span><span></span><span></span><span></span></div>
     <p class="lkmsg" id="lkMsg"></p>
     <div class="pad" id="pad">
@@ -630,7 +632,7 @@ function trialLabel() {
 }
 async function licCall(op) {
   const label = [conf.lawyerName, conf.cedula ? "Cédula " + conf.cedula : "", conf.office].filter(x => x && String(x).trim()).join(", ");
-  const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 15000);
+  const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 10000);
   try {
     const res = await fetch(LIC_URL, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ op, device: deviceId(), token: licToken(), label }), signal: ctl.signal });
     const j = await res.json().catch(() => ({}));
@@ -638,18 +640,26 @@ async function licCall(op) {
     return { status: res.status, j };
   } finally { clearTimeout(to); }
 }
-/* Atualiza os créditos; primeiro envia as transcrições que não puderam ser contadas por falta de rede */
+/* Atualiza os créditos. Regista primeiro o aparelho e só depois envia as transcrições que não puderam ser contadas por falta de rede */
 async function licRefresh() {
-  let pend = lsGet("mx.licpend", 0);
-  while (pend > 0) { const r = await licCall("consume"); if (r.status !== 200 && r.status !== 402) throw new Error("net"); pend--; lsSet("mx.licpend", pend); }
-  const r = await licCall("status");
+  let r = await licCall("status");
   if (r.status === 401) throw new Error("auth");
   if (r.status !== 200) throw new Error("net");
+  let pend = lsGet("mx.licpend", 0);
+  if (pend > 0) {
+    while (pend > 0) { const c = await licCall("consume"); if (c.status !== 200 && c.status !== 402) throw new Error("net"); pend--; lsSet("mx.licpend", pend); }
+    r = await licCall("status");
+    if (r.status !== 200) throw new Error("net");
+  }
   return r.j;
 }
+/* Conta a transcrição. Sem ligação ao servidor, fica registada neste aparelho e é enviada na próxima vez que houver ligação */
 async function licConsume() {
   try { const r = await licCall("consume"); if (r.status === 200 || r.status === 402) return; } catch {}
   lsSet("mx.licpend", lsGet("mx.licpend", 0) + 1);
+  const c = licCache() || { used: 0, extra: 0, unlimited: false, free: TRIAL_FREE, total: TRIAL_FREE, left: TRIAL_FREE };
+  if (!c.unlimited) { c.used++; c.left = Math.max(0, (c.left == null ? c.total - c.used + 1 : c.left) - 1); }
+  lsSet("mx.lic", c);
 }
 function licMailto() {
   const t = trialState(), who = [conf.lawyerName, conf.cedula ? "Cédula " + conf.cedula : "", conf.office].filter(x => x && String(x).trim()).join(", ");
@@ -1544,7 +1554,10 @@ async function processRec(id, opts) {
   const txDone = rec.tx && rec.tx.plan && rec.tx.done >= rec.tx.plan.length;
   if (!opts.fromText && !txDone && !rec.counted) {
     try { await licRefresh(); }
-    catch (e) { rec.notice = e && e.message === "auth" ? "Este dispositivo não foi reconhecido pelo servidor de créditos. Contacte a CJ-Vertex." : "Não foi possível confirmar os créditos. Verifique a ligação à internet e tente de novo."; renderTrial(); if (cur && cur.id === id) renderDetail(); return; }
+    catch (e) {
+      /* Se o servidor de créditos não responder, a app não bloqueia: usa os créditos guardados neste aparelho */
+      if (e && e.message === "auth") { rec.notice = "Este aparelho não foi reconhecido pelo servidor de créditos (ID " + deviceId() + "). Peça ajuda a quem lhe enviou a app."; renderTrial(); if (cur && cur.id === id) renderDetail(); return; }
+    }
     renderTrial();
     if (trialLeft() <= 0) { rec.trialBlocked = true; if (cur && cur.id === id) renderDetail(); return; }
   }
@@ -2386,6 +2399,11 @@ function makeIcon() {
   } catch {}
 }
 (async function init() {
+  /* Dentro de outras apps (WhatsApp, Facebook, Instagram...) os dados e o microfone não ficam guardados como num browser */
+  if (/; wv\)|FBAN|FBAV|Instagram|MicroMessenger|Snapchat|Line\/|GSA\//i.test(navigator.userAgent) && !isInstalled()) {
+    const w = $("#lkWarn"); w.hidden = false;
+    w.textContent = "Está a abrir a app dentro de outra app. Para funcionar bem, abra este endereço no Chrome ou no Safari: " + location.origin + location.pathname;
+  }
   try { history.replaceState({ mxBase: 1 }, ""); } catch {}
   backTrap();
   /* Regista o aparelho no servidor de créditos logo ao abrir, mesmo antes do PIN */
