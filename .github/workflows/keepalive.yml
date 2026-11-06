@@ -1,0 +1,24 @@
+name: Manter o servidor de créditos ativo
+
+# O Supabase gratuito pausa o projeto após uma semana sem atividade.
+# Este contacto diário (sem dados de utilizadores) evita que as Minutas deixem de funcionar.
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Contactar o servidor de créditos
+        run: |
+          code=$(curl -sS -m 40 -X POST "https://mnbtfatkdllhsekmnpzk.supabase.co/functions/v1/minutas-license" \
+            -H "content-type: application/json" \
+            -d '{"op":"admin_list","admin":"contacto-diario-0000"}' \
+            -o /dev/null -w "%{http_code}")
+          echo "Resposta do servidor: $code"
+          # 401 = o servidor está ativo e recusou a palavra-passe de teste (o esperado)
+          if [ "$code" != "401" ] && [ "$code" != "200" ]; then exit 1; fi
