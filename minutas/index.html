@@ -355,6 +355,7 @@ h1,.item .t,.doc-h,.clock,.lockin h2{font-variant-numeric:lining-nums}
         <button class="ib" id="setBtn" aria-label="Definições"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button>
       </div>
     </header>
+    <div id="updBanner"></div>
     <div id="banners"></div>
     <div class="list" id="list"></div>
   </div>
@@ -609,6 +610,7 @@ function armed(btn, label, armedLabel, fn) {
    Cada aparelho tem um ID e um token secreto. O contador de transcrições fica no Supabase do CJ-Vertex:
    apagar os dados do browser não recomeça os testes, porque o servidor reconhece o mesmo ID.
    O servidor só recebe o ID, o token e o nome/cédula indicados nas Definições; nunca recebe conteúdo das diligências. */
+const APP_VER = "2026-11-07.2";
 const TRIAL_FREE = 3;
 const CREATOR_EMAIL = "crmsgomes@gmail.com";
 const LIC_URL = "https://mnbtfatkdllhsekmnpzk.supabase.co/functions/v1/minutas-license";
@@ -634,7 +636,7 @@ async function licCall(op) {
   const label = [conf.lawyerName, conf.cedula ? "Cédula " + conf.cedula : "", conf.office].filter(x => x && String(x).trim()).join(", ");
   const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 10000);
   try {
-    const res = await fetch(LIC_URL, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ op, device: deviceId(), token: licToken(), label }), signal: ctl.signal });
+    const res = await fetch(LIC_URL, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ op, device: deviceId(), token: licToken(), label, ver: APP_VER }), signal: ctl.signal });
     const j = await res.json().catch(() => ({}));
     if (j && j.device) lsSet("mx.lic", { used: j.used, extra: j.extra, unlimited: j.unlimited, free: j.free, total: j.total, left: j.left, at: Date.now() });
     return { status: res.status, j };
@@ -2321,6 +2323,30 @@ window.addEventListener("popstate", () => {
   if (Date.now() - backArmed < 2500) { history.back(); return; }
   backArmed = Date.now(); backTrap(); toast("Toque outra vez em voltar para sair da app.", 2500);
 });
+
+/* ================= Atualizações automáticas =================
+   O endereço é sempre o mesmo: o aparelho descarrega a versão nova sozinho quando há internet.
+   Se a app estiver aberta há muito tempo, avisa e atualiza com um toque (ou sozinha, se estiver bloqueada). */
+let swHad = !!(navigator.serviceWorker && navigator.serviceWorker.controller);
+function showUpdateBanner() {
+  const box = $("#updBanner"); if (!box || box.firstChild) return;
+  const el = document.createElement("div"); el.className = "banner";
+  el.innerHTML = '<b>Nova versão disponível</b>As suas minutas e o PIN mantêm-se.<div class="acts"><button class="btn sm">Atualizar agora</button></div>';
+  el.querySelector("button").onclick = () => { if (st.recording || busy.size) { toast("Espere que a gravação ou a elaboração termine.", 3000); return; } location.reload(); };
+  box.append(el);
+}
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!swHad) { swHad = true; return; }
+    if (!$("#lock").hidden && !st.recording && !busy.size) { location.reload(); return; }
+    showUpdateBanner();
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible") return;
+    navigator.serviceWorker.getRegistration().then(r => { if (r) r.update(); }).catch(() => {});
+  });
+}
+if (location.hostname === "localhost") window.__mxTest = Object.assign(window.__mxTest || {}, { showUpdate: showUpdateBanner });
 
 /* ================= Testes e licença ================= */
 function renderTrial() {
