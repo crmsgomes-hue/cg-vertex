@@ -27,7 +27,7 @@ button:disabled{opacity:.4}
 .msg{font-size:14px;margin-top:10px;min-height:20px}
 .msg.ok{color:var(--ok)}.msg.bad{color:var(--bad)}
 .tw{overflow-x:auto;border-radius:12px;border:1px solid var(--line)}
-table{width:100%;border-collapse:collapse;font-size:14px;min-width:560px}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:640px}
 th{background:var(--gold);color:#fff;text-align:left;font-weight:600;padding:10px;white-space:nowrap}
 td{padding:10px;border-top:1px solid var(--line);vertical-align:top}
 tr.sel td{background:var(--panel2)}
@@ -64,7 +64,7 @@ tbody tr{cursor:pointer}
     </div>
     <h2>DISPOSITIVOS</h2>
     <div class="row" style="margin-bottom:10px"><button class="ghost" id="reload">Atualizar lista</button><button class="ghost" id="out">Sair</button></div>
-    <div class="tw"><table><thead><tr><th>Dispositivo</th><th>Nome / escritório</th><th>Usadas</th><th>Restantes</th><th>Último uso</th></tr></thead><tbody id="list"></tbody></table></div>
+    <div class="tw"><table><thead><tr><th>Dispositivo</th><th>Nome / escritório</th><th>Usadas</th><th>Restantes</th><th>Último uso</th><th>Versão</th></tr></thead><tbody id="list"></tbody></table></div>
     <p class="small" id="count" style="margin-top:8px"></p>
   </section>
 </main>
@@ -85,7 +85,7 @@ tbody tr{cursor:pointer}
     if (s === 401) { logout("Palavra-passe incorreta."); return false; }
     if (s !== 200) { $("#gmsg").className = "msg bad"; $("#gmsg").textContent = "Não foi possível obter a lista."; return true; }
     const rows = j.devices || [];
-    $("#list").innerHTML = rows.length ? rows.map(d => '<tr data-d="' + esc(d.device) + '"><td class="dev">' + esc(d.device) + "</td><td>" + (esc(d.label) || '<span class="small">por identificar</span>') + "</td><td>" + d.used + "</td><td>" + (d.unlimited ? '<span class="pos">sem limite</span>' : '<span class="' + (d.left > 0 ? "pos" : "neg") + '">' + d.left + "</span> / " + d.total) + '</td><td class="small">' + esc(fmt(d.last_seen)) + "</td></tr>").join("") : '<tr><td colspan="5" class="small">Ainda nenhum dispositivo usou a app.</td></tr>';
+    $("#list").innerHTML = rows.length ? rows.map(d => '<tr data-d="' + esc(d.device) + '"><td class="dev">' + esc(d.device) + "</td><td>" + (esc(d.label) || '<span class="small">por identificar</span>') + "</td><td>" + d.used + "</td><td>" + (d.unlimited ? '<span class="pos">sem limite</span>' : '<span class="' + (d.left > 0 ? "pos" : "neg") + '">' + d.left + "</span> / " + d.total) + '</td><td class="small">' + esc(fmt(d.last_seen)) + '</td><td class="small">' + (esc(d.ver) || 'antiga') + "</td></tr>").join("") : '<tr><td colspan="6" class="small">Ainda nenhum dispositivo usou a app.</td></tr>';
     $("#count").textContent = rows.length + (rows.length === 1 ? " dispositivo" : " dispositivos") + ", " + rows.reduce((a, d) => a + d.used, 0) + " transcrições no total.";
     return true;
   }
