@@ -242,6 +242,13 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--text2) 50%),
 .trialbox{border:1px solid var(--gold);background:linear-gradient(180deg,rgba(197,160,89,.10),rgba(197,160,89,.03))}
 .trialbox .row{margin-top:12px}
 .lkwarn{margin:-10px 0 16px;padding:10px 12px;border-radius:12px;background:var(--champ-soft);color:var(--text);font-size:13px;line-height:1.4}
+.dim{position:fixed;inset:0;z-index:70;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer}
+.dim[hidden]{display:none}
+.dimc{font-family:var(--serif);font-size:44px;color:#3a3a3a;font-variant-numeric:tabular-nums}
+.dimt{font-size:13px;color:#2e2e2e}
+.partinfo{display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;color:var(--text2);margin:2px 0 12px}
+.partinfo[hidden]{display:none}
+.partinfo .link{font-size:22px;min-width:40px}
 @media (min-width:760px){ .crit .row{grid-template-columns:140px minmax(0,1fr) auto} .doc{padding-top:34px} h1{font-size:40px} }
 
 /* ================= Estética clara editorial (Apple / Stripe) ================= */
@@ -376,12 +383,15 @@ h1,.item .t,.doc-h,.clock,.lockin h2{font-variant-numeric:lining-nums}
     <div class="clock" id="clock">0:00</div>
     <div class="recinfo" id="recinfo"></div>
     <div class="recinfo" style="margin-top:6px;opacity:.75">Pode bloquear o ecrã: a gravação continua.</div>
+    <div class="recinfo" id="liveInfo" style="margin-top:6px"></div>
     <canvas class="wave" id="wave"></canvas>
     <div class="rctl">
       <button class="soft" id="pauseBtn">Pausar</button>
       <button class="stopbtn" id="stopBtn" aria-label="Terminar gravação"><span></span></button>
       <button class="soft warn" id="discardBtn">Descartar</button>
     </div>
+    <button class="link" id="dimBtn" style="margin-top:26px">Ecrã escuro (poupa bateria)</button>
+    <p class="recinfo" style="margin-top:14px;max-width:340px;text-align:center;font-size:12px">Gravação longa: mantenha o carregador ligado e a app aberta. O áudio é guardado a cada 5 segundos.</p>
   </div>
 </section>
 
@@ -406,7 +416,8 @@ h1,.item .t,.doc-h,.clock,.lockin h2{font-variant-numeric:lining-nums}
         </div>
         <div class="igrid" id="dIdent"></div>
       </section>
-      <div class="audio" id="dAudio"><audio id="player" controls preload="metadata"></audio><button class="link danger" id="delAudio">Apagar áudio</button></div>
+      <div class="audio" id="dAudio"><audio id="player" controls preload="metadata"></audio><button class="link" id="saveAudio">Guardar áudio</button><button class="link danger" id="delAudio">Apagar áudio</button></div>
+      <div class="partinfo" id="partInfo" hidden></div>
       
       <div id="dContent" hidden>
         <div class="vbar" id="vbar"></div>
@@ -502,6 +513,14 @@ h1,.item .t,.doc-h,.clock,.lockin h2{font-variant-numeric:lining-nums}
           <button class="btn sm" id="instBtn2" hidden>Instalar neste dispositivo</button>
         </div>
       </div>
+      <div class="grp"><h2>GRAVAÇÃO</h2>
+        <div class="card">
+          <label class="fld"><span>Microfone</span><select id="sMic"><option value="">Predefinido do aparelho</option></select></label>
+          <button class="btn ghost sm" id="micDetect">Procurar microfones</button>
+          <div class="tg"><span style="font-size:15px">Reduzir ruído e eco</span><button class="sw" role="switch" id="sProc" aria-checked="true" aria-label="Reduzir ruído e eco"></button></div>
+          <p class="note">Numa sala grande ou com mesa de mistura, escolha o microfone ou a entrada USB certa. Com mesa de mistura, desligue a redução de ruído.</p>
+        </div>
+      </div>
       <div class="grp"><h2>ARMAZENAMENTO</h2>
         <div class="card">
           <label class="fld"><span>Áudio depois de exportar ou enviar</span><select id="sRetain"><option value="keep">Manter o áudio</option><option value="delete">Apagar o áudio e manter só o texto</option></select></label>
@@ -533,6 +552,7 @@ h1,.item .t,.doc-h,.clock,.lockin h2{font-variant-numeric:lining-nums}
   </div>
 </div>
 
+<div class="dim" id="dim" hidden><div class="dimc" id="dimClock">0:00</div><div class="dimt">A gravar. Toque para ver o ecrã.</div></div>
 <div class="toast" id="toast" role="status"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -546,7 +566,7 @@ const enc = new TextEncoder(), dec = new TextDecoder();
 /* ================= Utilitários ================= */
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const sleep = ms => new Promise(r => setTimeout(r, ms));
+const sleep = ms => new Promise(r => setTimeout(r, location.hostname === "localhost" && window.__sleepScale ? ms * window.__sleepScale : ms));
 function fmtDur(s) { s = Math.max(0, Math.round(s || 0)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(x).padStart(2, "0"); }
 function fmtTs(s) { s = Math.max(0, Math.floor(s || 0)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + ":" : "") + String(m).padStart(2, "0") + ":" + String(x).padStart(2, "0"); }
 const fmtShort = t => new Intl.DateTimeFormat("pt-PT", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(t));
@@ -610,7 +630,7 @@ function armed(btn, label, armedLabel, fn) {
    Cada aparelho tem um ID e um token secreto. O contador de transcrições fica no Supabase do CJ-Vertex:
    apagar os dados do browser não recomeça os testes, porque o servidor reconhece o mesmo ID.
    O servidor só recebe o ID, o token e o nome/cédula indicados nas Definições; nunca recebe conteúdo das diligências. */
-const APP_VER = "2026-11-07.2";
+const APP_VER = "2026-11-09.1";
 const TRIAL_FREE = 3;
 const CREATOR_EMAIL = "crmsgomes@gmail.com";
 const LIC_URL = "https://mnbtfatkdllhsekmnpzk.supabase.co/functions/v1/minutas-license";
@@ -912,9 +932,13 @@ document.addEventListener("visibilitychange", () => {
 });
 
 /* ================= Gravação ================= */
-const SEG_SEC = 15 * 60;   // cada bloco de 15 min é um ficheiro completo e independente
+/* Cada bloco de 15 min é um ficheiro completo e independente. Durante a gravação, cada bloco terminado
+   é transcrito em segundo plano, para que no fim só falte o último: é o que permite gravar durante horas. */
+const QP = location.hostname === "localhost" ? new URLSearchParams(location.search) : new URLSearchParams("");
+const SEG_SEC = +QP.get("seg") || 15 * 60, CHUNK_MS = +QP.get("chunk") || 5000;
 const st = { recording: false, paused: false, stream: null, ctx: null, an: null, wake: null, sid: null, started: 0, startedAt: 0, acc: 0,
-  segs: [], mrs: [], curMr: null, active: 0, finishing: false, discard: false, chain: Promise.resolve(), mime: "", timer: null, levels: [], tick: 0, lastSave: 0 };
+  segs: [], mrs: [], curMr: null, active: 0, finishing: false, discard: false, chain: Promise.resolve(), mime: "", timer: null, levels: [], tick: 0, lastSave: 0,
+  lastChunkAt: 0, resumes: 0, storeWarn: 0, tickN: 0 };
 const elapsed = () => st.acc + (st.recording && !st.paused ? (performance.now() - st.startedAt) / 1000 : 0);
 const pad3 = n => String(n).padStart(3, "0"), pad6 = n => String(n).padStart(6, "0");
 
@@ -929,10 +953,24 @@ function micError(e) {
   if (n === "NotReadableError") return "O microfone está ocupado por outra app ou chamada.";
   return "Não foi possível iniciar o microfone.";
 }
+function audioConstraints(withDevice) {
+  const proc = prefs.proc !== false, a = { echoCancellation: proc, noiseSuppression: proc, autoGainControl: proc, channelCount: 1 };
+  if (withDevice && prefs.micId) a.deviceId = { exact: prefs.micId };
+  return { audio: a };
+}
+async function getMic() {
+  try { return await navigator.mediaDevices.getUserMedia(audioConstraints(true)); }
+  catch (e) {
+    if (prefs.micId && (e.name === "OverconstrainedError" || e.name === "NotFoundError")) { toast("O microfone escolhido não está disponível. A usar o microfone predefinido.", 3500); return navigator.mediaDevices.getUserMedia(audioConstraints(false)); }
+    throw e;
+  }
+}
 function paintRecInfo() {
-  const el = $("#recinfo");
-  if (!st.recording) { el.textContent = ""; return; }
+  const el = $("#recinfo"), li = $("#liveInfo");
+  if (!st.recording) { el.textContent = ""; li.textContent = ""; return; }
   el.innerHTML = (st.paused ? "Em pausa" : "A gravar") + (st.lastSave ? ', <span class="ok">salvaguarda encriptada ativa</span>' : "");
+  const done = Object.keys(live.state.segs).length, fin = Math.max(0, st.segs.length - 1);
+  li.textContent = !live.off && fin ? "Transcrição durante a gravação: " + done + " de " + fin + " partes concluídas" : "";
 }
 
 function startSegment() {
@@ -941,10 +979,10 @@ function startSegment() {
   if (!st.mime) st.mime = mr.mimeType || "audio/mp4";
   st.segs.push({ start: elapsed() });
   let i = 0;
-  mr.ondataavailable = e => { if (e.data && e.data.size) persistChunk(seg, i++, e.data); };
-  mr.onstop = () => { st.active--; if (st.finishing && st.active <= 0) finishRec(); };
+  mr.ondataavailable = e => { if (e.data && e.data.size) { st.lastChunkAt = Date.now(); persistChunk(seg, i++, e.data); } };
+  mr.onstop = () => { st.active--; if (!st.finishing) liveEnqueue(seg); if (st.finishing && st.active <= 0) finishRec(); };
   mr.onerror = () => { if (st.recording && !st.finishing) resumeCapture("erro"); };
-  mr.start(5000); st.active++; st.curMr = mr; st.mrs.push(mr);
+  mr.start(CHUNK_MS); st.active++; st.curMr = mr; st.mrs.push(mr); st.lastChunkAt = Date.now();
   saveSession();
 }
 function saveSession() {
@@ -964,8 +1002,8 @@ function persistChunk(seg, i, blob) {
   }).catch(() => {});
 }
 
-/* Standby e interrupções: se o sistema cortar o microfone (chamada, poupança de bateria),
-   a gravação retoma sozinha num novo bloco, sem perder o que já foi salvaguardado. */
+/* Standby e interrupções: se o sistema cortar o microfone (chamada, poupança de bateria) ou o gravador
+   deixar de entregar áudio, a gravação retoma sozinha num novo bloco, sem perder o que já foi salvaguardado. */
 function watchTrack() {
   const track = st.stream && st.stream.getAudioTracks()[0];
   if (track) track.addEventListener("ended", () => { if (st.recording && !st.finishing) resumeCapture("ended"); });
@@ -980,7 +1018,7 @@ async function resumeCapture(reason) {
   try {
     st.mrs.forEach(m => { try { if (m.state !== "inactive") m.stop(); } catch {} });
     try { st.stream && st.stream.getTracks().forEach(t => t.stop()); } catch {}
-    const s = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 } });
+    const s = await getMic();
     if (!st.recording || st.finishing) { s.getTracks().forEach(t => t.stop()); return; }
     st.stream = s;
     if (st.ctx) { try { if (st.ctx.state === "suspended") await st.ctx.resume(); const src = st.ctx.createMediaStreamSource(s); st.an = st.ctx.createAnalyser(); st.an.fftSize = 1024; st.an.smoothingTimeConstant = .7; src.connect(st.an); } catch {} }
@@ -995,44 +1033,107 @@ document.addEventListener("visibilitychange", () => {
   if (captureLost()) resumeCapture("visible");
   if (navigator.wakeLock && !st.wake) navigator.wakeLock.request("screen").then(w => { st.wake = w; w.addEventListener("release", () => { st.wake = null; }); }).catch(() => {});
 });
-if (location.hostname === "localhost") window.__mxTest = { stopMic: () => st.stream.getAudioTracks()[0].stop(), info: () => ({ segs: st.segs.length, resumes: st.resumes || 0, rec: st.recording }) };
+/* Espaço livre: avisa cedo e termina a gravação em segurança antes de o aparelho ficar sem espaço */
+async function storageGuard() {
+  try {
+    if (!navigator.storage || !navigator.storage.estimate) return;
+    const e = await navigator.storage.estimate(); if (!e.quota) return;
+    const free = e.quota - (e.usage || 0);
+    if (free < 15 * 1048576) stopRec("O espaço do aparelho está quase esgotado. A gravação foi guardada e terminada.");
+    else if (free < 150 * 1048576 && Date.now() - st.storeWarn > 600000) { st.storeWarn = Date.now(); toast("Pouco espaço livre no aparelho (" + Math.round(free / 1048576) + " MB). Liberte espaço.", 6000); }
+  } catch {}
+}
+
+/* ----- Transcrição em segundo plano durante a gravação ----- */
+const live = { sid: null, q: [], promise: null, ctl: null, state: { segs: {}, counted: false }, off: true, tail: "" };
+function liveReset(sid) { live.sid = sid; live.q = []; live.promise = null; live.ctl = new AbortController(); live.state = { segs: {}, counted: false }; live.off = !conf.key; live.tail = ""; }
+function liveKick() { if (live.promise || live.off || !live.q.length) return; live.promise = liveRun().finally(() => { live.promise = null; if (live.q.length && !live.off) liveKick(); }); }
+function liveEnqueue(seg) { if (live.off || !live.sid || live.sid !== st.sid || live.q.includes(seg) || live.state.segs[seg]) return; live.q.push(seg); liveKick(); }
+async function liveSegBlob(sid, seg) {
+  const encs = await DB.range("chunks", sid + ":" + pad3(seg) + ":").catch(() => []), parts = [];
+  for (const e of encs || []) { try { parts.push(await Vault.decBuf(e)); } catch {} }
+  if (!parts.length) return null;
+  const blob = new Blob(parts, { type: st.mime });
+  return blob.size > MAX_STT ? null : { blob, ext: extOf({ mime: st.mime }) };
+}
+async function liveRun() {
+  const sid = live.sid, signal = live.ctl.signal;
+  while (live.q.length && !live.off && live.sid === sid) {
+    const seg = live.q[0];
+    try {
+      await st.chain;
+      if (!live.state.counted) {
+        try { await licRefresh(); } catch (e) { if (e && e.message === "auth") { live.off = true; break; } }
+        if (trialLeft() <= 0) { live.off = true; break; }
+        await licConsume(); live.state.counted = true; renderTrial();
+      }
+      const b = await liveSegBlob(sid, seg);
+      if (!b) { live.q.shift(); continue; }
+      const start = (st.segs[seg] && st.segs[seg].start) || 0;
+      const segs = await whisper(b.blob, "bloco" + (seg + 1) + "." + b.ext, (live.tail || LEGAL_HINT).slice(-600), signal, () => {});
+      if (signal.aborted || live.sid !== sid) break;
+      live.state.segs[seg] = segs.map(s => ({ start: s.start + start, end: s.end + start, text: s.text }));
+      live.tail = segs.slice(-4).map(s => s.text).join(" ").slice(-300) || live.tail;
+      live.q.shift();
+      try { await sput("conf", "live:" + sid, live.state); } catch {}
+      paintRecInfo();
+    } catch (e) {
+      if (signal.aborted || live.sid !== sid) break;
+      if (e && (e.code === "daily" || e.code === "auth" || e.code === "nokey")) { live.off = true; break; }
+      live.q.shift();
+      await sleep(3000);
+    }
+  }
+}
+async function liveSettle() {
+  live.off = true; try { live.ctl && live.ctl.abort(); } catch {}
+  if (live.promise) { try { await live.promise; } catch {} }
+  const s = live.state; live.sid = null; live.q = []; return s;
+}
+
+if (location.hostname === "localhost") window.__mxTest = { stopMic: () => st.stream.getAudioTracks()[0].stop(), info: () => ({ segs: st.segs.length, resumes: st.resumes || 0, rec: st.recording, live: Object.keys(live.state.segs).length, off: live.off }) };
 async function startRec() {
   if (!cryptoOk) { toast("A gravação protegida só funciona em https (por exemplo, no Netlify)."); return; }
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) { toast("Este browser não permite gravar áudio."); return; }
   const btn = $("#startBtn"); btn.disabled = true;
   const AC = window.AudioContext || window.webkitAudioContext;
   try { st.ctx = new AC(); if (st.ctx.resume) st.ctx.resume(); } catch { st.ctx = null; }
-  try { st.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 } }); }
+  try { st.stream = await getMic(); }
   catch (e) { btn.disabled = false; try { st.ctx && st.ctx.close(); } catch {} st.ctx = null; toast(micError(e), 4500); return; }
   if (st.ctx) { try { const src = st.ctx.createMediaStreamSource(st.stream); st.an = st.ctx.createAnalyser(); st.an.fftSize = 1024; st.an.smoothingTimeConstant = .7; src.connect(st.an); } catch { st.an = null; } }
-  Object.assign(st, { sid: uid(), started: Date.now(), acc: 0, segs: [], mrs: [], active: 0, finishing: false, discard: false, mime: pickMime(), levels: [], tick: 0, lastSave: 0, recording: true, paused: false });
+  Object.assign(st, { sid: uid(), started: Date.now(), acc: 0, segs: [], mrs: [], active: 0, finishing: false, discard: false, mime: pickMime(), levels: [], tick: 0, lastSave: 0, recording: true, paused: false, lastChunkAt: Date.now(), resumes: 0, tickN: 0 });
   st.startedAt = performance.now();
+  liveReset(st.sid);
   watchTrack();
   startSegment();
   st.timer = setInterval(() => {
     if (!st.recording || st.paused) return;
     if (captureLost()) { resumeCapture("watchdog"); return; }
+    if (Date.now() - st.lastChunkAt > Math.max(30000, CHUNK_MS * 8)) { st.lastChunkAt = Date.now(); resumeCapture("stall"); return; }
     const segStart = st.segs[st.segs.length - 1].start;
     if (elapsed() - segStart >= SEG_SEC) { const old = st.curMr; startSegment(); setTimeout(() => { try { if (old.state !== "inactive") old.stop(); } catch {} }, 1500); }
+    if (++st.tickN % 30 === 0) storageGuard();
   }, 1000);
   try { if (navigator.wakeLock) st.wake = await navigator.wakeLock.request("screen"); } catch {}
+  storageGuard();
   $("#pauseBtn").textContent = "Pausar"; $("#discardBtn").textContent = "Descartar"; $("#discardBtn").dataset.arm = "";
   $("#recSheet").classList.remove("paused"); openSheet($("#recSheet")); btn.disabled = false; paintRecInfo();
 }
 function togglePause() {
   if (!st.recording) return;
   if (!st.paused) { st.acc = elapsed(); st.paused = true; st.mrs.forEach(m => { try { if (m.state === "recording") { m.requestData(); m.pause(); } } catch {} }); $("#pauseBtn").textContent = "Retomar"; }
-  else { st.paused = false; st.startedAt = performance.now(); st.mrs.forEach(m => { try { if (m.state === "paused") m.resume(); } catch {} }); $("#pauseBtn").textContent = "Pausar"; }
+  else { st.paused = false; st.startedAt = performance.now(); st.lastChunkAt = Date.now(); st.mrs.forEach(m => { try { if (m.state === "paused") m.resume(); } catch {} }); $("#pauseBtn").textContent = "Pausar"; }
   $("#recSheet").classList.toggle("paused", st.paused); paintRecInfo();
 }
 function stopRec(msg, discard) {
   if (!st.recording || st.finishing) return;
   st.acc = elapsed(); st.paused = true; st.recording = false; st.finishing = true; st.discard = !!discard;
-  clearInterval(st.timer);
+  clearInterval(st.timer); dimHide();
+  if (live.ctl) { live.off = true; try { live.ctl.abort(); } catch {} }
   if (msg) toast(msg, 4500);
-  const live = st.mrs.filter(m => m.state !== "inactive");
-  if (!live.length) { finishRec(); return; }
-  live.forEach(m => { try { m.stop(); } catch {} });
+  const liveMrs = st.mrs.filter(m => m.state !== "inactive");
+  if (!liveMrs.length) { finishRec(); return; }
+  liveMrs.forEach(m => { try { m.stop(); } catch {} });
 }
 let finishing = false;
 async function finishRec() {
@@ -1044,54 +1145,85 @@ async function finishRec() {
     try { st.wake && st.wake.release(); } catch {}
     Object.assign(st, { stream: null, ctx: null, an: null, wake: null, recording: false, mrs: [], curMr: null });
     closeSheet($("#recSheet")); $("#clock").textContent = "0:00";
+    if (!discard) toast("A guardar a gravação…", 6000);
     await st.chain;
+    const liveState = await liveSettle();
     st.sid = null; st.finishing = false;
-    if (discard) { await DB.delRange("chunks", sid + ":").catch(() => {}); await DB.del("sessions", sid).catch(() => {}); toast("Gravação descartada"); return; }
+    if (discard) { await DB.delRange("chunks", sid + ":").catch(() => {}); await DB.del("sessions", sid).catch(() => {}); await DB.del("conf", "live:" + sid).catch(() => {}); toast("Gravação descartada"); return; }
     const s = await sget("sessions", sid).catch(() => null);
-    const rec = await assemble(sid, { started: st.started, mime: st.mime, segs: st.segs.slice(), duration: duration || (s && s.duration) || 0 });
+    const rec = await assemble(sid, { started: st.started, mime: st.mime, segs: st.segs.slice(), duration: duration || (s && s.duration) || 0, live: liveState });
     if (!rec) { toast("A gravação ficou vazia."); return; }
     renderList(); openDoc(rec.id);
     toast("Áudio guardado. Toque em Elaborar minuta quando quiser.", 3000);
   } finally { finishing = false; }
 }
+/* Monta a gravação parte a parte (uma de cada vez), para nunca ter horas de áudio na memória ao mesmo tempo */
 async function assemble(sid, info) {
-  const enc_ = await DB.range("chunks", sid + ":").catch(() => []);
-  const keys = (await DB.keys("chunks").catch(() => [])).filter(k => String(k).startsWith(sid + ":")).sort();
-  if (!enc_ || !enc_.length) { await DB.del("sessions", sid).catch(() => {}); return null; }
-  const bySeg = new Map();
-  for (let n = 0; n < keys.length; n++) {
-    const seg = +String(keys[n]).split(":")[1];
-    let buf; try { buf = await Vault.decBuf(enc_[n]); } catch { continue; }
-    if (!bySeg.has(seg)) bySeg.set(seg, []);
-    bySeg.get(seg).push(buf);
+  const keys = ((await DB.keys("chunks").catch(() => [])) || []).map(String).filter(k => k.startsWith(sid + ":"));
+  if (!keys.length) { await DB.del("sessions", sid).catch(() => {}); return null; }
+  const segNums = [...new Set(keys.map(k => +k.split(":")[1]))].sort((a, b) => a - b);
+  const total = info.duration || 0, segsMeta = info.segs || [], id = uid(), metas = []; let size = 0;
+  for (const k of segNums) {
+    const encs = await DB.range("chunks", sid + ":" + pad3(k) + ":").catch(() => []), parts = [];
+    for (const e of encs || []) { try { parts.push(await Vault.decBuf(e)); } catch {} }
+    if (!parts.length) continue;
+    const buf = await new Blob(parts, { type: info.mime }).arrayBuffer();
+    await DB.put("audio", id + ":" + pad3(metas.length), await Vault.encBuf(buf));
+    metas.push({ seg: k, start: (segsMeta[k] && segsMeta[k].start) || 0, mime: info.mime, bytes: buf.byteLength }); size += buf.byteLength;
   }
-  const segIdx = [...bySeg.keys()].sort((a, b) => a - b);
-  const total = info.duration || 0, segsMeta = info.segs || [];
-  const parts = [];
-  for (const k of segIdx) {
-    const buf = await new Blob(bySeg.get(k), { type: info.mime }).arrayBuffer();
-    const start = (segsMeta[k] && segsMeta[k].start) || 0;
-    parts.push({ start, mime: info.mime, buf });
+  if (!metas.length) { await DB.del("sessions", sid).catch(() => {}); return null; }
+  metas.forEach((m, i) => { m.dur = Math.max(1, (metas[i + 1] ? metas[i + 1].start : total) - m.start); });
+  await DB.put("audio", id, await Vault.encObj({ segs: metas.map(m => ({ start: m.start, dur: m.dur, mime: m.mime, bytes: m.bytes })) }));
+  /* Transcrições já feitas durante a gravação (só as partes consecutivas desde o início) */
+  let pre = null; const lv = info.live || (await sget("conf", "live:" + sid).catch(() => null));
+  if (lv && lv.segs) {
+    const acc = []; let upTo = 0;
+    for (let i = 0; i < metas.length; i++) { const r = lv.segs[metas[i].seg]; if (!r) break; acc.push(...dedupeJoin(acc, r)); upTo = i + 1; }
+    if (upTo) pre = { upTo, segments: acc };
   }
-  parts.forEach((p, i) => { p.dur = Math.max(1, ((parts[i + 1] ? parts[i + 1].start : total) - p.start)); });
-  const id = uid(), size = parts.reduce((a, p) => a + p.buf.byteLength, 0);
-  await DB.put("audio", id, await Vault.encObj({ segs: parts.map(p => ({ start: p.start, dur: p.dur, mime: p.mime })) }));
-  for (let i = 0; i < parts.length; i++) await DB.put("audio", id + ":" + pad3(i), await Vault.encBuf(parts[i].buf));
-  const rec = { id, created: info.started || Date.now(), duration: total, ident: { lawyer: lawyerLine(), proc: "", court: "", client: "", adv: "", kind: "", place: "", people: "", ref: "", caseId: "" }, status: "new", error: "", notice: "", hasAudio: true, size, nseg: parts.length, tx: null, transcript: "", min: null, consent: false };
+  const rec = { id, created: info.started || Date.now(), duration: total, ident: { lawyer: lawyerLine(), proc: "", court: "", client: "", adv: "", kind: "", place: "", people: "", ref: "", caseId: "" }, status: "new", error: "", notice: "", hasAudio: true, size, nseg: metas.length, tx: null, transcript: "", min: null, consent: false, preTx: pre, counted: !!(lv && lv.counted) };
+  if (info.source) rec.source = info.source;
   RECS.set(id, rec); await saveRec(rec);
-  await DB.delRange("chunks", sid + ":").catch(() => {}); await DB.del("sessions", sid).catch(() => {});
+  await DB.delRange("chunks", sid + ":").catch(() => {}); await DB.del("sessions", sid).catch(() => {}); await DB.del("conf", "live:" + sid).catch(() => {});
   return rec;
 }
-async function loadAudio(rec) {
+/* Áudio guardado: metadados e uma parte de cada vez (nunca tudo em memória) */
+async function audioMeta(rec) {
   let m = await sget("audio", rec.id).catch(() => null);
   if (!m && rec.hasAudio && rec.audioRemote) { try { if (await Sync.downloadAudio(rec)) m = await sget("audio", rec.id).catch(() => null); } catch {} }
-  if (!m) return null;
+  return m;
+}
+async function audioSeg(rec, i) { const e = await DB.get("audio", rec.id + ":" + pad3(i)); return e ? Vault.decBuf(e) : null; }
+async function loadAudio(rec) {
+  const m = await audioMeta(rec); if (!m) return null;
   const out = [];
-  for (let i = 0; i < m.segs.length; i++) {
-    const e = await DB.get("audio", rec.id + ":" + pad3(i)); if (!e) return null;
-    out.push(Object.assign({}, m.segs[i], { buf: await Vault.decBuf(e) }));
-  }
+  for (let i = 0; i < m.segs.length; i++) { const buf = await audioSeg(rec, i); if (!buf) return null; out.push(Object.assign({}, m.segs[i], { buf })); }
   return out;
+}
+/* Ferramentas de teste (só existem no ambiente de testes local) */
+if (location.hostname === "localhost") {
+  window.__mxSeed = async (nChunks, bytes, perSeg, mime) => {
+    const sid = uid(), segs = [];
+    for (let i = 0; i < nChunks; i++) {
+      const seg = Math.floor(i / perSeg), idx = i % perSeg;
+      if (idx === 0) segs.push({ start: seg * perSeg * 5 });
+      const buf = new Uint8Array(bytes); crypto.getRandomValues(buf.subarray(0, Math.min(bytes, 65536))); buf[0] = seg; buf[1] = idx & 255;
+      await DB.put("chunks", sid + ":" + pad3(seg) + ":" + pad6(idx), await Vault.encBuf(buf.buffer));
+    }
+    const s = { sid, started: Date.now(), mime: mime || "audio/webm;codecs=opus", segs, duration: nChunks * 5 };
+    await sput("sessions", sid, s); return s;
+  };
+  window.__mxAssemble = async s => { const t0 = performance.now(); const rec = await assemble(s.sid, { started: s.started, mime: s.mime, segs: s.segs, duration: s.duration, source: "mic" }); return { ms: Math.round(performance.now() - t0), rec: rec && { id: rec.id, size: rec.size, nseg: rec.nseg, duration: rec.duration } }; };
+  window.__mxX = {
+    recs: () => [...RECS.values()].map(r => ({ id: r.id, nseg: r.nseg, duration: r.duration, status: r.status, long: !!r.long, turns: (r.turns || []).length, counted: !!r.counted, pre: r.preTx ? r.preTx.upTo : 0, txdone: r.tx ? r.tx.done : -1, txplan: r.tx && r.tx.plan ? r.tx.plan.length : -1 })),
+    meta: async id => audioMeta(RECS.get(id)),
+    seg: async (id, i) => { const b = await audioSeg(RECS.get(id), i); const u = new Uint8Array(b); let s = ""; for (let k = 0; k < u.length; k += 0x8000) s += String.fromCharCode.apply(null, u.subarray(k, k + 0x8000)); return btoa(s); },
+    turns: id => (RECS.get(id).turns || []).map(t => ({ t: t.t, who: t.who, text: t.text })),
+    segments: id => (RECS.get(id).tx ? RECS.get(id).tx.segments : []).map(t => ({ start: t.start, text: t.text })),
+    renderList: () => renderList(),
+    seek: (t, p) => playerSeekAbs(t, p),
+    syncSize: async id => { const r = RECS.get(id), c = Object.assign({}, r); delete c.prog; delete c.tx; delete c.dia; delete c.clean; delete c.preTx; delete c.minMap; if (c.turns && c.turns.length) delete c.transcript; return Math.ceil(new TextEncoder().encode(JSON.stringify(c)).length * 4 / 3) + 64; }
+  };
 }
 async function deleteAudio(rec) {
   await DB.del("audio", rec.id).catch(() => {});
@@ -1114,23 +1246,86 @@ function probeDuration(blob) {
 }
 const EXT_MIME = { mp3: "audio/mpeg", mpeg: "audio/mpeg", mpga: "audio/mpeg", wav: "audio/wav", m4a: "audio/mp4", mp4: "audio/mp4", aac: "audio/aac", ogg: "audio/ogg", oga: "audio/ogg", webm: "audio/webm", flac: "audio/flac" };
 $("#upBtn").addEventListener("click", () => { if (Vault.ready && !st.recording) $("#fileIn").click(); });
-$("#fileIn").addEventListener("change", async e => {
-  const f = e.target.files && e.target.files[0]; e.target.value = "";
-  if (!f || !Vault.ready) return;
+/* Ficheiros longos: mp3 e wav são cortados em partes de cerca de 20 MB (em fronteiras exatas), para caberem no limite de envio sem converter nada */
+const SPLIT_BYTES = 20 * 1024 * 1024;
+function mp3Split(u8) {
+  const BR1 = [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0], BR2 = [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, 0];
+  const SR = { 3: [44100, 48000, 32000], 2: [22050, 24000, 16000], 0: [11025, 12000, 8000] };
+  let pos = 0;
+  if (u8[0] === 0x49 && u8[1] === 0x44 && u8[2] === 0x33) pos = 10 + (((u8[6] & 127) << 21) | ((u8[7] & 127) << 14) | ((u8[8] & 127) << 7) | (u8[9] & 127));
+  const parts = []; let partStart = pos, partFrames = 0, sr0 = 0, spf0 = 1152;
+  while (pos + 4 <= u8.length) {
+    if (u8[pos] !== 0xFF || (u8[pos + 1] & 0xE0) !== 0xE0) { pos++; continue; }
+    const ver = (u8[pos + 1] >> 3) & 3, layer = (u8[pos + 1] >> 1) & 3, bi = u8[pos + 2] >> 4, si = (u8[pos + 2] >> 2) & 3, pad = (u8[pos + 2] >> 1) & 1;
+    if (ver === 1 || layer !== 1 || bi === 0 || bi === 15 || si === 3 || !SR[ver]) { pos++; continue; }
+    const sr = SR[ver][si], br = (ver === 3 ? BR1[bi] : BR2[bi]) * 1000, spf = ver === 3 ? 1152 : 576, len = Math.floor((ver === 3 ? 144 : 72) * br / sr) + pad;
+    if (len < 24 || pos + len > u8.length) break;
+    if (pos + len + 1 < u8.length && !(u8[pos + len] === 0xFF && (u8[pos + len + 1] & 0xE0) === 0xE0)) { pos++; continue; }
+    if (!sr0) {
+      /* A primeira «frame» de muitos mp3 só traz a duração total do ficheiro (Xing/Info/VBRI): fica de fora, para as partes não herdarem uma duração errada */
+      const side = ver === 3 ? ((u8[pos + 3] >> 6) === 3 ? 17 : 32) : ((u8[pos + 3] >> 6) === 3 ? 9 : 17), tg = String.fromCharCode(u8[pos + 4 + side] || 0, u8[pos + 5 + side] || 0, u8[pos + 6 + side] || 0, u8[pos + 7 + side] || 0), vb = String.fromCharCode(u8[pos + 36] || 0, u8[pos + 37] || 0, u8[pos + 38] || 0, u8[pos + 39] || 0);
+      sr0 = sr; spf0 = spf;
+      if (tg === "Xing" || tg === "Info" || vb === "VBRI") { pos += len; partStart = pos; continue; }
+      partStart = pos;
+    }
+    pos += len; partFrames++;
+    if (pos - partStart >= SPLIT_BYTES) { parts.push({ from: partStart, to: pos, frames: partFrames }); partStart = pos; partFrames = 0; }
+  }
+  if (partFrames) parts.push({ from: partStart, to: pos, frames: partFrames });
+  if (!sr0 || !parts.length) return null;
+  let t = 0; parts.forEach(p => { p.start = t; p.dur = p.frames * spf0 / sr0; t += p.dur; });
+  return parts;
+}
+function wavSplit(u8) {
+  if (u8.length < 44 || String.fromCharCode(u8[0], u8[1], u8[2], u8[3]) !== "RIFF") return null;
+  const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+  let pos = 12, fmt = null, dataOff = 0, dataLen = 0;
+  while (pos + 8 <= u8.length) {
+    const id = String.fromCharCode(u8[pos], u8[pos + 1], u8[pos + 2], u8[pos + 3]), len = dv.getUint32(pos + 4, true);
+    if (id === "fmt " && pos + 24 <= u8.length) fmt = { format: dv.getUint16(pos + 8, true), ch: dv.getUint16(pos + 10, true), sr: dv.getUint32(pos + 12, true), byteRate: dv.getUint32(pos + 16, true), align: dv.getUint16(pos + 20, true), bits: dv.getUint16(pos + 22, true) };
+    if (id === "data") { dataOff = pos + 8; dataLen = Math.min(len, u8.length - dataOff); break; }
+    pos += 8 + len + (len & 1);
+  }
+  if (!fmt || !dataOff || !fmt.align || !fmt.byteRate) return null;
+  const per = Math.floor(SPLIT_BYTES / fmt.align) * fmt.align, parts = [];
+  for (let o = 0; o < dataLen; o += per) {
+    const n = Math.min(per, dataLen - o), out = new Uint8Array(44 + n), h = new DataView(out.buffer), w = (p, x) => { for (let i = 0; i < x.length; i++) out[p + i] = x.charCodeAt(i); };
+    w(0, "RIFF"); h.setUint32(4, 36 + n, true); w(8, "WAVE"); w(12, "fmt "); h.setUint32(16, 16, true); h.setUint16(20, fmt.format === 0xFFFE ? 1 : fmt.format, true); h.setUint16(22, fmt.ch, true);
+    h.setUint32(24, fmt.sr, true); h.setUint32(28, fmt.byteRate, true); h.setUint16(32, fmt.align, true); h.setUint16(34, fmt.bits, true); w(36, "data"); h.setUint32(40, n, true);
+    out.set(u8.subarray(dataOff + o, dataOff + o + n), 44);
+    parts.push({ buf: out.buffer, start: o / fmt.byteRate, dur: n / fmt.byteRate });
+  }
+  return parts;
+}
+async function importFile(f) {
   const ext = (f.name.split(".").pop() || "").toLowerCase();
   if (!EXT_MIME[ext] && !/^audio\//.test(f.type)) { toast("Formato não suportado. Use mp3, wav, m4a ou aac."); return; }
-  toast("A guardar o áudio encriptado…", 2500);
+  if (f.size > 900 * 1048576) { toast("Ficheiro demasiado grande (máximo 900 MB).", 4000); return; }
+  toast("A guardar o áudio encriptado…", 3500);
   try {
-    const mime = EXT_MIME[ext] || f.type, buf = await f.arrayBuffer(), dur = await probeDuration(f);
-    const id = uid(), created = f.lastModified && f.lastModified < Date.now() ? f.lastModified : Date.now();
-    await DB.put("audio", id, await Vault.encObj({ segs: [{ start: 0, dur, mime, ext }] }));
-    await DB.put("audio", id + ":" + pad3(0), await Vault.encBuf(buf));
+    const mime = EXT_MIME[ext] || f.type; let parts = null;
+    if (f.size > SPLIT_BYTES && /^(mp3|mpeg|mpga|wav)$/.test(ext)) {
+      const u8 = new Uint8Array(await f.arrayBuffer());
+      if (ext === "wav") { const ps = wavSplit(u8); if (ps) parts = ps.map(p => ({ buf: p.buf, start: p.start, dur: p.dur, mime: "audio/wav", ext: "wav" })); }
+      else { const ps = mp3Split(u8); if (ps) parts = ps.map(p => ({ buf: u8.slice(p.from, p.to).buffer, start: p.start, dur: p.dur, mime: "audio/mpeg", ext: "mp3" })); }
+    }
+    let dur;
+    if (parts) dur = parts.reduce((a, p) => a + p.dur, 0);
+    else { const buf = await f.arrayBuffer(); dur = await probeDuration(f); parts = [{ buf, start: 0, dur, mime, ext }]; }
+    const id = uid(), created = f.lastModified && f.lastModified < Date.now() ? f.lastModified : Date.now(); let size = 0;
+    for (let i = 0; i < parts.length; i++) { await DB.put("audio", id + ":" + pad3(i), await Vault.encBuf(parts[i].buf)); size += parts[i].buf.byteLength; }
+    await DB.put("audio", id, await Vault.encObj({ segs: parts.map(p => ({ start: p.start, dur: p.dur, mime: p.mime, ext: p.ext, bytes: p.buf.byteLength })) }));
     const rec = { id, created, duration: dur, source: "file", fileName: f.name, ident: { lawyer: lawyerLine(), proc: "", court: "", client: "", adv: "", kind: "", place: "", people: "", ref: "", caseId: "" },
-      status: "new", error: "", notice: "", hasAudio: true, size: buf.byteLength, nseg: 1, tx: null, transcript: "", min: null, consent: false };
+      status: "new", error: "", notice: "", hasAudio: true, size, nseg: parts.length, tx: null, transcript: "", min: null, consent: false };
     RECS.set(id, rec); await saveRec(rec); renderList(); openDoc(id);
-    toast("Áudio guardado. Toque em Elaborar minuta quando quiser.", 3000);
-  } catch { toast("Não foi possível guardar este ficheiro."); }
-});
+    toast(parts.length > 1 ? "Áudio guardado em " + parts.length + " partes. Toque em Elaborar minuta quando quiser." : "Áudio guardado. Toque em Elaborar minuta quando quiser.", 3500);
+  } catch { toast("Não foi possível guardar este ficheiro. Se for muito grande, tente um mp3.", 4000); }
+}
+$("#fileIn").addEventListener("change", e => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (f && Vault.ready) importFile(f); });
+if (location.hostname === "localhost") window.__mxImport = importFile;
+function dimShow() { if (st.recording) $("#dim").hidden = false; }
+function dimHide() { const d = $("#dim"); if (d) d.hidden = true; }
+$("#dimBtn").addEventListener("click", dimShow); $("#dim").addEventListener("click", dimHide);
 $("#stopBtn").addEventListener("click", () => stopRec());
 $("#pauseBtn").addEventListener("click", togglePause);
 armed($("#discardBtn"), "Descartar", "Confirmar", () => stopRec("", true));
@@ -1160,6 +1355,7 @@ function draw() {
       g2.fillRect(i * step, (H - h) / 2, bw, h);
     }
     $("#clock").textContent = fmtDur(elapsed());
+    if (!$("#dim").hidden) $("#dimClock").textContent = fmtDur(elapsed());
   }
   requestAnimationFrame(draw);
 }
@@ -1239,15 +1435,33 @@ const LEGAL_HINT = "Diligência jurídica em português europeu. Advogado, clien
 function appErr(message, code) { const e = new Error(message); e.code = code || "app"; return e; }
 const busy = new Map();
 
+function parseRetry(msg) {
+  const m = String(msg).match(/try again in\s*([0-9hms.\s]+)/i); if (!m) return 0;
+  let t = 0; for (const x of m[1].matchAll(/(\d+(?:\.\d+)?)\s*(ms|h|m|s)/gi)) { const v = +x[1], u = x[2].toLowerCase(); t += u === "h" ? v * 3600 : u === "m" ? v * 60 : u === "ms" ? v / 1000 : v; }
+  return t;
+}
+const fmtWait = s => s < 90 ? Math.ceil(s) + " s" : Math.ceil(s / 60) + " min";
+/* Espera com contagem decrescente; pode ser interrompida */
+async function sleepTick(sec, onWait, signal) {
+  let left = sec;
+  while (left > 0) {
+    if (onWait) onWait(Math.ceil(left));
+    const step = Math.min(left, 5);
+    await sleep(step * 1000); left -= step;
+    if (signal && signal.aborted) throw appErr("Elaboração interrompida.", "cancelled");
+  }
+}
 async function gq(path, init, onWait) {
+  /* A transcrição de áudio tem limites por hora no plano gratuito: aqui espera-se o tempo que for preciso (até 65 min por pedido) em vez de desistir */
+  const audio = /^\/audio\//.test(path), signal = init && init.signal;
   let last;
-  for (let attempt = 0; attempt < 5; attempt++) {
+  for (let attempt = 0; attempt < (audio ? 18 : 6); attempt++) {
     let res;
     try { res = await fetch(GQ + path, init); }
     catch (e) {
       if (e && e.name === "AbortError") throw appErr("Elaboração interrompida.", "cancelled");
       last = appErr("Sem ligação à internet. Verifique a rede e toque em Continuar.", "network");
-      await sleep([2000, 5000, 10000, 15000][attempt] || 15000); continue;
+      await sleepTick([2, 5, 10, 15][attempt] || (audio ? 30 : 15), onWait && (s => onWait(s, "net")), signal); continue;
     }
     const raw = await res.text(); let j = null; try { j = JSON.parse(raw); } catch {}
     if (res.ok) return j || {};
@@ -1256,15 +1470,12 @@ async function gq(path, init, onWait) {
     if (res.status === 413 || /request too large|reduce your message|context length|too many tokens/i.test(msg)) throw appErr(msg, "toolarge");
     if (res.status === 429) {
       if (/per day|\(TPD\)|\(RPD\)|\(ASD\)|per-day|daily/i.test(msg)) throw appErr("Atingiu o limite diário gratuito do serviço. Amanhã pode continuar do ponto onde parou.", "daily");
-      let wait = +(res.headers.get("retry-after") || 0);
-      const m = msg.match(/try again in\s*(?:(\d+)m)?\s*([\d.]+)\s*(ms|s)/i);
-      if (!wait && m) wait = (+(m[1] || 0)) * 60 + (m[3] === "ms" ? +m[2] / 1000 : +m[2]);
-      wait = Math.min(75, Math.ceil(wait || [10, 20, 40, 60][attempt] || 60) + 1);
-      last = appErr("Limite por minuto atingido. Toque em Continuar dentro de um minuto.", "busy");
-      if (onWait) onWait(wait);
-      await sleep(wait * 1000); continue;
+      let wait = +(res.headers.get("retry-after") || 0) || parseRetry(msg);
+      wait = Math.min(audio ? 3900 : 75, Math.ceil(wait || [10, 20, 40, 60][Math.min(attempt, 3)]) + 1);
+      last = appErr(audio ? "O limite de transcrição por hora do plano gratuito ainda não libertou. Toque em Continuar daqui a alguns minutos." : "Limite por minuto atingido. Toque em Continuar dentro de um minuto.", "busy");
+      await sleepTick(wait, onWait, signal); continue;
     }
-    if (res.status >= 500 || res.status === 498) { last = appErr("O serviço está ocupado (" + res.status + "). Toque em Continuar dentro de instantes.", "busy"); await sleep([3000, 8000, 15000, 20000][attempt] || 20000); continue; }
+    if (res.status >= 500 || res.status === 498) { last = appErr("O serviço está ocupado (" + res.status + "). Toque em Continuar dentro de instantes.", "busy"); await sleepTick([3, 8, 15, 20][attempt] || 20, null, signal); continue; }
     throw appErr("Serviço: " + msg, "api");
   }
   throw last || appErr("Falha de ligação.", "network");
@@ -1289,10 +1500,16 @@ async function ensureModel() {
 let modelCache = null;
 const exhausted = {};
 const today = () => new Date().toISOString().slice(0, 10);
+let noReasoning = false;
 async function chatWith(model, prompt, opts) {
   const body = { model, messages: [{ role: "user", content: prompt }], temperature: .2, max_completion_tokens: opts.max || 4096 };
   if (opts.json) body.response_format = { type: "json_object" };
-  const j = await gq("/chat/completions", { method: "POST", signal: opts.signal, headers: Object.assign({ "content-type": "application/json" }, authH()), body: JSON.stringify(body) }, opts.onWait);
+  /* Os modelos gpt-oss gastam o limite a «pensar»: pede-se pouco raciocínio, para a resposta caber sempre */
+  if (/gpt-oss/.test(model) && !noReasoning) body.reasoning_effort = "low";
+  const call = () => gq("/chat/completions", { method: "POST", signal: opts.signal, headers: Object.assign({ "content-type": "application/json" }, authH()), body: JSON.stringify(body) }, opts.onWait);
+  let j;
+  try { j = await call(); }
+  catch (e) { if (body.reasoning_effort && e.code === "api" && /reasoning|unsupported|unknown|invalid/i.test(e.message)) { noReasoning = true; delete body.reasoning_effort; j = await call(); } else throw e; }
   const ch = j.choices && j.choices[0];
   if (ch && ch.finish_reason === "length") throw appErr("Resposta demasiado longa para um só bloco.", "toolarge");
   return String((ch && ch.message && ch.message.content) || "").replace(/<think>[\s\S]*?<\/think>/g, "").trim();
@@ -1318,10 +1535,18 @@ async function whisper(blob, name, prompt, signal, onWait) {
   fd.append("response_format", "verbose_json"); fd.append("temperature", "0");
   if (prompt) fd.append("prompt", prompt);
   const j = await gq("/audio/transcriptions", { method: "POST", signal, headers: authH(), body: fd }, onWait);
-  if (Array.isArray(j.segments)) return j.segments
-    .filter(s => !(s.no_speech_prob > .8 && s.avg_logprob < -1) && !(s.compression_ratio > 2.6))
-    .map(s => ({ start: +s.start || 0, text: String(s.text || "").trim() })).filter(s => s.text);
-  const t = String(j.text || "").trim(); return t ? [{ start: 0, text: t }] : [];
+  if (Array.isArray(j.segments)) {
+    const out = []; let rep = 0, prevN = "";
+    j.segments.forEach(s => {
+      if ((s.no_speech_prob > .8 && s.avg_logprob < -1) || s.compression_ratio > 2.6) return;
+      const text = String(s.text || "").trim(); if (!text) return;
+      const n = text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+      if (n && n === prevN) { if (++rep >= 2 && n.length < 60) return; } else { rep = 0; prevN = n; }   /* repetições em silêncio ou ruído */
+      const st0 = +s.start || 0; out.push({ start: st0, end: +s.end || st0, text });
+    });
+    return out;
+  }
+  const t = String(j.text || "").trim(); return t ? [{ start: 0, end: 0, text: t }] : [];
 }
 function parseJSON(text) {
   let t = String(text || "").trim();
@@ -1347,7 +1572,7 @@ function splitText(text, max) {
 
 /* ================= Etapas ================= */
 function setProg(rec, label, frac) { rec.prog = { label, frac: Math.max(0, Math.min(1, frac || 0)) }; if (cur && cur.id === rec.id) renderState(); }
-const waitHook = (rec, frac) => s => setProg(rec, "Limite por minuto do plano gratuito: a retomar em " + s + " s", frac);
+const waitHook = (rec, frac) => (s, why) => setProg(rec, (why === "net" ? "Sem ligação à internet: a tentar de novo em " : "Limite do plano gratuito da transcrição: a retomar em ") + fmtWait(s), frac);
 
 /* Conversão e divisão: formatos não aceites (ex.: .aac) ou ficheiros acima de 24 MB passam a WAV 16 kHz em blocos de 10 minutos, cortados nos silêncios */
 const STT_EXT = ["flac", "mp3", "mp4", "mpeg", "mpga", "m4a", "ogg", "wav", "webm"];
@@ -1389,30 +1614,53 @@ function encodeWav(samples, sr) {
   let o = 44; for (let i = 0; i < n; i++, o += 2) { const x = Math.max(-1, Math.min(1, samples[i])); v.setInt16(o, x < 0 ? x * 0x8000 : x * 0x7FFF, true); }
   return new Blob([buf], { type: "audio/wav" });
 }
+/* Junta dois blocos seguidos sem repetir as palavras que ficam nos dois (a gravação sobrepõe cerca de 1,5 s entre blocos) */
+function dedupeJoin(prev, next) {
+  if (!prev.length || !next.length) return next;
+  const nz = w => w.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+  const tail = prev.slice(-8).map(s => s.text).join(" ").split(/\s+/).map(nz).filter(Boolean).slice(-40);
+  const head = []; next.slice(0, 8).forEach((s, si) => s.text.split(/\s+/).forEach((w, wi) => { const n = nz(w); if (n) head.push({ n, si, wi }); }));
+  for (let k = Math.min(40, tail.length, head.length); k >= 4; k--) {
+    let ok = true; for (let i = 0; i < k; i++) if (tail[tail.length - k + i] !== head[i].n) { ok = false; break; }
+    if (!ok) continue;
+    const cut = head[k - 1], out = next.map(s => Object.assign({}, s));
+    out.splice(0, cut.si);
+    if (!out.length) return [];
+    out[0].text = out[0].text.split(/\s+/).slice(cut.wi + 1).join(" ").trim();
+    return out.filter(s => s.text);
+  }
+  return next;
+}
 async function stepTranscribe(rec, signal) {
   if (rec.tx && rec.tx.plan && rec.tx.done >= rec.tx.plan.length) return;
   if (!rec.hasAudio) throw appErr("O áudio desta diligência já foi apagado.", "noaudio");
-  const parts = await loadAudio(rec);
-  if (!parts || !parts.length) throw appErr("O áudio desta diligência não foi encontrado no dispositivo.", "noaudio");
-  const decoded = new Map();
+  const meta = await audioMeta(rec);
+  if (!meta || !meta.segs || !meta.segs.length) throw appErr("O áudio desta diligência não foi encontrado no dispositivo.", "noaudio");
+  const parts = meta.segs, decoded = new Map();
   async function pcmOf(si) {
     if (decoded.has(si)) return decoded.get(si);
+    if ((parts[si].dur || 0) > 100 * 60) throw appErr("Este ficheiro é demasiado longo para ser convertido neste aparelho. Converta-o para mp3 (por exemplo, com o VLC) e carregue-o de novo: os mp3 longos são divididos automaticamente.", "toolong");
     setProg(rec, "A preparar o áudio para transcrição", .03);
-    let d; try { d = await decodeAudio(parts[si].buf); } catch { throw appErr("Não foi possível ler este ficheiro de áudio. Converta-o para mp3 ou m4a e carregue-o de novo.", "decode"); }
-    const v = { data: monoOf(d), sr: d.sampleRate }; decoded.set(si, v); return v;
+    const buf = await audioSeg(rec, si); if (!buf) throw appErr("O áudio desta diligência não foi encontrado no dispositivo.", "noaudio");
+    let d; try { d = await decodeAudio(buf); } catch { throw appErr("Não foi possível ler este ficheiro de áudio. Converta-o para mp3 ou m4a e carregue-o de novo.", "decode"); }
+    decoded.clear(); const v = { data: monoOf(d), sr: d.sampleRate }; decoded.set(si, v); return v;
   }
   if (!rec.tx || !rec.tx.plan) {
     const plan = [];
     for (let si = 0; si < parts.length; si++) {
       const p = parts[si], ext = extOf(p);
-      if (STT_EXT.includes(ext) && p.buf.byteLength <= MAX_STT) { plan.push({ si, wav: false, from: 0, to: p.dur || 0, ext }); continue; }
+      const bytes = p.bytes != null ? p.bytes : (((await audioSeg(rec, si)) || new ArrayBuffer(0)).byteLength);
+      if (STT_EXT.includes(ext) && bytes <= MAX_STT) { plan.push({ si, wav: false, from: 0, to: p.dur || 0, ext }); continue; }
       const { data, sr } = await pcmOf(si), dur = data.length / sr;
       let t = 0;
       while (t < dur - .5) { let end = t + WAV_PART; if (end < dur - 15) end = quietPoint(data, sr, end, 8); else end = dur; plan.push({ si, wav: true, from: t, to: end }); t = end; }
       if (!p.dur) p.dur = dur;
       if (!rec.duration && parts.length === 1) rec.duration = dur;
     }
-    rec.tx = { plan, done: 0, segments: [] }; await saveRec(rec);
+    rec.tx = { plan, done: 0, segments: [] };
+    /* partes já transcritas durante a gravação */
+    if (rec.preTx && rec.preTx.upTo && plan.length === parts.length && plan.every((j, i) => !j.wav && j.si === i)) { rec.tx.done = Math.min(rec.preTx.upTo, plan.length); rec.tx.segments = rec.preTx.segments.slice(); }
+    rec.preTx = null; await saveRec(rec);
   }
   const plan = rec.tx.plan;
   for (let k = rec.tx.done; k < plan.length; k++) {
@@ -1420,18 +1668,33 @@ async function stepTranscribe(rec, signal) {
     const job = plan[k], p = parts[job.si], frac = .03 + .42 * (k / plan.length);
     setProg(rec, plan.length > 1 ? "A transcrever, bloco " + (k + 1) + " de " + plan.length : "A transcrever", frac);
     let blob, name;
-    if (!job.wav) { blob = new Blob([p.buf], { type: p.mime }); name = "bloco" + (k + 1) + "." + job.ext; }
+    if (!job.wav) { const buf = await audioSeg(rec, job.si); if (!buf) throw appErr("O áudio desta diligência não foi encontrado no dispositivo.", "noaudio"); blob = new Blob([buf], { type: p.mime }); name = "bloco" + (k + 1) + "." + job.ext; }
     else { const { data, sr } = await pcmOf(job.si); blob = encodeWav(resample(data.subarray(Math.floor(job.from * sr), Math.floor(job.to * sr)), sr, 16000), 16000); name = "bloco" + (k + 1) + ".wav"; }
     const prev = rec.tx.segments.slice(-4).map(s => s.text).join(" ").slice(-300);
     const segs = await whisper(blob, name, (prev || LEGAL_HINT).slice(-600), signal, waitHook(rec, frac));
     const offset = (p.start || 0) + (job.wav ? job.from : 0);
-    segs.forEach(s => rec.tx.segments.push({ start: s.start + offset, text: s.text }));
+    const abs = segs.map(s => ({ start: s.start + offset, end: s.end + offset, text: s.text }));
+    rec.tx.segments.push(...dedupeJoin(rec.tx.segments, abs));
     rec.tx.done = k + 1; await saveRec(rec);
   }
 }
 
+/* Gravações longas (mais de 75 min ou muito texto): em vez de pedir ao modelo para separar oradores (o que gastaria o limite diário),
+   o texto fica em parágrafos com o tempo do áudio. Os nomes podem ser acrescentados à mão. */
+const LONG_SECS = 75 * 60, LONG_CHARS = 60000;
+function isLongRec(rec) { const n = rec.tx ? rec.tx.segments.reduce((a, s) => a + s.text.length, 0) : 0; return (rec.duration || 0) > LONG_SECS || n > LONG_CHARS; }
+function longTurns(rec) {
+  const turns = []; let c = null;
+  rec.tx.segments.forEach(s => {
+    const end = s.end || s.start;
+    if (!c || s.start - c.end > 6 || c.text.length > 650 || s.start - c.t > 75) { c = { t: s.start, who: "", text: s.text, end }; turns.push(c); }
+    else { c.text += " " + s.text; c.end = end; }
+  });
+  return turns.map(t => ({ t: t.t, who: "", text: t.text }));
+}
+
 /* Intervenientes e tempos: os tempos vêm dos segmentos do áudio; o modelo só atribui quem fala e corrige o texto */
-const turnLine = t => "[" + fmtTs(t.t) + " - " + t.who + "] " + t.text;
+const turnLine = t => "[" + fmtTs(t.t) + (t.who ? " - " + t.who : "") + "] " + t.text;
 const turnsText = turns => turns.map(turnLine).join("\n");
 function knownPeople(rec) {
   const i = ident(rec), out = [];
@@ -1520,29 +1783,59 @@ function normMin(o) {
     diligencias: arr(o.diligencias).map(str).filter(Boolean)
   };
 }
+function mergeObj(list) {
+  const pick = k => list.map(p => p.idn[k]).filter(Boolean);
+  const o = { assunto: list.map(p => p.assunto).filter(Boolean), cliente: pick("client"), processo: pick("proc"), tribunal: pick("court"), parte_contraria: pick("adv"), tipo: pick("kind"), local: pick("place"), presentes: pick("people"), prazos: [], factos: [], posicionamento: [], acoes: [], diligencias: [] };
+  list.forEach(p => { o.prazos.push(...p.prazos.map(x => ({ data: x.date, descricao: x.desc, origem: x.src, tempo: x.time }))); o.factos.push(...p.factos); o.posicionamento.push(...p.posicionamento); o.acoes.push(...p.acoes.map(a => ({ tarefa: a.text, responsavel: a.who, prazo: a.due }))); o.diligencias.push(...p.diligencias); });
+  return o;
+}
+/* Consolida por fases (de poucos em poucos), para nunca enviar tudo de uma vez ao modelo */
+async function mergeMinutas(list, rec, signal) {
+  let level = list.slice(), lim = 8000;
+  for (let round = 1; level.length > 1 && round < 12; round++) {
+    const groups = []; let g = [], len = 0;
+    level.forEach(m => { const l = JSON.stringify(mergeObj([m])).length; if (g.length && (g.length >= 5 || len + l > lim)) { groups.push(g); g = []; len = 0; } g.push(m); len += l; });
+    if (g.length) groups.push(g);
+    const final = groups.length === 1, next = [];
+    try {
+      for (let i = 0; i < groups.length; i++) {
+        if (signal.aborted) throw appErr("Elaboração interrompida.", "cancelled");
+        if (groups[i].length === 1) { next.push(groups[i][0]); continue; }
+        const frac = .9 + .08 * (i / groups.length);
+        setProg(rec, "A consolidar a minuta" + (groups.length > 1 ? " (fase " + round + ", " + (i + 1) + " de " + groups.length + ")" : ""), frac);
+        next.push(normMin(parseJSON(await chat("Consolida estes elementos de minuta extraídos de várias partes da mesma diligência jurídica: elimina repetições, junta o que for o mesmo facto ou tarefa, mantém todos os prazos distintos e escolhe um único valor para assunto, cliente, processo, tribunal, parte contrária, tipo e local, e junta os presentes sem repetições." + (final ? " No resultado final: no máximo 15 factos, 10 pontos de posicionamento e 25 tarefas, os mais importantes." : "") + " Não acrescentes nada que não esteja nos dados.\n\nResponde apenas com JSON válido neste formato:\n" + SCHEMA + "\n\nDados:\n" + JSON.stringify(mergeObj(groups[i])), { signal, json: true, max: 2600, onWait: waitHook(rec, frac) }))));
+      }
+    } catch (e) { if (e.code === "toolarge" && lim > 1500) { lim = Math.floor(lim / 2); continue; } throw e; }
+    if (next.length >= level.length) break;
+    level = next;
+  }
+  return level[0];
+}
 async function stepMinuta(rec, transcript, signal) {
-  let size = (rec.clean && rec.clean.size) || 6000;
+  let size = rec.long ? 11000 : Math.round(((rec.clean && rec.clean.size) || 6000) * 1.4);
   for (;;) {
     try {
-      const blocks = splitText(transcript, Math.round(size * 1.4));
+      const blocks = splitText(transcript, size);
       if (blocks.length === 1) {
         setProg(rec, "A elaborar a minuta", .82);
-        return normMin(parseJSON(await chat("Elabora, a partir da transcrição seguinte (cada linha tem [tempo - interveniente]), os elementos de uma minuta de diligência jurídica.\n" + minutaRules(rec) + "\n\nResponde apenas com JSON válido neste formato:\n" + SCHEMA + "\n\nTranscrição:\n<<<\n" + transcript + "\n>>>", { signal, json: true, max: 3000, onWait: waitHook(rec, .82) })));
+        return normMin(parseJSON(await chat("Elabora, a partir da transcrição seguinte (cada linha tem [tempo" + (rec.long ? "" : " - interveniente") + "]), os elementos de uma minuta de diligência jurídica.\n" + minutaRules(rec) + "\n\nResponde apenas com JSON válido neste formato:\n" + SCHEMA + "\n\nTranscrição:\n<<<\n" + transcript + "\n>>>", { signal, json: true, max: 3000, onWait: waitHook(rec, .82) })));
       }
-      const partials = [];
-      for (let i = 0; i < blocks.length; i++) {
+      /* Cada parte analisada fica guardada: se falhar a meio (limite, rede), «Continuar» retoma daqui */
+      const sig = transcript.length + ":" + size;
+      if (!rec.minMap || rec.minMap.sig !== sig) rec.minMap = { sig, items: [] };
+      for (let i = rec.minMap.items.length; i < blocks.length; i++) {
         if (signal.aborted) throw appErr("Elaboração interrompida.", "cancelled");
-        const frac = .78 + .14 * (i / blocks.length);
+        const frac = .78 + .12 * (i / blocks.length);
         setProg(rec, "A analisar a transcrição, parte " + (i + 1) + " de " + blocks.length, frac);
-        partials.push(normMin(parseJSON(await chat("Extrai desta parte (" + (i + 1) + " de " + blocks.length + ") de uma transcrição de diligência jurídica os elementos de minuta.\n" + minutaRules(rec) + "\n\nResponde apenas com JSON válido neste formato:\n" + SCHEMA + "\n\nTexto:\n<<<\n" + blocks[i] + "\n>>>", { signal, json: true, max: 2500, onWait: waitHook(rec, frac) }))));
+        rec.minMap.items.push(normMin(parseJSON(await chat("Extrai desta parte (" + (i + 1) + " de " + blocks.length + ") de uma transcrição de " + (rec.long ? "um evento ou reunião longa" : "diligência jurídica") + " os elementos de minuta.\n" + minutaRules(rec) + "\n\nResponde apenas com JSON válido neste formato:\n" + SCHEMA + "\n\nTexto:\n<<<\n" + blocks[i] + "\n>>>", { signal, json: true, max: 2500, onWait: waitHook(rec, frac) }))));
+        if (i % 3 === 2) await saveRec(rec);
       }
-      setProg(rec, "A consolidar a minuta", .94);
-      const pick = k => partials.map(p => p.idn[k]).filter(Boolean);
-      const merged = { assunto: partials.map(p => p.assunto).filter(Boolean), cliente: pick("client"), processo: pick("proc"), tribunal: pick("court"), parte_contraria: pick("adv"), tipo: pick("kind"), local: pick("place"), presentes: pick("people"), prazos: [], factos: [], posicionamento: [], acoes: [], diligencias: [] };
-      partials.forEach(p => { merged.prazos.push(...p.prazos.map(x => ({ data: x.date, descricao: x.desc, origem: x.src, tempo: x.time }))); merged.factos.push(...p.factos); merged.posicionamento.push(...p.posicionamento); merged.acoes.push(...p.acoes.map(a => ({ tarefa: a.text, responsavel: a.who, prazo: a.due }))); merged.diligencias.push(...p.diligencias); });
-      return normMin(parseJSON(await chat("Consolida estes elementos de minuta extraídos de várias partes da mesma diligência jurídica: elimina repetições, junta o que for o mesmo facto ou tarefa, mantém todos os prazos distintos e escolhe um único valor para assunto, cliente, processo, tribunal, parte contrária, tipo e local, e junta os presentes sem repetições. Não acrescentes nada que não esteja nos dados.\n\nResponde apenas com JSON válido neste formato:\n" + SCHEMA + "\n\nDados:\n" + JSON.stringify(merged), { signal, json: true, max: 3000, onWait: waitHook(rec, .94) })));
+      await saveRec(rec);
+      const out = await mergeMinutas(rec.minMap.items, rec, signal);
+      rec.minMap = null;
+      return out;
     } catch (e) {
-      if (e.code === "toolarge" && size > 1500) { size = Math.floor(size / 2); continue; }
+      if (e.code === "toolarge" && size > 1500) { size = Math.floor(size / 2); rec.minMap = null; continue; }
       throw e;
     }
   }
@@ -1574,7 +1867,9 @@ async function processRec(id, opts) {
       await stepTranscribe(rec, ctl.signal);
       if (!rec.counted) { rec.counted = true; await saveRec(rec); await licConsume(); renderTrial(); }
       if (!rec.tx.segments.length) throw appErr("Não foi detetada fala nesta gravação.", "empty");
-      rec.turns = await stepDiarize(rec, ctl.signal); transcript = turnsText(rec.turns); await saveRec(rec);
+      rec.long = isLongRec(rec);
+      if (rec.long) rec.turns = longTurns(rec); else rec.turns = await stepDiarize(rec, ctl.signal);
+      rec.dia = null; transcript = turnsText(rec.turns); await saveRec(rec);
     }
     const min = await stepMinuta(rec, transcript, ctl.signal);
     if (rec.min) min.acoes.forEach(a => { const o = rec.min.acoes.find(x => x.text === a.text); if (o) a.done = o.done; });
@@ -1619,7 +1914,7 @@ async function translateRec(id, lang) {
       const map = {}; let size = 3500;
       for (;;) {
         const blocks = []; let b = [], len = 0;
-        rec.turns.forEach((t, i) => { const l = t.text.length + t.who.length + 10; if (len + l > size && b.length) { blocks.push(b); b = []; len = 0; } b.push(i); len += l; });
+        rec.turns.forEach((t, i) => { const l = t.text.length + (t.who || "").length + 10; if (len + l > size && b.length) { blocks.push(b); b = []; len = 0; } b.push(i); len += l; });
         if (b.length) blocks.push(b);
         try {
           for (let n = 0; n < blocks.length; n++) {
@@ -1631,7 +1926,7 @@ async function translateRec(id, lang) {
               "Traduz para " + name + " estas falas de uma transcrição jurídica portuguesa, com fidelidade total (não resumas nem acrescentes).",
               "Para cada fala devolve \"i\" (o mesmo número), \"o\" (quem fala: mantém nomes próprios e títulos; traduz apenas designações genéricas como «Cliente» ou «Interveniente 2») e \"t\" (o texto traduzido).",
               "Responde apenas com JSON válido: {\"s\":[{\"i\":0,\"o\":\"\",\"t\":\"\"}]}", "",
-              blocks[n].map(i => "#" + i + " " + rec.turns[i].who + ": " + rec.turns[i].text).join("\n")
+              blocks[n].map(i => "#" + i + " " + (rec.turns[i].who ? rec.turns[i].who + ": " : "") + rec.turns[i].text).join("\n")
             ].join("\n"), { signal, json: true, max: Math.min(8000, Math.ceil(size / 1.5) + 600), onWait: waitHook(rec, frac) }));
             (Array.isArray(jj.s) ? jj.s : []).forEach(x => { const i = +x.i; if (blocks[n].includes(i) && x.t) map[i] = { o: String(x.o || rec.turns[i].who).trim(), t: String(x.t).trim() }; });
           }
@@ -1657,18 +1952,49 @@ function openSheet(el) { el.classList.add("open"); el.setAttribute("aria-hidden"
 function closeSheet(el) { el.classList.remove("open"); el.setAttribute("aria-hidden", "true"); }
 
 /* ================= Minuta ================= */
-let cur = null, playerUrl = null, confT = null;
+let cur = null, playerUrl = null, confT = null, turnShown = 150;
 const player = $("#player");
-function revokePlayer() { if (playerUrl) { try { URL.revokeObjectURL(playerUrl); } catch {} playerUrl = null; } player.removeAttribute("src"); }
+/* Leitor por partes: cada parte de 15 minutos é um ficheiro independente, por isso toca-se uma de cada vez e salta-se para o tempo certo */
+const PL = { meta: null, idx: -1, token: 0 };
+const absNow = () => PL.meta && PL.idx >= 0 ? (PL.meta.segs[PL.idx].start || 0) + (player.currentTime || 0) : 0;
+function paintPart() {
+  const el = $("#partInfo"), m = PL.meta;
+  if (!m || m.segs.length < 2) { el.hidden = true; return; }
+  el.hidden = false;
+  el.innerHTML = '<button class="link" id="partPrev" aria-label="Parte anterior">‹</button><span>Parte ' + (PL.idx + 1) + " de " + m.segs.length + ", " + fmtTs(absNow()) + '</span><button class="link" id="partNext" aria-label="Parte seguinte">›</button>';
+  $("#partPrev").onclick = () => playPart(PL.idx - 1, 0, true); $("#partNext").onclick = () => playPart(PL.idx + 1, 0, true);
+}
+function revokePlayer() { if (playerUrl) { try { URL.revokeObjectURL(playerUrl); } catch {} playerUrl = null; } player.removeAttribute("src"); PL.meta = null; PL.idx = -1; PL.token++; paintPart(); }
+async function playPart(i, offset, play) {
+  const r = cur; if (!r || !PL.meta || i < 0 || i >= PL.meta.segs.length) return;
+  const token = ++PL.token, buf = await audioSeg(r, i).catch(() => null);
+  if (!buf || token !== PL.token || cur !== r) return;
+  if (playerUrl) { try { URL.revokeObjectURL(playerUrl); } catch {} }
+  playerUrl = URL.createObjectURL(new Blob([buf], { type: PL.meta.segs[i].mime })); PL.idx = i;
+  player.onloadedmetadata = () => {
+    const go = () => { try { player.currentTime = offset || 0; } catch {} if (play) player.play().catch(() => {}); paintPart(); };
+    /* Os ficheiros gravados no browser não trazem a duração: força-se o cálculo antes de saltar */
+    if (player.duration === Infinity) { player.currentTime = 1e7; player.addEventListener("timeupdate", function f() { player.removeEventListener("timeupdate", f); go(); }); } else go();
+  };
+  player.src = playerUrl; paintPart();
+}
+function playerSeekAbs(t, play) {
+  if (!PL.meta) return false;
+  const segs = PL.meta.segs; let i = 0;
+  for (let k = 0; k < segs.length; k++) { if ((segs[k].start || 0) <= t) i = k; else break; }
+  const off = Math.max(0, t - (segs[i].start || 0));
+  if (i === PL.idx && playerUrl) { try { player.currentTime = off; if (play) player.play().catch(() => {}); } catch {} return true; }
+  playPart(i, off, play); return true;
+}
+player.addEventListener("ended", () => { if (PL.meta && PL.idx + 1 < PL.meta.segs.length) playPart(PL.idx + 1, 0, true); });
+player.addEventListener("timeupdate", () => { if (PL.meta && PL.meta.segs.length > 1) { const sp = $("#partInfo span"); if (sp) sp.textContent = "Parte " + (PL.idx + 1) + " de " + PL.meta.segs.length + ", " + fmtTs(absNow()); } });
 async function openDoc(id) {
   const rec = RECS.get(id); if (!rec) return;
   cur = rec; rec.notice = "";
   revokePlayer();
   $("#dAudio").hidden = !rec.hasAudio;
-  if (rec.hasAudio) loadAudio(rec).then(parts => {
-    if (!parts || !cur || cur.id !== id) return;
-    try { playerUrl = URL.createObjectURL(new Blob(parts.map(p => p.buf), { type: parts[0].mime })); player.src = playerUrl; } catch {}
-  }).catch(() => {});
+  turnShown = 150;
+  if (rec.hasAudio) audioMeta(rec).then(m => { if (!m || !m.segs || !m.segs.length || !cur || cur.id !== id) return; PL.meta = m; playPart(0, 0, false); }).catch(() => {});
   $("#delAudio").textContent = "Apagar áudio"; $("#delAudio").dataset.arm = "";
   $("#docDel").textContent = "Eliminar"; $("#docDel").dataset.arm = "";
   $("#pick").hidden = true;
@@ -1791,7 +2117,7 @@ function renderVbar() {
   if (avail.length && !busy.has(r.id)) h += '<select id="trSel" aria-label="Traduzir para"><option value="">Traduzir para…</option>' + avail.map(l => '<option value="' + l + '">' + LANGS[l] + "</option>").join("") + "</select>";
   if (on !== "pt") h += '<p class="vnote">A ver a tradução em ' + LANGS[on].toLowerCase() + '. As exportações e o email saem neste idioma. As edições aqui só alteram a tradução.' + (busy.has(r.id) ? "" : ' <button class="link" id="trRedo" style="min-height:28px">Traduzir de novo</button>') + "</p>";
   box.innerHTML = h;
-  box.querySelectorAll(".vb").forEach(b => b.onclick = () => { r.view = b.dataset.l; saveSoon(r); renderDetail(); });
+  box.querySelectorAll(".vb").forEach(b => b.onclick = () => { r.view = b.dataset.l; turnShown = 150; saveSoon(r); renderDetail(); });
   const sel = $("#trSel"); if (sel) sel.onchange = () => { if (sel.value) translateRec(r.id, sel.value); };
   const re = $("#trRedo"); if (re) re.onclick = () => { const l = on; delete r.translations[l]; r.view = "pt"; translateRec(r.id, l); };
 }
@@ -1826,20 +2152,24 @@ function renderMin() {
   tr.innerHTML = "";
   const vw = V(cur);
   if (!vw.turns) { tr.append(editor(vw.transcript || cur.transcript || "", v => vw.transcript = v, "", "tr")); return; }
-  vw.turns.forEach(t => {
-    const row = document.createElement("div"); row.className = "turn";
-    const ts = document.createElement("button"); ts.className = "ts"; ts.textContent = fmtTs(t.t); ts.setAttribute("aria-label", "Ouvir a partir de " + fmtTs(t.t));
-    ts.onclick = () => { if (!cur.hasAudio || !player.src) { toast("O áudio desta diligência já não está disponível."); return; } try { player.currentTime = Math.max(0, t.t - 1); player.play().catch(() => {}); } catch {} };
-    const who = document.createElement("input"); who.className = "who"; who.value = t.who; who.setAttribute("aria-label", "Interveniente");
-    who.addEventListener("input", () => { t.who = who.value; saveSoon(cur); });
-    who.addEventListener("change", () => {
-      const from = who.dataset.prev || "", to = who.value.trim();
-      if (from && to && from !== to && vw.turns.filter(x => x.who === from).length) { vw.turns.forEach(x => { if (x.who === from) x.who = to; }); saveSoon(cur); renderMin(); toast("«" + from + "» passou a «" + to + "» em toda a transcrição"); }
-    });
-    who.addEventListener("focus", () => { who.dataset.prev = t.who; });
-    row.append(ts, who, document.createElement("span"), editor(t.text, v => t.text = v, "", "ed"));
-    tr.append(row);
+  if (cur.long) { const n = document.createElement("p"); n.className = "note"; n.style.margin = "-2px 0 10px"; n.textContent = "Gravação longa: a transcrição está em parágrafos com o tempo do áudio, sem separar oradores. Pode escrever o nome de quem fala em cada parágrafo."; tr.append(n); }
+  const total = vw.turns.length, shown = Math.min(total, turnShown);
+  for (let ti = 0; ti < shown; ti++) tr.append(turnRow(vw, vw.turns[ti]));
+  if (shown < total) { const more = document.createElement("button"); more.className = "add"; more.textContent = "Mostrar mais (" + (total - shown) + " parágrafos em falta)"; more.onclick = () => { turnShown += 150; renderMin(); }; tr.append(more); }
+}
+function turnRow(vw, t) {
+  const row = document.createElement("div"); row.className = "turn";
+  const ts = document.createElement("button"); ts.className = "ts"; ts.textContent = fmtTs(t.t); ts.setAttribute("aria-label", "Ouvir a partir de " + fmtTs(t.t));
+  ts.onclick = () => { if (!cur.hasAudio || !PL.meta) { toast("O áudio desta diligência já não está disponível."); return; } playerSeekAbs(Math.max(0, t.t - 1), true); };
+  const who = document.createElement("input"); who.className = "who"; who.value = t.who || ""; who.placeholder = "Orador"; who.setAttribute("aria-label", "Interveniente");
+  who.addEventListener("input", () => { t.who = who.value; saveSoon(cur); });
+  who.addEventListener("change", () => {
+    const from = who.dataset.prev || "", to = who.value.trim();
+    if (from && to && from !== to && vw.turns.filter(x => x.who === from).length) { vw.turns.forEach(x => { if (x.who === from) x.who = to; }); saveSoon(cur); renderMin(); toast("«" + from + "» passou a «" + to + "» em toda a transcrição"); }
   });
+  who.addEventListener("focus", () => { who.dataset.prev = t.who || ""; });
+  row.append(ts, who, document.createElement("span"), editor(t.text, v => t.text = v, "", "ed"));
+  return row;
 }
 $$("[data-add]").forEach(b => b.addEventListener("click", () => {
   if (!cur || !cur.min) return; const k = b.dataset.add, m = V(cur).min;
@@ -1849,6 +2179,24 @@ $$("[data-add]").forEach(b => b.addEventListener("click", () => {
   renderMin(); saveSoon(cur);
 }));
 $("#redo").addEventListener("click", () => { if (cur && (cur.turns || cur.transcript) && conf.key) processRec(cur.id, { fromText: true }); else toast("Configure primeiro o serviço nas Definições."); });
+async function saveAudioFiles() {
+  const r = cur; if (!r || !r.hasAudio) return;
+  const m = await audioMeta(r); if (!m || !m.segs || !m.segs.length) { toast("O áudio não está disponível neste aparelho."); return; }
+  const ex = mime => /webm/.test(mime) ? "webm" : /mp4|m4a/.test(mime) ? "m4a" : /mpeg|mp3/.test(mime) ? "mp3" : /wav/.test(mime) ? "wav" : /ogg/.test(mime) ? "ogg" : /aac/.test(mime) ? "aac" : "audio";
+  const base = ("Áudio " + fmtNum(r.created).replace(/\//g, "-") + (ident(r).client ? " - " + ident(r).client : "")).replace(/[\\/:*?"<>|]+/g, "").trim().slice(0, 80);
+  try {
+    if (m.segs.length === 1) { const buf = await audioSeg(r, 0); if (!buf) throw 0; await saveFile(base + "." + ex(m.segs[0].mime), buf, m.segs[0].mime); return; }
+    if (!window.JSZip) { toast("O exportador não carregou. Verifique a ligação e reabra a app."); return; }
+    toast("A preparar os ficheiros de áudio…", 4000);
+    const zip = new JSZip();
+    for (let i = 0; i < m.segs.length; i++) {
+      const buf = await audioSeg(r, i); if (!buf) continue; const t0 = Math.floor(m.segs[i].start || 0);
+      zip.file("Parte " + String(i + 1).padStart(2, "0") + " (a partir de " + Math.floor(t0 / 3600) + "h" + String(Math.floor(t0 % 3600 / 60)).padStart(2, "0") + ").mp3".replace(".mp3", "." + ex(m.segs[i].mime)), buf, { binary: true, compression: "STORE" });
+    }
+    await saveFile(base + ".zip", await zip.generateAsync({ type: "blob", compression: "STORE" }), "application/zip");
+  } catch { toast("Não foi possível guardar o áudio."); }
+}
+$("#saveAudio").addEventListener("click", saveAudioFiles);
 armed($("#delAudio"), "Apagar áudio", "Confirmar", async () => { if (!cur) return; revokePlayer(); await deleteAudio(cur); renderDetail(); toast("Áudio apagado. A minuta foi mantida."); });
 armed($("#docDel"), "Eliminar", "Confirmar", async () => {
   if (!cur) return; const r = cur, c = busy.get(r.id); if (c) c.abort();
@@ -1952,7 +2300,7 @@ async function exportDocx() {
   body += H3(d.T.tasks); (d.acoes.length ? d.acoes : [{ text: "—" }]).forEach(a => body += BUL(actLine(a, d.T), a.done ? "☑" : "☐"));
   body += H3(d.T.dil); (d.dilig.length ? d.dilig : ["—"]).forEach(s => body += BUL(s));
   body += H2(d.T.tr);
-  if (d.turns) d.turns.forEach(t => { body += para(run("[" + fmtTs(t.t) + "]  ", { b: 1, color: GOLD, sz: 18 }) + run(t.who + ": ", { b: 1, serif: 1 }) + run(t.text, { serif: 1 }), { after: 110, jc: "both", ind: 1000, hang: 1000 }); });
+  if (d.turns) d.turns.forEach(t => { body += para(run("[" + fmtTs(t.t) + "]  ", { b: 1, color: GOLD, sz: 18 }) + (t.who ? run(t.who + ": ", { b: 1, serif: 1 }) : "") + run(t.text, { serif: 1 }), { after: 110, jc: "both", ind: 1000, hang: 1000 }); });
   else d.transcript.split(/\n+/).filter(x => x.trim()).forEach(p => body += para(run(p.trim(), { serif: 1 }), { after: 120, jc: "both" }));
   const header = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
     para(run((d.office || d.T.kind).toUpperCase(), { serif: 1, sp: 40, color: INK, sz: 20, b: 1 }), { after: 20, jc: "center" }) +
@@ -2036,11 +2384,17 @@ async function exportPdf() {
   y += 2; h3(d.T.dil); (d.dilig.length ? d.dilig : ["—"]).forEach(s => bullet(s));
   h2(d.T.tr);
   if (d.turns) d.turns.forEach(t => {
+    const lab = t.who ? t.who + ": " : "";
     pdf.setFont("times", "normal"); pdf.setFontSize(10.5);
-    const lines = pdf.splitTextToSize(t.who + ": " + t.text, W - 18), lh = 10.5 * .3528 * 1.5; ensure(lh * Math.min(lines.length, 3) + 2);
+    const lines = pdf.splitTextToSize(lab + t.text, W - 18), lh = 10.5 * .3528 * 1.5; ensure(lh * Math.min(lines.length, 3) + 2);
     pdf.setFont("helvetica", "bold"); pdf.setFontSize(8.5); pdf.setTextColor.apply(pdf, gold); pdf.text(fmtTs(t.t), M, y + lh * .75);
     pdf.setFont("times", "normal"); pdf.setFontSize(10.5); pdf.setTextColor.apply(pdf, ink);
-    lines.forEach((l, k) => { ensure(lh); if (k === 0) { const w0 = pdf.getTextWidth(t.who + ": "); pdf.setFont("times", "bold"); pdf.text(t.who + ": ", M + 18, y + lh * .75); pdf.setFont("times", "normal"); pdf.text(l.slice((t.who + ": ").length), M + 18 + w0, y + lh * .75); } else pdf.text(l, M + 18, y + lh * .75); y += lh; });
+    lines.forEach((l, k) => {
+      ensure(lh);
+      if (k === 0 && lab) { pdf.setFont("times", "bold"); const w0 = pdf.getTextWidth(lab); pdf.text(lab, M + 18, y + lh * .75); pdf.setFont("times", "normal"); pdf.text(l.slice(lab.length), M + 18 + w0, y + lh * .75); }
+      else pdf.text(l, M + 18, y + lh * .75);
+      y += lh;
+    });
     y += 2;
   });
   else d.transcript.split(/\n+/).filter(x => x.trim()).forEach(p => text(p.trim(), 10.5, { serif: 1, after: 2.5, lh: 1.5 }));
@@ -2078,7 +2432,21 @@ async function paintUsage() {
   try { if (navigator.storage && navigator.storage.estimate) { const e = await navigator.storage.estimate(); t += " Espaço usado: " + (e.usage / 1048576).toFixed(1) + " MB."; } } catch {}
   $("#usage").textContent = t;
 }
+async function refreshMics(ask) {
+  const sel = $("#sMic");
+  try {
+    if (ask) { const s0 = await navigator.mediaDevices.getUserMedia({ audio: true }); s0.getTracks().forEach(t => t.stop()); }
+    const devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === "audioinput" && d.deviceId);
+    sel.innerHTML = '<option value="">Predefinido do aparelho</option>' + devs.map((d, i) => '<option value="' + esc(d.deviceId) + '">' + esc(d.label || ("Microfone " + (i + 1))) + "</option>").join("");
+    sel.value = prefs.micId && devs.some(d => d.deviceId === prefs.micId) ? prefs.micId : "";
+  } catch (e) { toast(micError(e), 3500); }
+}
+const paintProc = () => $("#sProc").setAttribute("aria-checked", prefs.proc !== false ? "true" : "false");
+$("#micDetect").addEventListener("click", () => refreshMics(true));
+$("#sMic").addEventListener("change", e => { prefs.micId = e.target.value; savePrefs(); });
+$("#sProc").addEventListener("click", () => { prefs.proc = prefs.proc === false; savePrefs(); paintProc(); });
 function openSettings() {
+  refreshMics(false); paintProc();
   $("#sOffice").value = conf.office; $("#sLawyerName").value = conf.lawyerName || ""; $("#sCedula").value = conf.cedula || ""; $("#sAddress").value = conf.address || ""; $("#sLetter").value = conf.letter; $("#sMailTo").value = conf.mailTo; $("#sKey").value = conf.key;
   $("#sAuto").value = String(prefs.autoLock); $("#sRetain").value = prefs.retain; $("#keyNote").textContent = "";
   paintModels(null); paintSec(); paintUsage(); paintInstall(); renderTrial(); paintSync(); $("#syncPair").hidden = true; openSheet(setEl);
@@ -2181,8 +2549,12 @@ const Sync = (() => {
       if (!r.mtime) r.mtime = r.created || Date.now();
       if ((p[r.id] || 0) >= r.mtime) continue;
       if (prefs.syncAudio !== false && r.hasAudio && !r.audioRemote) { try { await uploadAudio(r); } catch (e) { state.lastErr = e.message; } }
-      const copy = Object.assign({}, r); delete copy.prog;
-      items.push({ id: "rec:" + r.id, kind: "rec", mtime: r.mtime, data: await encStr(copy), _id: r.id });
+      const copy = Object.assign({}, r); delete copy.prog; delete copy.tx; delete copy.dia; delete copy.clean; delete copy.preTx; delete copy.minMap;
+      if (copy.turns && copy.turns.length) delete copy.transcript;   /* o texto vê-se a partir dos parágrafos */
+      let data = await encStr(copy);
+      if (data.length > 3900000 && copy.translations) { delete copy.translations; data = await encStr(copy); }
+      if (data.length > 3900000) { state.lastErr = "Uma minuta é demasiado grande para sincronizar e fica só neste aparelho."; const pm0 = pushedMap(); pm0[r.id] = r.mtime; setPushed(pm0); continue; }
+      items.push({ id: "rec:" + r.id, kind: "rec", mtime: r.mtime, data, _id: r.id });
     }
     tombs().forEach(t => items.push({ id: "rec:" + t.id, kind: "rec", mtime: t.t, deleted: true, _tomb: t.id }));
     if ((conf.mtime || 0) > (p.__conf || 0)) { const c = {}; SHARED_CONF.forEach(f => c[f] = conf[f] || ""); items.push({ id: "conf", kind: "conf", mtime: conf.mtime, data: await encStr(c), _conf: 1 }); }
